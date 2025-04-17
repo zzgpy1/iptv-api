@@ -344,7 +344,7 @@ class ConfigManager:
 
     @property
     def sort_duplicate_limit(self):
-        return self.config.getint("Settings", "sort_duplicate_limit", fallback=3)
+        return self.config.getint("Settings", "sort_duplicate_limit", fallback=1)
 
     @property
     def cdn_url(self):
