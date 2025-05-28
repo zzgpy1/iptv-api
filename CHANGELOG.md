@@ -22,6 +22,7 @@
 
 ---
 
+- 修复公网推流`APP_HOST`配置应用（#1094）
 - 修复部分场景下未开启测速获取结果未保存问题（#1092）
 - 修复频道缓存结果`解冻`失败
 - 修复部分设备无法打开`GUI`界面
@@ -55,6 +56,7 @@
 
 ---
 
+- Fixed the application of the public streaming APP_HOST configuration (#1094)
 - Fixed the issue where results were not saved when speed test was not enabled in some scenarios (#1092)
 - Fixed failure to "unfreeze" channel cache results
 - Fixed some devices unable to open the `GUI` interface
