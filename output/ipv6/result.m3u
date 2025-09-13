@@ -1,5 +1,5 @@
 #EXTM3U x-tvg-url="http://ghp.keleyaa.com/https://raw.githubusercontent.com/zzgpy1/iptv-api/refs/heads/master/output/epg/epg.gz"
-#EXTINF:-1 tvg-name="CCTV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="🕘️更新时间",2025-09-13 19:18:13
+#EXTINF:-1 tvg-name="CCTV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="🕘️更新时间",2025-09-14 07:14:58
 http://php.jdshipin.com/TVOD/iptv.php?id=rthk33
 #EXTINF:-1 tvg-name="CCTV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="📺央视频道",CCTV-1
 http://php.jdshipin.com/TVOD/iptv.php?id=rthk33
@@ -316,13 +316,13 @@ http://[2409:8087:1a15:10d1::34]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 https://cc06.tv12.xyz/23.m3u8
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
-https://migu.188766.xyz/?migutoken=a55dadc35d37e3e168faf8268cc6fa97&id=CETV1&type=yy
-#EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 http://[2409:8087:1a0b:df::4020]:80/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225652/index.m3u8
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226494/1.m3u8
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 http://rrs01.hw.gmcc.net:8088/PLTV/81/224/3221226673/1.m3u8
+#EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
+https://migu.188766.xyz/?migutoken=a55dadc35d37e3e168faf8268cc6fa97&id=CETV1&type=yy
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 http://iptv.cdn.ha.chinamobile.com/PLTV/88888888/224/3221227190/index.m3u8
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
@@ -336,6 +336,8 @@ https://cc06.tv12.xyz/24.m3u8
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 https://mursor.ottiptv.cc/migu/923287211.m3u8?migutoken=58dbb8ad5ad539c0da365c819615222219346bbe2fa8d6e4231da9ad89c4faf34adbae451bebfa99d9b8c9eda32e04a0066231dfd40496610efa4bee9ad5f110baee36b6f4098850d6b507505f
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
+https://migu.188766.xyz/?migutoken=98daa3ba4c81372351b73d9075023b9b&id=CETV2&type=yy
+#EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 http://gslbmgsplive.miguvideo.com/migu/kailu/cetv2/50/20240709/index.m3u8?msisdn=20250903090033bf55eab2bb984fe0b4ac863e60d28ac6&mdspid=&spid=699004&netType=0&sid=5910022152&pid=2028597139&timestamp=20250903090033&Channel_ID=0116_2600037000-99000-200300220100002&ProgramID=923287211&ParentNodeID=-99&assertID=5910022152&client_ip=106.13.250.83&SecurityKey=20250903090033&promotionId=&mvid=5900006638&mcid=500020&playurlVersion=WX-A1-8.8.1-RELEASE&userid=&jmhm=&videocodec=h264&bean=mgspad&tid=android&conFee=0&puData=ebfbdc6c83654112720d2b5599373223&ddCalcu=3e2bv2fa3ba7da3c969c5853b625d4012172&sv=10004&ct=android
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 http://[2409:8087:1a0b:df::4013]:80/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221226425/index.m3u8
@@ -343,8 +345,6 @@ http://[2409:8087:1a0b:df::4013]:80/ottrrs.hl.chinamobile.com/PLTV/88888888/224/
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226537/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7E7AxXs4eTU2oiWrhopr9sHw%7E_eNUbgU9sJGUcVVduOMKhafLvQUgE_zlz_7pvDimJNNxsM0Bor098BJglrhfEQTl%2CEND
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 http://rrs01.hw.gmcc.net:8088/PLTV/81/224/3221226718/1.m3u8
-#EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
-https://migu.188766.xyz/?migutoken=98daa3ba4c81372351b73d9075023b9b&id=CETV2&type=yy
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 http://iptv.cdn.ha.chinamobile.com/PLTV/88888888/224/3221227329/index.m3u8
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
@@ -472,11 +472,11 @@ http://iptv.cdn.ha.chinamobile.com/PLTV/88888888/224/3221227201/index.m3u8
 #EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="📡卫视频道",香港卫视
 http://cctvtxyh5c.liveplay.myqcloud.com/cstv/xianggangweishi_2/index.m3u8
 #EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="📡卫视频道",香港卫视
+https://migu.188766.xyz/?migutoken=6804cde09f4133e69f2aaf5406a2bcc5&id=%E9%A6%99%E6%B8%AF%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="📡卫视频道",香港卫视
 https://stream1.freetv.fun/5335c88a9a7d8b74173b491f480d4f94e8d3bd596af54478106aa2399e6c7917.m3u8
 #EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="📡卫视频道",香港卫视
 https://yvxymm.tv12.xyz/175.m3u8
-#EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="📡卫视频道",香港卫视
-https://migu.188766.xyz/?migutoken=6804cde09f4133e69f2aaf5406a2bcc5&id=%E9%A6%99%E6%B8%AF%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="浙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/浙江卫视.png" group-title="📡卫视频道",浙江卫视
 http://php.jdshipin.com/TVOD/hnyd.php?id=200000001898/460000089800010070
 #EXTINF:-1 tvg-name="浙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/浙江卫视.png" group-title="📡卫视频道",浙江卫视
@@ -500,9 +500,9 @@ http://[2409:8087:1a15:10d1::35]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="湖南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖南卫视.png" group-title="📡卫视频道",湖南卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000003873458.m3u8
 #EXTINF:-1 tvg-name="湖南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖南卫视.png" group-title="📡卫视频道",湖南卫视
-https://migu.188766.xyz/?migutoken=2ab226176122fc0f63c137fbefd4a496&id=hunws&type=sz
-#EXTINF:-1 tvg-name="湖南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖南卫视.png" group-title="📡卫视频道",湖南卫视
 http://iptv.huuc.edu.cn/hls/hunanhd.m3u8
+#EXTINF:-1 tvg-name="湖南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖南卫视.png" group-title="📡卫视频道",湖南卫视
+https://migu.188766.xyz/?migutoken=2ab226176122fc0f63c137fbefd4a496&id=hunws&type=sz
 #EXTINF:-1 tvg-name="湖南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖南卫视.png" group-title="📡卫视频道",湖南卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226509/1.m3u8?zoneoffset=480&servicetype=1&icpid=&limitflux=-1&limitdur=-1&tenantId=8601&accountinfo=%7E%7EV2.0%7EIGb_ib7rnBX9_sANRKq9sg%7EpK8OKM5JoJWWbLRyLfPcUMkwWZ90MzSI9S9PDltJsYzd0ZGcS3Tkh7syciNKJa-w60mDOdwtDyoNwCx9aRgzHNH9AUREV_qvNJtXHRPzYw0%7EExtInfo9bj61dxzlMXrsixrqcFYPg%3D%3D%3A20221022013542%2C915973%2C119.123.71.209%2C20221022013542%2C10000100000000050000000003873458%2C915973%2C-1%2C0%2C1%2C%2C%2C2%2C%2C%2C%2C2%2C%2C10000100000000060000000007253514_0%2CEND&GuardEncType=2
 #EXTINF:-1 tvg-name="北京卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京卫视.png" group-title="📡卫视频道",北京卫视
@@ -516,9 +516,9 @@ http://[2409:8087:1a15:10d1::38]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="北京卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京卫视.png" group-title="📡卫视频道",北京卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000003870776.m3u8
 #EXTINF:-1 tvg-name="北京卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京卫视.png" group-title="📡卫视频道",北京卫视
-https://migu.188766.xyz/?migutoken=7346b345b6433cdf451ab667105ad1a7&id=%E5%8C%97%E4%BA%AC%E5%8D%AB%E8%A7%86&type=yy
-#EXTINF:-1 tvg-name="北京卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京卫视.png" group-title="📡卫视频道",北京卫视
 http://iptv.huuc.edu.cn/hls/btv1hd.m3u8
+#EXTINF:-1 tvg-name="北京卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京卫视.png" group-title="📡卫视频道",北京卫视
+https://migu.188766.xyz/?migutoken=7346b345b6433cdf451ab667105ad1a7&id=%E5%8C%97%E4%BA%AC%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="北京卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京卫视.png" group-title="📡卫视频道",北京卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226900/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7EcYPi33WFyhvd6SjmqUKhJg%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="湖北卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
@@ -534,9 +534,9 @@ http://[2409:8087:1a15:10d1::36]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="湖北卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000003873465.m3u8
 #EXTINF:-1 tvg-name="湖北卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
-https://migu.188766.xyz/?migutoken=448df6a3948930d089f98ffc2188c5c0&id=%E6%B9%96%E5%8C%97%E5%8D%AB%E8%A7%86&type=yy
-#EXTINF:-1 tvg-name="湖北卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
 http://iptv.huuc.edu.cn/hls/hbhd.m3u8
+#EXTINF:-1 tvg-name="湖北卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
+https://migu.188766.xyz/?migutoken=448df6a3948930d089f98ffc2188c5c0&id=%E6%B9%96%E5%8C%97%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="湖北卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226952/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7EREB40lnZnCEwjRy7LZuhIQ%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="湖北卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
@@ -550,11 +550,11 @@ http://[2409:8087:1a15:10d1::33]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000003873470.m3u8
 #EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
+http://iptv.huuc.edu.cn/hls/hljhd.m3u8
+#EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
 https://migu.188766.xyz/?migutoken=9de9c061e2d4414256f1e0eda757d7f5&id=hljws&type=sz
 #EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
 https://hls-gateway.vpstv.net/streams/708854.m3u8
-#EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
-http://iptv.huuc.edu.cn/hls/hljhd.m3u8
 #EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226965/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7E7UiKL56-L86ihmTWaZ6csw%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
@@ -570,9 +570,9 @@ http://[2409:8087:1a15:10d1::39]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="安徽卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/安徽卫视.png" group-title="📡卫视频道",安徽卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000003873469.m3u8
 #EXTINF:-1 tvg-name="安徽卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/安徽卫视.png" group-title="📡卫视频道",安徽卫视
-https://migu.188766.xyz/?migutoken=636c1e223c178420ec2e32ea3f0aaf5c&id=ahws&type=sz
-#EXTINF:-1 tvg-name="安徽卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/安徽卫视.png" group-title="📡卫视频道",安徽卫视
 http://iptv.huuc.edu.cn/hls/ahhd.m3u8
+#EXTINF:-1 tvg-name="安徽卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/安徽卫视.png" group-title="📡卫视频道",安徽卫视
+https://migu.188766.xyz/?migutoken=636c1e223c178420ec2e32ea3f0aaf5c&id=ahws&type=sz
 #EXTINF:-1 tvg-name="安徽卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/安徽卫视.png" group-title="📡卫视频道",安徽卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226943/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7E0QmKQ_slRCwvVVUUfxPVbw%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="安徽卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/安徽卫视.png" group-title="📡卫视频道",安徽卫视
@@ -588,9 +588,9 @@ http://[2409:8087:1a15:10d1::36]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="重庆卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/重庆卫视.png" group-title="📡卫视频道",重庆卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000004796458.m3u8
 #EXTINF:-1 tvg-name="重庆卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/重庆卫视.png" group-title="📡卫视频道",重庆卫视
-https://migu.188766.xyz/?migutoken=87fd0af0d1d8dc5032dddb50f31e882d&id=cqws&type=sz
-#EXTINF:-1 tvg-name="重庆卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/重庆卫视.png" group-title="📡卫视频道",重庆卫视
 http://iptv.huuc.edu.cn/hls/cqhd.m3u8
+#EXTINF:-1 tvg-name="重庆卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/重庆卫视.png" group-title="📡卫视频道",重庆卫视
+https://migu.188766.xyz/?migutoken=87fd0af0d1d8dc5032dddb50f31e882d&id=cqws&type=sz
 #EXTINF:-1 tvg-name="重庆卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/重庆卫视.png" group-title="📡卫视频道",重庆卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226963/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7EjTXsJprEx2nE38tdvu5lhA%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="重庆卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/重庆卫视.png" group-title="📡卫视频道",重庆卫视
@@ -604,11 +604,11 @@ http://goo.bkpcp.top/mg/dfws
 #EXTINF:-1 tvg-name="东方卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东方卫视.png" group-title="📡卫视频道",东方卫视
 http://[2409:8087:1a15:10d1::37]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225735/index.m3u8
 #EXTINF:-1 tvg-name="东方卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东方卫视.png" group-title="📡卫视频道",东方卫视
-http://dsj.motem.top:8880/bptv/10000100000000050000000003873462.m3u8
+http://iptv.huuc.edu.cn/hls/dfhd.m3u8
 #EXTINF:-1 tvg-name="东方卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东方卫视.png" group-title="📡卫视频道",东方卫视
 https://migu.188766.xyz/?migutoken=6e3a1da55038ea778502b657ffa87247&id=%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="东方卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东方卫视.png" group-title="📡卫视频道",东方卫视
-http://iptv.huuc.edu.cn/hls/dfhd.m3u8
+http://dsj.motem.top:8880/bptv/10000100000000050000000003873462.m3u8
 #EXTINF:-1 tvg-name="东方卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东方卫视.png" group-title="📡卫视频道",东方卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226898/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7E0uh4lyjjBCCN7TCq21vSIQ%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="东方卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东方卫视.png" group-title="📡卫视频道",东方卫视
@@ -626,9 +626,9 @@ http://[2409:8087:1a15:10d1::39]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="东南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东南卫视.png" group-title="📡卫视频道",东南卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000003873473.m3u8
 #EXTINF:-1 tvg-name="东南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东南卫视.png" group-title="📡卫视频道",东南卫视
-http://live.zohi.tv/video/s10001-fztv-3/index.m3u8
-#EXTINF:-1 tvg-name="东南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东南卫视.png" group-title="📡卫视频道",东南卫视
 http://iptv.huuc.edu.cn/hls/dnhd.m3u8
+#EXTINF:-1 tvg-name="东南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东南卫视.png" group-title="📡卫视频道",东南卫视
+http://live.zohi.tv/video/s10001-fztv-3/index.m3u8
 #EXTINF:-1 tvg-name="东南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东南卫视.png" group-title="📡卫视频道",东南卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226991/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7EQ6F5Mjgs0tJyEArWFL3vQA%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="东南卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/东南卫视.png" group-title="📡卫视频道",东南卫视
@@ -768,9 +768,9 @@ http://[2409:8087:1a15:10d1::33]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="江苏卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏卫视.png" group-title="📡卫视频道",江苏卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000003873461.m3u8
 #EXTINF:-1 tvg-name="江苏卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏卫视.png" group-title="📡卫视频道",江苏卫视
-https://migu.188766.xyz/?migutoken=a543585ec033e23e97ebdfa2e3ac548a&id=%E6%B1%9F%E8%8B%8F%E5%8D%AB%E8%A7%86&type=yy
-#EXTINF:-1 tvg-name="江苏卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏卫视.png" group-title="📡卫视频道",江苏卫视
 http://iptv.huuc.edu.cn/hls/jshd.m3u8
+#EXTINF:-1 tvg-name="江苏卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏卫视.png" group-title="📡卫视频道",江苏卫视
+https://migu.188766.xyz/?migutoken=a543585ec033e23e97ebdfa2e3ac548a&id=%E6%B1%9F%E8%8B%8F%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="江苏卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏卫视.png" group-title="📡卫视频道",江苏卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226897/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7E0BmO6uHF7WFoTed__Xr3NQ%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="江苏卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏卫视.png" group-title="📡卫视频道",江苏卫视
@@ -788,9 +788,9 @@ http://[2409:8087:1a15:10d1::34]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="江西卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000004796511.m3u8
 #EXTINF:-1 tvg-name="江西卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
-https://migu.188766.xyz/?migutoken=af15c94428599a75b68df60e9b805b5d&id=%E6%B1%9F%E8%A5%BF%E5%8D%AB%E8%A7%86&type=yy
-#EXTINF:-1 tvg-name="江西卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
 http://iptv.huuc.edu.cn/hls/jxhd.m3u8
+#EXTINF:-1 tvg-name="江西卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
+https://migu.188766.xyz/?migutoken=af15c94428599a75b68df60e9b805b5d&id=%E6%B1%9F%E8%A5%BF%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="江西卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226956/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7Ei6ZIpVizXlewg-YfGvH8dA%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="江西卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
@@ -806,11 +806,11 @@ http://j.x.bkpcp.top/jx/LIAONHD
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
 http://[2409:8087:1a15:10d1::37]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221226546/index.m3u8
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
-http://dsj.motem.top:8880/bptv/10000100000000050000000003873468.m3u8
+http://iptv.huuc.edu.cn/hls/lnhd.m3u8
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
 https://migu.188766.xyz/?migutoken=10d48e5f9e26c466b6bc1c41fc84533b&id=lnws&type=sz
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
-http://iptv.huuc.edu.cn/hls/lnhd.m3u8
+http://dsj.motem.top:8880/bptv/10000100000000050000000003873468.m3u8
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226966/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7E6qJH8Fd-zgCGx3P-Ce86cA%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
@@ -930,9 +930,9 @@ http://[2409:8087:1a15:10d1::34]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/322
 #EXTINF:-1 tvg-name="四川卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/四川卫视.png" group-title="📡卫视频道",四川卫视
 http://dsj.motem.top:8880/bptv/10000100000000050000000003887274.m3u8
 #EXTINF:-1 tvg-name="四川卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/四川卫视.png" group-title="📡卫视频道",四川卫视
-https://migu.188766.xyz/?migutoken=34f1375aa1129ed239293e1079ef6150&id=scws&type=sz
-#EXTINF:-1 tvg-name="四川卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/四川卫视.png" group-title="📡卫视频道",四川卫视
 http://iptv.huuc.edu.cn/hls/schd.m3u8
+#EXTINF:-1 tvg-name="四川卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/四川卫视.png" group-title="📡卫视频道",四川卫视
+https://migu.188766.xyz/?migutoken=34f1375aa1129ed239293e1079ef6150&id=scws&type=sz
 #EXTINF:-1 tvg-name="四川卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/四川卫视.png" group-title="📡卫视频道",四川卫视
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226995/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7EBQiz3wrGrpG0CUSRIJ-7Jg%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
 #EXTINF:-1 tvg-name="四川卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/四川卫视.png" group-title="📡卫视频道",四川卫视
@@ -1218,11 +1218,11 @@ https://migu.188766.xyz/?migutoken=1023983db6b5249e61d4950c1654cd84&id=%E5%8C%97
 #EXTINF:-1 tvg-name="北京新闻" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
 https://ls.qingting.fm/live/339/64k.m3u8
 #EXTINF:-1 tvg-name="北京新闻" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
+http://iptv.huuc.edu.cn/hls/btv9hd.m3u8
+#EXTINF:-1 tvg-name="北京新闻" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
 http://dsj.motem.top:8880/bptv/10000100000000050000000003870780.m3u8
 #EXTINF:-1 tvg-name="北京新闻" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
 https://migu.188766.xyz/?migutoken=42dc4728a9aff11ab8ad2dc223ebc713&id=%E5%8C%97%E4%BA%AC%E6%96%B0%E9%97%BB&type=yy
-#EXTINF:-1 tvg-name="北京新闻" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
-http://iptv.huuc.edu.cn/hls/btv9hd.m3u8
 #EXTINF:-1 tvg-name="北京生活" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京生活.png" group-title="☘️北京频道",北京生活
 https://migu.188766.xyz/?migutoken=c439a6480d19519681155f16c78fc1a1&id=%E5%8C%97%E4%BA%ACi%E7%94%9F%E6%B4%BB&type=yy
 #EXTINF:-1 tvg-name="北京财经" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京财经.png" group-title="☘️北京频道",北京财经
@@ -1419,6 +1419,8 @@ http://gslbmgsplive.miguvideo.com/wd_r2/jstv/jsjiaoyu/600/index.m3u8?msisdn=2025
 https://migu.188766.xyz/?migutoken=bfd96895aa8e3e9aa47561510518c058&id=%E6%B1%9F%E8%8B%8F%E6%95%99%E8%82%B2&type=yy
 #EXTINF:-1 tvg-name="江苏教育" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏教育.png" group-title="☘️江苏频道",江苏教育
 https://mgtv.ottiptv.cc/migu/628008321.m3u8?migutoken=2a14b3aabc488208548ee93104e880b74d4a395bfa44d7066aecd401da116ee25176f823087e3b4982d4720bd660d81bfff58ed9193c1df26c94a3e4f7a6c10952e5d975a5e4f6244fd9dcc62d
+#EXTINF:-1 tvg-name="泗洪新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/泗洪新闻综合.png" group-title="☘️江苏频道",泗洪新闻综合
+http://live1.habctv.com/ggpdsl/sd/live.m3u8?zjiangsd#http://live1.habctv.com/ggpdsl/sd/live.m3u8
 #EXTINF:-1 tvg-name="泰州一套新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/泰州一套新闻综合.png" group-title="☘️江苏频道",泰州一套新闻综合
 https://stream1.freetv.fun/tai-zhou-yi-tao-xin-wen-zong-he-4.m3u8
 #EXTINF:-1 tvg-name="涟水电视台综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/涟水电视台综合.png" group-title="☘️江苏频道",涟水电视台综合
@@ -1447,8 +1449,6 @@ https://stream1.freetv.fun/su-zhou-xin-wen-zong-he-13.m3u8
 https://stream1.freetv.fun/su-zhou-sheng-huo-zi-xun-1.m3u8
 #EXTINF:-1 tvg-name="苏州社会经济" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/苏州社会经济.png" group-title="☘️江苏频道",苏州社会经济
 https://stream1.freetv.fun/su-zhou-she-hui-jing-ji-2.m3u8
-#EXTINF:-1 tvg-name="连云港公共" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/连云港公共.png" group-title="☘️江苏频道",连云港公共
-http://live.lyg1.com/ggpd/sd/live.m3u8
 #EXTINF:-1 tvg-name="连云港新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/连云港新闻综合.png" group-title="☘️江苏频道",连云港新闻综合
 http://z.b.bkpcp.top/m.php?id=lygxwzh
 #EXTINF:-1 tvg-name="连云港新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/连云港新闻综合.png" group-title="☘️江苏频道",连云港新闻综合
@@ -1461,8 +1461,6 @@ https://migu.188766.xyz/?migutoken=1b0d5ada0a7a68f9bc0ad66f4464a69d&id=%E8%BF%9E
 https://stream1.freetv.fun/lian-yun-gang-xin-wen-zong-he-3.ctv
 #EXTINF:-1 tvg-name="连云港新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/连云港新闻综合.png" group-title="☘️江苏频道",连云港新闻综合
 https://mgtv.ottiptv.cc/migu/639731715.m3u8?migutoken=70f90182e47785fca234628a083c2a775b48319c0603f2641b5a891ba90b43816e51fb1b07cad8793011132425ebbc0f1568b3bc433d2f04e40344c5fe163be8bf6490e14ab6b96b4419f3f134
-#EXTINF:-1 tvg-name="连云港新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/连云港新闻综合.png" group-title="☘️江苏频道",连云港新闻综合
-http://live.lyg1.com/zhpd/sd/live.m3u8
 #EXTINF:-1 tvg-name="靖江新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/靖江新闻综合.png" group-title="☘️江苏频道",靖江新闻综合
 http://ls.qingting.fm/live/23797.m3u8
 #EXTINF:-1 tvg-name="靖江新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/靖江新闻综合.png" group-title="☘️江苏频道",靖江新闻综合
@@ -1951,6 +1949,12 @@ https://m3u8-channel.lytv.tv/nmip-media/channellive/channel115062/playlist.m3u8
 https://m3u8-channel.lytv.tv/nmip-media/channellive/channel111841/playlist.m3u8
 #EXTINF:-1 tvg-name="潍坊新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/潍坊新闻综合.png" group-title="☘️山东频道",潍坊新闻综合
 https://stream1.freetv.fun/ipv6-wei-fang-xin-wen-zong-he-2.m3u8
+#EXTINF:-1 tvg-name="五台综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/五台综合.png" group-title="☘️山西频道",五台综合
+https://568slnjf.live.sxmty.com/live/hls/90c8b2efeb164cc0a6c2409eed668d6b/f77cbb89ec57435b9ba4c47589c16e4f-1.m3u8?zshanxd-1024x576
+#EXTINF:-1 tvg-name="古县综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/古县综合.png" group-title="☘️山西频道",古县综合
+https://l2fpdktp.live.sxmty.com/live/hls/e4c3b363cc4549788e2d983f403e07db/d99ce1eb686e41b9afc888110bd95aa7.m3u8?zshanxd
+#EXTINF:-1 tvg-name="定襄综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/定襄综合.png" group-title="☘️山西频道",定襄综合
+http://lbyzztfe.live.sxmty.com/live/hls/645ff4c60e0a49f0a203abbd73dd8be9/0720e665f10f48e98c9639f4f492fb4a-1.m3u8?zshanxd
 #EXTINF:-1 tvg-name="平遥新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/平遥新闻综合.png" group-title="☘️山西频道",平遥新闻综合
 https://tntgjhjb.live.sxmty.com/live/hls/3a4585ac11ec4e1bb07b419101b370c3/baf63e2b313440c2a25d7859f9b73b05-1.m3u8?zshanxd
 #EXTINF:-1 tvg-name="怀仁综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/怀仁综合.png" group-title="☘️山西频道",怀仁综合
@@ -2222,19 +2226,17 @@ http://d2e1asnsl7br7b.cloudfront.net/7782e205e72f43aeb4a48ec97f66ebbe/index_5.m3
 #EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="🌊港·澳·台",香港卫视
 http://cctvtxyh5c.liveplay.myqcloud.com/cstv/xianggangweishi_2/index.m3u8
 #EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="🌊港·澳·台",香港卫视
+https://migu.188766.xyz/?migutoken=6804cde09f4133e69f2aaf5406a2bcc5&id=%E9%A6%99%E6%B8%AF%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="🌊港·澳·台",香港卫视
 https://stream1.freetv.fun/5335c88a9a7d8b74173b491f480d4f94e8d3bd596af54478106aa2399e6c7917.m3u8
 #EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="🌊港·澳·台",香港卫视
 https://yvxymm.tv12.xyz/175.m3u8
-#EXTINF:-1 tvg-name="香港卫视" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="🌊港·澳·台",香港卫视
-https://migu.188766.xyz/?migutoken=6804cde09f4133e69f2aaf5406a2bcc5&id=%E9%A6%99%E6%B8%AF%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="纬来体育" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/纬来体育.png" group-title="🌊港·澳·台",纬来体育
 https://smart.pendy.dpdns.org/Smart.php?id=videolandsport
 #EXTINF:-1 tvg-name="纬来体育" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/纬来体育.png" group-title="🌊港·澳·台",纬来体育
 https://epg.pw/stream/8855a9936e37e608a0ec8a014cce1673dee9c5d68d560da376cc92e5edef2b25.m3u8
 #EXTINF:-1 tvg-name="纬来体育" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/纬来体育.png" group-title="🌊港·澳·台",纬来体育
 https://hls-gateway.vpstv.net/streams/477026.m3u8
-#EXTINF:-1 tvg-name="纬来育乐" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/纬来育乐.png" group-title="🌊港·澳·台",纬来育乐
-https://vx65267199.18cn.dpdns.org/48.m3u8
 #EXTINF:-1 tvg-name="纬来育乐" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/纬来育乐.png" group-title="🌊港·澳·台",纬来育乐
 https://hls-gateway.vpstv.net/streams/477081.m3u8
 #EXTINF:-1 tvg-name="纬来育乐" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/纬来育乐.png" group-title="🌊港·澳·台",纬来育乐
@@ -2392,9 +2394,9 @@ https://mursor.ottiptv.cc/douyu/1690081
 #EXTINF:-1 tvg-name="爱讲神话的小志" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/爱讲神话的小志.png" group-title="🎬电影解说",爱讲神话的小志
 https://mursor.ottiptv.cc/douyu/9495613
 #EXTINF:-1 tvg-name="牛叔说电影" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/牛叔说电影.png" group-title="🎬电影解说",牛叔说电影
-https://live.iill.top/douyu/2758565
-#EXTINF:-1 tvg-name="牛叔说电影" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/牛叔说电影.png" group-title="🎬电影解说",牛叔说电影
 https://mursor.ottiptv.cc/douyu/2758565
+#EXTINF:-1 tvg-name="牛叔说电影" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/牛叔说电影.png" group-title="🎬电影解说",牛叔说电影
+https://live.iill.top/douyu/2758565
 #EXTINF:-1 tvg-name="猫八解说" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/猫八解说.png" group-title="🎬电影解说",猫八解说
 https://mursor.ottiptv.cc/douyu/9542831
 #EXTINF:-1 tvg-name="猫叔说电影" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/猫叔说电影.png" group-title="🎬电影解说",猫叔说电影
@@ -2430,9 +2432,9 @@ https://mursor.ottiptv.cc/douyu/9222870
 #EXTINF:-1 tvg-name="老鱼说剧" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/老鱼说剧.png" group-title="🎬电影解说",老鱼说剧
 https://mursor.ottiptv.cc/douyu/9994377
 #EXTINF:-1 tvg-name="自说自话的总裁" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/自说自话的总裁.png" group-title="🎬电影解说",自说自话的总裁
-https://mursor.ottiptv.cc/douyu/9317739
-#EXTINF:-1 tvg-name="自说自话的总裁" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/自说自话的总裁.png" group-title="🎬电影解说",自说自话的总裁
 https://live.iill.top/douyu/9317739
+#EXTINF:-1 tvg-name="自说自话的总裁" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/自说自话的总裁.png" group-title="🎬电影解说",自说自话的总裁
+https://mursor.ottiptv.cc/douyu/9317739
 #EXTINF:-1 tvg-name="芳芳说故事" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/芳芳说故事.png" group-title="🎬电影解说",芳芳说故事
 https://mursor.ottiptv.cc/douyu/9401905
 #EXTINF:-1 tvg-name="菠萝说电影" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/菠萝说电影.png" group-title="🎬电影解说",菠萝说电影
@@ -2457,6 +2459,8 @@ https://mursor.ottiptv.cc/douyu/8883122
 https://mursor.ottiptv.cc/douyu/9371407
 #EXTINF:-1 tvg-name="逗米说电影" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/逗米说电影.png" group-title="🎬电影解说",逗米说电影
 https://mursor.ottiptv.cc/douyu/421222
+#EXTINF:-1 tvg-name="钱小元说电影" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/钱小元说电影.png" group-title="🎬电影解说",钱小元说电影
+https://mursor.ottiptv.cc/douyu/9368265
 #EXTINF:-1 tvg-name="锋哥聊商机" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/锋哥聊商机.png" group-title="🎬电影解说",锋哥聊商机
 https://mursor.ottiptv.cc/douyu/9472141
 #EXTINF:-1 tvg-name="阎君说剧" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/阎君说剧.png" group-title="🎬电影解说",阎君说剧
