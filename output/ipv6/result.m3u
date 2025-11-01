@@ -1,5 +1,5 @@
 #EXTM3U x-tvg-url="http://ghp.keleyaa.com/https://raw.githubusercontent.com/zzgpy1/iptv-api/refs/heads/master/output/epg/epg.gz"
-#EXTINF:-1 tvg-name="CCTV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="🕘️更新时间",2025-11-01 19:34:39
+#EXTINF:-1 tvg-name="CCTV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="🕘️更新时间",2025-11-02 07:26:24
 http://php.jdshipin.com/TVOD/iptv.php?id=rthk33
 #EXTINF:-1 tvg-name="CCTV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="📺央视频道",CCTV-1
 http://php.jdshipin.com/TVOD/iptv.php?id=rthk33
@@ -366,8 +366,6 @@ http://[2409:8087:1a0b:df::4020]:80/ottrrs.hl.chinamobile.com/PLTV/88888888/224/
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226494/1.m3u8
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
-http://rrs01.hw.gmcc.net:8088/PLTV/81/224/3221226673/1.m3u8
-#EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 https://migu.188766.xyz/?migutoken=a55dadc35d37e3e168faf8268cc6fa97&id=CETV1&type=yy
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 http://iptv.cdn.ha.chinamobile.com/PLTV/88888888/224/3221227190/index.m3u8
@@ -381,12 +379,12 @@ https://migu.188766.xyz/?migutoken=5d3dbf6f2827c8d9a930027d306c98e7&id=CETV1&typ
 http://gslbmgsplive.miguvideo.com/migu/kailu/cetv1/51/20240709/index.m3u8?msisdn=2025110108005806c24017b6084e1bafd1172e90ddfb04&mdspid=&spid=699004&netType=0&sid=5910022150&pid=2028597139&timestamp=20251101080058&Channel_ID=0116_2600000900-99000-201600010010027&ProgramID=923287154&ParentNodeID=-99&assertID=5910022150&client_ip=106.13.250.88&SecurityKey=20251101080058&promotionId=&mvid=5900006636&mcid=500020&playurlVersion=WX-A1-8.10.1-RELEASE&userid=&jmhm=&videocodec=h264&bean=mgspad&tid=android&conFee=0&puData=a6a519015d57acb9a1abf0043565c4b2&ddCalcu=2ab6e4a0c53510695031450d05f7baac1ba9
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 https://shyd.695847.xyz/cms001/ch00000090990000001020/index.m3u8?IASHttpSessionId=RR4967720251014100028031761&ispcode=12
+#EXTINF:-1 tvg-name="CETV1" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
+https://shyd.695847.xyz/cms001/ch00000090990000001100/index.m3u8?IASHttpSessionId=RR4967720251014100028031761&ispcode=12
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 http://[2409:8087:1a0b:df::4013]:80/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221226425/index.m3u8
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226537/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7E7AxXs4eTU2oiWrhopr9sHw%7E_eNUbgU9sJGUcVVduOMKhafLvQUgE_zlz_7pvDimJNNxsM0Bor098BJglrhfEQTl%2CEND
-#EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
-http://rrs01.hw.gmcc.net:8088/PLTV/81/224/3221226718/1.m3u8
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 https://migu.188766.xyz/?migutoken=98daa3ba4c81372351b73d9075023b9b&id=CETV2&type=yy
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
@@ -401,12 +399,12 @@ http://gslbmgsplive.miguvideo.com/migu/kailu/cetv2/50/20240709/index.m3u8?msisdn
 https://migu.188766.xyz/?migutoken=76a870d4538937027e5e94c1f41e669e&id=CETV2&type=yy
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 http://gslbmgsplive.miguvideo.com/migu/kailu/cetv2/51/20240709/index.m3u8?msisdn=202511010800581bf72ca6662f40c5b1ee1e65cc46e81a&mdspid=&spid=699004&netType=0&sid=5910022152&pid=2028597139&timestamp=20251101080058&Channel_ID=0116_2600000900-99000-201600010010027&ProgramID=923287211&ParentNodeID=-99&assertID=5910022152&client_ip=106.13.250.88&SecurityKey=20251101080058&promotionId=&mvid=5900006638&mcid=500020&playurlVersion=WX-A1-8.10.1-RELEASE&userid=&jmhm=&videocodec=h264&bean=mgspad&tid=android&conFee=0&puData=33169ba392c05e0f023d94c2fbefd6a8&ddCalcu=83a3e610d63f90ebbaf329c24c90d53e200f
+#EXTINF:-1 tvg-name="CETV2" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
+https://shyd.695847.xyz/cms001/ch00000090990000001226/index.m3u8?IASHttpSessionId=RR4967720251014100028031761&ispcode=12
 #EXTINF:-1 tvg-name="CETV3" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV3.png" group-title="📺央视频道",CETV-3
 http://[2409:8087:7004:20:1000::22]:6610/yinhe/2/ch00000090990000001309/index.m3u8
 #EXTINF:-1 tvg-name="CETV3" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV3.png" group-title="📺央视频道",CETV-3
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226577/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7EhE2Z89HKgsQOlN9opVn1iw%7E_eNUbgU9sJGUcVVduOMKhafLvQUgE_zlz_7pvDimJNN03yUnk4zBVk1bynPPL3hZ%2CEND
-#EXTINF:-1 tvg-name="CETV3" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV3.png" group-title="📺央视频道",CETV-3
-http://rrs01.hw.gmcc.net:8088/PLTV/81/224/3221226722/1.m3u8
 #EXTINF:-1 tvg-name="CETV3" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV3.png" group-title="📺央视频道",CETV-3
 http://iptv.cdn.ha.chinamobile.com/PLTV/88888888/224/3221227352/index.m3u8
 #EXTINF:-1 tvg-name="CETV3" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV3.png" group-title="📺央视频道",CETV-3
@@ -415,8 +413,6 @@ http://ott.mobaibox.com/PLTV/3/224/3221227018/index.m3u8
 http://[2409:8087:1a0b:df::4020]:80/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225783/index.m3u8
 #EXTINF:-1 tvg-name="CETV4" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV4.png" group-title="📺央视频道",CETV-4
 http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226997/1.m3u8?GuardEncType=2&accountinfo=%7E%7EV2.0%7EAw_OvjRgJVjtlaOa0dcgzg%7EtP4-l0lmSfjwLWEfK_el1vH_mv-s1zo4AQJwdedaVwG9xkuFTDg8J26cwOrNJzn20BErrHdLhuZ9EzLUCD3PMW-OMx4MGteHV2vLeW6BqoY%2CEND
-#EXTINF:-1 tvg-name="CETV4" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV4.png" group-title="📺央视频道",CETV-4
-http://rrs01.hw.gmcc.net:8088/PLTV/81/224/3221226724/1.m3u8
 #EXTINF:-1 tvg-name="CETV4" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV4.png" group-title="📺央视频道",CETV-4
 https://migu.188766.xyz/?migutoken=d5d19d868e1df41e984866fc7ca15071&id=CETV4&type=yy
 #EXTINF:-1 tvg-name="CETV4" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV4.png" group-title="📺央视频道",CETV-4
@@ -431,6 +427,8 @@ http://sxydajtvlive.sx.chinamobile.com/PLTV/-/224/3221225748/1.m3u8
 http://gslbmgsplive.miguvideo.com/migu/kailu/cetv4/50/20240709/index.m3u8?msisdn=2025090309003329cd481a5313461999ea66e0b5c14a1b&mdspid=&spid=699004&netType=0&sid=5910022154&pid=2028597139&timestamp=20250903090033&Channel_ID=0116_2600037000-99000-200300220100002&ProgramID=923287339&ParentNodeID=-99&assertID=5910022154&client_ip=106.13.250.83&SecurityKey=20250903090033&promotionId=&mvid=5900006640&mcid=500020&playurlVersion=WX-A1-8.8.1-RELEASE&userid=&jmhm=&videocodec=h264&bean=mgspad&tid=android&conFee=0&puData=a0dd23e241f091b5c99903fbe22f27e3&ddCalcu=3ae0v7da2dbf2a232ee2b4f13f0099919bc5&sv=10004&ct=android
 #EXTINF:-1 tvg-name="CETV4" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV4.png" group-title="📺央视频道",CETV-4
 https://migu.188766.xyz/?migutoken=30b0f4459ba33f8418bab28e2b47d50a&id=CETV4&type=yy
+#EXTINF:-1 tvg-name="CETV4" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV4.png" group-title="📺央视频道",CETV-4
+http://gslbmgsplive.miguvideo.com/migu/kailu/cetv4/51/20240709/index.m3u8?msisdn=202511010800589829407aefcf4bbcbf7479035b89ecc1&mdspid=&spid=699004&netType=0&sid=5910022154&pid=2028597139&timestamp=20251101080058&Channel_ID=0116_2600000900-99000-201600010010027&ProgramID=923287339&ParentNodeID=-99&assertID=5910022154&client_ip=106.13.250.88&SecurityKey=20251101080058&promotionId=&mvid=5900006640&mcid=500020&playurlVersion=WX-A1-8.10.1-RELEASE&userid=&jmhm=&videocodec=h264&bean=mgspad&tid=android&conFee=0&puData=be4a22d3a5e101795c954b717f67bb8e&ddCalcu=eb8eeb40ba372062fd731a75be415091c759
 #EXTINF:-1 tvg-name="CCTV老故事" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV老故事.png" group-title="📺央视频道",CCTV老故事
 https://other.ottiptv.cc/cwjd.m3u8
 #EXTINF:-1 tvg-name="CCTV老故事" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV老故事.png" group-title="📺央视频道",CCTV老故事
@@ -1649,8 +1647,6 @@ https://ls.qingting.fm/live/339/64k.m3u8
 http://iptv.huuc.edu.cn/hls/btv9hd.m3u8
 #EXTINF:-1 tvg-name="北京新闻" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
 https://migu.188766.xyz/?migutoken=095aa4babf6455995e9614d1f305fbb9&id=%E5%8C%97%E4%BA%AC%E6%96%B0%E9%97%BB&type=yy
-#EXTINF:-1 tvg-name="北京新闻" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
-https://brtv-radiolive.rbc.cn/alive/fm945.m3u8
 #EXTINF:-1 tvg-name="北京生活" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京生活.png" group-title="☘️北京频道",北京生活
 https://migu.188766.xyz/?migutoken=583e47d5a3c3f5fc965131b252221352&id=%E5%8C%97%E4%BA%ACi%E7%94%9F%E6%B4%BB&type=yy
 #EXTINF:-1 tvg-name="北京财经" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京财经.png" group-title="☘️北京频道",北京财经
@@ -2284,8 +2280,6 @@ https://stream1.freetv.fun/hu-nan-gong-gong-7.ctv
 #EXTINF:-1 tvg-name="金鹰纪实" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/金鹰纪实.png" group-title="☘️湖南频道",金鹰纪实
 http://iptv.huuc.edu.cn/hls/gedocu.m3u8
 #EXTINF:-1 tvg-name="金鹰纪实" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/金鹰纪实.png" group-title="☘️湖南频道",金鹰纪实
-http://rrs01.hw.gmcc.net:8088/PLTV/81/224/3221226667/1.m3u8
-#EXTINF:-1 tvg-name="金鹰纪实" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/金鹰纪实.png" group-title="☘️湖南频道",金鹰纪实
 https://hls-gateway.vpstv.net/streams/708834.m3u8
 #EXTINF:-1 tvg-name="金鹰纪实" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/金鹰纪实.png" group-title="☘️湖南频道",金鹰纪实
 https://stream1.freetv.fun/jin-ying-ji-shi-2.ctv
@@ -2385,8 +2379,6 @@ https://stream1.freetv.fun/jing-men-xin-wen-zong-he-5.m3u8
 https://stream1.freetv.fun/jing-men-xin-wen-zong-he-4.m3u8
 #EXTINF:-1 tvg-name="荆门新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/荆门新闻综合.png" group-title="☘️湖北频道",荆门新闻综合
 https://stream1.freetv.fun/jing-men-xin-wen-zong-he-1.m3u8
-#EXTINF:-1 tvg-name="北海经济科教" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/北海经济科教.png" group-title="☘️广西频道",北海经济科教
-https://play-a2.quklive.com:443/live/1727311690820146.m3u8
 #EXTINF:-1 tvg-name="南宁公共" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/南宁公共.png" group-title="☘️广西频道",南宁公共
 https://stream1.freetv.fun/nan-zhu-gong-gong-1.m3u8
 #EXTINF:-1 tvg-name="南宁公共" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/南宁公共.png" group-title="☘️广西频道",南宁公共
@@ -3247,8 +3239,6 @@ http://live.cztv.cc:85/live/ggpd.m3u8
 http://live.cztv.cc:85/live/ggpd.m3u8?zanhd#http://live.cztv.cc:85/live/ggpd.m3u8
 #EXTINF:-1 tvg-name="滁州公共" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/滁州公共.png" group-title="☘️安徽频道",滁州公共
 http://live.cztv.cc:85/live/ggpd.m3u8?zanhd
-#EXTINF:-1 tvg-name="宿松新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/宿松新闻综合.png" group-title="☘️安徽频道",宿松新闻综合
-http://live.ahsz.tv/video/s10001-szzh/index.m3u8
 #EXTINF:-1 tvg-name="宿州新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/宿州新闻综合.png" group-title="☘️安徽频道",宿州新闻综合
 http://live.ahsz.tv/video/s10001-szzh/index.m3u8
 #EXTINF:-1 tvg-name="宿州新闻综合" tvg-logo="http://ghp.keleyaa.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/宿州新闻综合.png" group-title="☘️安徽频道",宿州新闻综合
