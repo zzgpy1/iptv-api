@@ -76,7 +76,6 @@ async def get_channels_by_subscribe_urls(
                 )
             except Exception as e:
                 print(f"{subscribe_url}: {e}")
-            print(response)
             if response:
                 response.encoding = "utf-8"
                 content = response.text
