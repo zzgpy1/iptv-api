@@ -5,8 +5,6 @@ config_dir = "config"
 
 output_dir = "output"
 
-live_path = os.path.join(config_dir, "live")
-
 hls_path = os.path.join(config_dir, "hls")
 
 alias_path = os.path.join(config_dir, "alias.txt")
@@ -26,12 +24,6 @@ epg_gz_result_path = os.path.join(output_dir, "epg/epg.gz")
 ipv4_result_path = os.path.join(output_dir, "ipv4/result.txt")
 
 ipv6_result_path = os.path.join(output_dir, "ipv6/result.txt")
-
-live_result_path = os.path.join(output_dir, "live.txt")
-
-live_ipv4_result_path = os.path.join(output_dir, "ipv4/live.txt")
-
-live_ipv6_result_path = os.path.join(output_dir, "ipv6/live.txt")
 
 rtmp_data_path = os.path.join(output_dir, "data/rtmp.db")
 

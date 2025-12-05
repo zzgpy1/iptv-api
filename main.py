@@ -26,7 +26,6 @@ from utils.channel import (
 from utils.config import config
 from utils.tools import (
     get_pbar_remaining,
-    get_ip_address,
     process_nested_dict,
     format_interval,
     check_ipv6_support,
@@ -34,7 +33,8 @@ from utils.tools import (
     get_version_info,
     join_url,
     get_urls_len,
-    merge_objects
+    merge_objects,
+    get_public_url
 )
 from utils.types import CategoryChannelData
 
@@ -199,7 +199,7 @@ class UpdateSource:
                     tip,
                     100,
                     finished=True,
-                    url=f"{get_ip_address()}" if open_service else None,
+                    url=f"{get_public_url()}" if open_service else None,
                     now=self.now
                 )
         except asyncio.exceptions.CancelledError:
