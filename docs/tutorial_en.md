@@ -362,10 +362,12 @@ Taking the host path /etc/docker as an example:
 
 #### Environment Variables:
 
-| Variable | Description          | Default Value    |
-|:---------|:---------------------|:-----------------|
-| APP_HOST | Service host address | Local machine IP |
-| APP_PORT | Service port         | 8000             |
+| Variable        | Description             | Default Value    |
+|:----------------|:------------------------|:-----------------|
+| APP_HOST        | Service host address    | Local machine IP |
+| APP_PORT        | Service port            | 8000             |
+| NGINX_HTTP_PORT | Nginx HTTP service port | 8080             |
+| NGINX_RTMP_PORT | Nginx RTMP service port | 1935             |
 
 In addition to the environment variables listed above, you can also override the [configuration items](./config_en.md)
 in the
