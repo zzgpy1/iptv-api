@@ -9,7 +9,7 @@ from utils.tools import get_result_file_content, resource_path, get_public_url
 from utils.config import config
 import utils.constants as constants
 import atexit
-from rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hls_temp_path, STREAMS_LOCK, \
+from service.rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hls_temp_path, STREAMS_LOCK, \
     hls_running_streams, start_hls_to_rtmp, hls_last_access, hls_idle_monitor, HLS_WAIT_TIMEOUT, HLS_WAIT_INTERVAL
 import logging
 
