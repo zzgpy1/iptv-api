@@ -42,7 +42,7 @@ http {
         }
 
         location ~ ^/hls/(.+)\.ts$ {
-            root   tmp;
+            root /tmp;
             types {
                 video/mp2t ts;
             }

@@ -28,7 +28,7 @@ def show_index():
 
 @app.route("/favicon.ico")
 def favicon():
-    return send_from_directory(resource_path('static/images'), 'favicon.ico',
+    return send_from_directory(resource_path(''), 'favicon.ico',
                                mimetype='image/vnd.microsoft.icon')
 
 
