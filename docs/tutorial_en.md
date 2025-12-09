@@ -324,43 +324,35 @@ If you do not understand the software configuration options, do not change anyth
 
 ## Docker
 
-### 1. Pull the image
+### One‑click deployment with Compose
+
+[docker-compose.yml](../docker-compose.yml)
+
+```bash
+docker compose up -d
+```
+
+### Manual deployment with commands
+
+#### 1. Pull the image
 
 ```bash
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 Proxy acceleration (recommended for users in China):
+🚀 Proxy acceleration (recommended for users in China, may be cached):
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
 ```
 
-### 2. Run the container
+#### 2. Run the container
 
 ```bash
 docker run -d -p 5180:5180 guovern/iptv-api
 ```
 
-#### Mount (recommended):
-
-This allows synchronization of files between the host machine and the container. Modifying templates, configurations,
-and retrieving updated result files can be directly operated in the host machine's folder.
-
-Taking the host path /etc/docker as an example:
-
-```bash
--v /etc/docker/config:/iptv-api/config
--v /etc/docker/output:/iptv-api/output
-```
-
-> [!WARNING]\
-> If you pull the image again to update the version, and there are changes or additions to the configuration files, be
-> sure to overwrite the old configuration files in the host (config directory), as the host configuration files cannot
-> be
-> updated automatically. Otherwise, the container will still run with the old configuration.
-
-#### Environment Variables:
+Environment Variables:
 
 | Variable        | Description             | Default Value |
 |:----------------|:------------------------|:--------------|
@@ -368,11 +360,26 @@ Taking the host path /etc/docker as an example:
 | NGINX_HTTP_PORT | Nginx HTTP service port | 8080          |
 | NGINX_RTMP_PORT | Nginx RTMP service port | 1935          |
 
-In addition to the environment variables listed above, you can also override the [configuration items](./config_en.md)
-in the
+In addition to the environment variables listed above, you can also override
+the [configuration items](../docs/config_en.md) in the
 configuration file via environment variables.
 
-### 3. Update Results
+Mounts: used to synchronize files between the host and the container. You can edit templates, configs, and access
+generated result files directly on the host. Append the following options to the run command above:
+
+Mount config directory:
+
+```bash
+-v /iptv-api/config:/iptv-api/config
+```
+
+Mount output directory:
+
+```bash
+-v /iptv-api/output:/iptv-api/output
+```
+
+#### 3. Update Results
 
 | Endpoint        | Description                                     |
 |:----------------|:------------------------------------------------|
@@ -398,7 +405,7 @@ configuration file via environment variables.
 > 2. To stream local video sources, create an `hls` folder inside the `config` directory.
 > 3. Place video files named with the `channel name` into that folder; the program will automatically stream them to the
      corresponding channels.
-> 4. Visit `http://localhost:8080/stat` to view real-time streaming status and statistics.
+> 4. Visit `http://127.0.0.1:8080/stat` to view real-time streaming status and statistics.
 
 | Streaming Endpoint | Description                     |
 |:-------------------|:--------------------------------|

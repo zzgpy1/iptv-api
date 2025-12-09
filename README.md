@@ -273,36 +273,35 @@ pipenv run ui
 
 ### Docker
 
-#### 1. 拉取镜像
+#### Compose一键部署
+
+[docker-compose.yml](./docker-compose.yml)
+
+```bash
+docker compose up -d
+```
+
+#### 手动命令部署
+
+##### 1. 拉取镜像
 
 ```bash
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 代理加速（推荐国内用户使用）：
+🚀 代理加速（推荐国内用户使用，可能会有缓存）：
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
 ```
 
-#### 2. 运行容器
+##### 2. 运行容器
 
 ```bash
 docker run -d -p 5180:5180 guovern/iptv-api
 ```
 
-##### 挂载（推荐）：
-
-实现宿主机文件与容器文件同步，修改模板、配置、获取更新结果文件可直接在宿主机文件夹下操作
-
-以宿主机路径/etc/docker 为例：
-
-```bash
--v /etc/docker/config:/iptv-api/config
--v /etc/docker/output:/iptv-api/output
-```
-
-##### 环境变量：
+环境变量：
 
 | 变量              | 描述             | 默认值  |
 |:----------------|:---------------|:-----|
@@ -312,7 +311,21 @@ docker run -d -p 5180:5180 guovern/iptv-api
 
 除了以上环境变量，还支持通过环境变量覆盖配置文件中的[配置项](#配置)
 
-#### 3. 更新结果
+挂载：实现宿主机文件与容器文件同步，修改模板、配置、获取更新结果文件可直接在宿主机文件夹下操作，在上述运行命令后添加以下参数
+
+挂载配置目录：
+
+```bash
+-v /iptv-api/config:/iptv-api/config
+```
+
+挂载结果目录：
+
+```bash
+-v /iptv-api/output:/iptv-api/output
+```
+
+##### 3. 更新结果
 
 | 接口              | 描述          |
 |:----------------|:------------|
@@ -337,7 +350,7 @@ docker run -d -p 5180:5180 guovern/iptv-api
 > 1. 开启推流后，默认会将获取到的接口（如订阅源）进行推流
 > 2. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹
 > 3. 将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
-> 4. 可访问 http://localhost:8080/stat 查看实时推流状态统计数据
+> 4. 可访问 http://127.0.0.1:8080/stat 查看实时推流状态统计数据
 
 | 推流接口          | 描述           |
 |:--------------|:-------------|

@@ -280,37 +280,35 @@ pipenv run ui
 
 ### Docker
 
-#### 1. Pull the image
+#### One‑click deployment with Compose
+
+[docker-compose.yml](./docker-compose.yml)
+
+```bash
+docker compose up -d
+```
+
+#### Manual deployment with commands
+
+##### 1. Pull the image
 
 ```bash
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 Proxy acceleration (recommended for users in China):
+🚀 Proxy acceleration (recommended for users in Mainland China, may be cached):
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
 ```
 
-#### 2. Run the container
+##### 2. Run the container
 
 ```bash
 docker run -d -p 5180:5180 guovern/iptv-api
 ```
 
-##### Mount(Recommended):
-
-This allows synchronization of files between the host machine and the container. Modifying templates, configurations,
-and retrieving updated result files can be directly operated in the host machine's folder.
-
-Taking the host path /etc/docker as an example:
-
-```bash
--v /etc/docker/config:/iptv-api/config
--v /etc/docker/output:/iptv-api/output
-```
-
-##### Environment Variables:
+Environment Variables:
 
 | Variable        | Description             | Default Value |
 |:----------------|:------------------------|:--------------|
@@ -321,7 +319,22 @@ Taking the host path /etc/docker as an example:
 In addition to the environment variables listed above, you can also override the [configuration items](#Config) in the
 configuration file via environment variables.
 
-#### 3. Update Results
+Mounts: used to synchronize files between the host and the container. You can edit templates, configs, and access
+generated result files directly on the host. Append the following options to the run command above:
+
+Mount config directory:
+
+```bash
+-v /iptv-api/config:/iptv-api/config
+```
+
+Mount output directory:
+
+```bash
+-v /iptv-api/output:/iptv-api/output
+```
+
+##### 3. Update Results
 
 | Endpoint        | Description                                     |
 |:----------------|:------------------------------------------------|
@@ -347,7 +360,7 @@ configuration file via environment variables.
 > 2. To stream local video sources, create an `hls` folder inside the `config` directory.
 > 3. Place video files named with the `channel name` into that folder; the program will automatically stream them to the
      corresponding channels.
-> 4. Visit `http://localhost:8080/stat` to view real-time streaming status and statistics.
+> 4. Visit `http://127.0.0.1:8080/stat` to view real-time streaming status and statistics.
 
 | Streaming Endpoint | Description                     |
 |:-------------------|:--------------------------------|
