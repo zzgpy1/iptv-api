@@ -9,14 +9,14 @@ from collections import OrderedDict
 import utils.constants as constants
 from utils.config import config
 from utils.db import get_db_connection, return_db_connection
-from utils.tools import join_url, add_port_to_url, resource_path, render_nginx_conf
+from utils.tools import join_url, resource_path, render_nginx_conf
 
 nginx_dir = resource_path(os.path.join('utils', 'nginx-rtmp-win32'))
 nginx_conf_template = resource_path(os.path.join(nginx_dir, 'conf', 'nginx.conf.template'))
 nginx_conf = resource_path(os.path.join(nginx_dir, 'conf', 'nginx.conf'))
 nginx_path = resource_path(os.path.join(nginx_dir, 'nginx.exe'))
 stop_path = resource_path(os.path.join(nginx_dir, 'stop.bat'))
-app_rtmp_url = f"rtmp://{config.app_host}:{config.nginx_rtmp_port}"
+app_rtmp_url = f"rtmp://127.0.0.1:{config.nginx_rtmp_port}"
 
 hls_running_streams = OrderedDict()
 STREAMS_LOCK = threading.Lock()
@@ -25,7 +25,6 @@ HLS_IDLE_TIMEOUT = config.rtmp_idle_timeout
 HLS_WAIT_TIMEOUT = 10
 HLS_WAIT_INTERVAL = 0.5
 MAX_STREAMS = config.rtmp_max_streams
-rtmp_hls_file_url = join_url(add_port_to_url(config.app_host, config.nginx_http_port), 'hls/')
 nginx_dir = resource_path(os.path.join('utils', 'nginx-rtmp-win32'))
 hls_temp_path = resource_path(os.path.join(nginx_dir, 'temp', 'hls')) if sys.platform == "win32" else '/tmp/hls'
 

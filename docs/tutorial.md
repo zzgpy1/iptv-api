@@ -299,7 +299,7 @@ docker pull docker.1ms.run/guovern/iptv-api:latest
 ### 2. 运行容器
 
 ```bash
-docker run -d -p 8000:8000 guovern/iptv-api
+docker run -d -p 5180:5180 guovern/iptv-api
 ```
 
 #### 挂载（推荐）：
@@ -320,8 +320,7 @@ docker run -d -p 8000:8000 guovern/iptv-api
 
 | 变量              | 描述             | 默认值  |
 |:----------------|:---------------|:-----|
-| APP_HOST        | 服务host地址       | 本机IP |
-| APP_PORT        | 服务端口           | 8000 |
+| APP_PORT        | 服务端口           | 5180 |
 | NGINX_HTTP_PORT | Nginx HTTP服务端口 | 8080 |
 | NGINX_RTMP_PORT | Nginx RTMP服务端口 | 1935 |
 

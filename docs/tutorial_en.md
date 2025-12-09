@@ -339,7 +339,7 @@ docker pull docker.1ms.run/guovern/iptv-api:latest
 ### 2. Run the container
 
 ```bash
-docker run -d -p 8000:8000 guovern/iptv-api
+docker run -d -p 5180:5180 guovern/iptv-api
 ```
 
 #### Mount (recommended):
@@ -362,12 +362,11 @@ Taking the host path /etc/docker as an example:
 
 #### Environment Variables:
 
-| Variable        | Description             | Default Value    |
-|:----------------|:------------------------|:-----------------|
-| APP_HOST        | Service host address    | Local machine IP |
-| APP_PORT        | Service port            | 8000             |
-| NGINX_HTTP_PORT | Nginx HTTP service port | 8080             |
-| NGINX_RTMP_PORT | Nginx RTMP service port | 1935             |
+| Variable        | Description             | Default Value |
+|:----------------|:------------------------|:--------------|
+| APP_PORT        | Service port            | 5180          |
+| NGINX_HTTP_PORT | Nginx HTTP service port | 8080          |
+| NGINX_RTMP_PORT | Nginx RTMP service port | 1935          |
 
 In addition to the environment variables listed above, you can also override the [configuration items](./config_en.md)
 in the

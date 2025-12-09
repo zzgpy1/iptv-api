@@ -163,8 +163,7 @@ https://raw.githubusercontent.com/Guovin/iptv-api/gd/source.json
 | open_use_cache         | Enable the use of local cache data, applicable to the query request failure scenario (only for hotel sources and multicast sources)                                                                                                                                                                                                                                                                                              | True              |
 | open_history           | Enable the use of historical update results (including the interface for template and result files) and merge them into the current update                                                                                                                                                                                                                                                                                       | True              |
 | open_headers           | Enable to use the request header verification information contained in M3U, used for speed measurement and other operations. Note: Only a few players support playing this type of interface with verification information, which is turned off by default                                                                                                                                                                       | False             |
-| app_host               | Page service Host address, default is to use the local machine IP                                                                                                                                                                                                                                                                                                                                                                |                   |
-| app_port               | Page service port, used to control the port number of the page service                                                                                                                                                                                                                                                                                                                                                           | 8000              |
+| app_port               | Page service port, used to control the port number of the page service                                                                                                                                                                                                                                                                                                                                                           | 5180              |
 | nginx_http_port        | Nginx HTTP service port, used for the HTTP service port of RTMP push forwarding                                                                                                                                                                                                                                                                                                                                                  | 8080              |
 | nginx_rtmp_port        | Nginx RTMP service port, used for the RTMP service port of RTMP push forwarding                                                                                                                                                                                                                                                                                                                                                  | 1935              |
 | public_scheme          | Public network protocol, optional values: http, https                                                                                                                                                                                                                                                                                                                                                                            | http              |
@@ -296,7 +295,7 @@ docker pull docker.1ms.run/guovern/iptv-api:latest
 #### 2. Run the container
 
 ```bash
-docker run -d -p 8000:8000 guovern/iptv-api
+docker run -d -p 5180:5180 guovern/iptv-api
 ```
 
 ##### Mount(Recommended):
@@ -313,12 +312,11 @@ Taking the host path /etc/docker as an example:
 
 ##### Environment Variables:
 
-| Variable        | Description             | Default Value    |
-|:----------------|:------------------------|:-----------------|
-| APP_HOST        | Service host address    | Local machine IP |
-| APP_PORT        | Service port            | 8000             |
-| NGINX_HTTP_PORT | Nginx HTTP service port | 8080             |
-| NGINX_RTMP_PORT | Nginx RTMP service port | 1935             |
+| Variable        | Description             | Default Value |
+|:----------------|:------------------------|:--------------|
+| APP_PORT        | Service port            | 5180          |
+| NGINX_HTTP_PORT | Nginx HTTP service port | 8080          |
+| NGINX_RTMP_PORT | Nginx RTMP service port | 1935          |
 
 In addition to the environment variables listed above, you can also override the [configuration items](#Config) in the
 configuration file via environment variables.

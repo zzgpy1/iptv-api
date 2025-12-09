@@ -158,8 +158,7 @@ https://raw.githubusercontent.com/Guovin/iptv-api/gd/source.json
 | open_use_cache         | 开启使用本地缓存数据，适用于查询请求失败场景（仅针对酒店源与组播源）                                                                                                                                    | True              |
 | open_history           | 开启使用历史更新结果（包含模板与结果文件的接口），合并至本次更新中                                                                                                                                     | True              |
 | open_headers           | 开启使用M3U内含的请求头验证信息，用于测速等操作，注意：只有个别播放器支持播放这类含验证信息的接口，默认为关闭                                                                                                              | False             |
-| app_host               | 页面服务Host地址，默认使用本机IP                                                                                                                                                   |                   |
-| app_port               | 页面服务端口，用于控制页面服务的端口号                                                                                                                                                   | 8000              |
+| app_port               | 页面服务端口，用于控制页面服务的端口号                                                                                                                                                   | 5180              |
 | nginx_http_port        | Nginx HTTP服务端口，用于RTMP推流转发的HTTP服务端口                                                                                                                                    | 8080              |
 | nginx_rtmp_port        | Nginx RTMP服务端口，用于RTMP推流转发的RTMP服务端口                                                                                                                                    | 1935              |
 | public_scheme          | 公网协议，可选值：http、https                                                                                                                                                   | http              |
@@ -289,7 +288,7 @@ docker pull docker.1ms.run/guovern/iptv-api:latest
 #### 2. 运行容器
 
 ```bash
-docker run -d -p 8000:8000 guovern/iptv-api
+docker run -d -p 5180:5180 guovern/iptv-api
 ```
 
 ##### 挂载（推荐）：
@@ -305,12 +304,11 @@ docker run -d -p 8000:8000 guovern/iptv-api
 
 ##### 环境变量：
 
-| 变量              | 描述                 | 默认值  |
-|:----------------|:-------------------|:-----|
-| APP_HOST        | 服务host地址，可修改使用公网域名 | 本机IP |
-| APP_PORT        | 服务端口               | 8000 |
-| NGINX_HTTP_PORT | Nginx HTTP服务端口     | 8080 |
-| NGINX_RTMP_PORT | Nginx RTMP服务端口     | 1935 |
+| 变量              | 描述             | 默认值  |
+|:----------------|:---------------|:-----|
+| APP_PORT        | 服务端口           | 5180 |
+| NGINX_HTTP_PORT | Nginx HTTP服务端口 | 8080 |
+| NGINX_RTMP_PORT | Nginx RTMP服务端口 | 1935 |
 
 除了以上环境变量，还支持通过环境变量覆盖配置文件中的[配置项](#配置)
 

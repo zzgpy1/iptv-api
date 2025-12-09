@@ -26,8 +26,7 @@
 | open_use_cache         | 开启使用本地缓存数据，适用于查询请求失败场景（仅针对酒店源与组播源）                                                                                                                                    | True              |
 | open_history           | 开启使用历史更新结果（包含模板与结果文件的接口），合并至本次更新中                                                                                                                                     | True              |
 | open_headers           | 开启使用M3U内含的请求头验证信息，用于测速等操作，注意：只有个别播放器支持播放这类含验证信息的接口，默认为关闭                                                                                                              | False             |
-| app_host               | 页面服务Host地址，默认使用本机IP                                                                                                                                                   |                   |
-| app_port               | 页面服务端口，用于控制页面服务的端口号                                                                                                                                                   | 8000              |
+| app_port               | 页面服务端口，用于控制页面服务的端口号                                                                                                                                                   | 5180              |
 | nginx_http_port        | Nginx HTTP服务端口，用于RTMP推流转发的HTTP服务端口                                                                                                                                    | 8080              |
 | nginx_rtmp_port        | Nginx RTMP服务端口，用于RTMP推流转发的RTMP服务端口                                                                                                                                    | 1935              |
 | public_scheme          | 公网协议，可选值：http、https                                                                                                                                                   | http              |

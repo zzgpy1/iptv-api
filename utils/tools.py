@@ -322,7 +322,7 @@ def merge_objects(*objects, match_key=None):
 
 
 def get_public_url(port: int = config.app_port) -> str:
-    host = config.public_domain or config.app_host
+    host = config.public_domain
     scheme = config.public_scheme
     default_port = 80 if scheme == 'http' else 443
     port_part = f":{port}" if port != default_port else ""
