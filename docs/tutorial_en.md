@@ -352,7 +352,7 @@ docker pull docker.1ms.run/guovern/iptv-api:latest
 docker run -d -p 5180:5180 guovern/iptv-api
 ```
 
-Environment Variables:
+**Environment Variables:**
 
 | Variable        | Description             | Default Value |
 |:----------------|:------------------------|:--------------|
@@ -364,7 +364,7 @@ In addition to the environment variables listed above, you can also override
 the [configuration items](../docs/config_en.md) in the
 configuration file via environment variables.
 
-Mounts: used to synchronize files between the host and the container. You can edit templates, configs, and access
+**Mounts:** used to synchronize files between the host and the container. You can edit templates, configs, and access
 generated result files directly on the host. Append the following options to the run command above:
 
 Mount config directory:
@@ -398,7 +398,7 @@ Mount output directory:
 | /log/statistic  | Log of statistics results                       |
 | /log/nomatch    | Log of unmatched channels                       |
 
-- RTMP Streaming:
+**RTMP Streaming:**
 
 > [!NOTE]
 > 1. After enabling streaming, obtained sources (for example subscription sources) will be streamed by default.
