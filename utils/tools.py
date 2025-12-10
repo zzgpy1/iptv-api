@@ -771,3 +771,22 @@ def render_nginx_conf(nginx_conf_template, nginx_conf):
 
     with open(nginx_conf, 'w', encoding='utf-8') as f:
         f.write(content)
+
+
+def parse_times(times_str: str):
+    """
+    Parse times from a string in the format "HH:MM, HH:MM, ..."
+    """
+    times = []
+    for part in (times_str or "").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            hh_mm = part.split(":")
+            h = int(hh_mm[0])
+            m = int(hh_mm[1]) if len(hh_mm) > 1 else 0
+            times.append((h, m))
+        except Exception:
+            continue
+    return times
