@@ -22,14 +22,36 @@ hls_running_streams = OrderedDict()
 STREAMS_LOCK = threading.Lock()
 hls_last_access = {}
 HLS_IDLE_TIMEOUT = config.rtmp_idle_timeout
-HLS_WAIT_TIMEOUT = 10
+HLS_WAIT_TIMEOUT = 15
 HLS_WAIT_INTERVAL = 0.5
 MAX_STREAMS = config.rtmp_max_streams
 nginx_dir = resource_path(os.path.join('utils', 'nginx-rtmp-win32'))
 hls_temp_path = resource_path(os.path.join(nginx_dir, 'temp', 'hls')) if sys.platform == "win32" else '/tmp/hls'
 
+_hls_monitor_started_evt = threading.Event()
+_hls_monitor_lock = threading.Lock()
+
+
+def ensure_hls_idle_monitor_started():
+    if _hls_monitor_started_evt.is_set():
+        return
+    with _hls_monitor_lock:
+        if _hls_monitor_started_evt.is_set():
+            return
+        try:
+            if not config.open_rtmp:
+                return
+            t = threading.Thread(target=hls_idle_monitor, daemon=True, name="hls-idle-monitor")
+            t.start()
+            _hls_monitor_started_evt.set()
+            print("✅ HLS idle monitor started successfully")
+        except Exception as e:
+            print(f"❌ Failed to start HLS idle monitor: {e}")
+
 
 def start_hls_to_rtmp(host, channel_id):
+    ensure_hls_idle_monitor_started()
+
     if not host:
         return print('Error: Host is required')
     if not channel_id:

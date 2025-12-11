@@ -365,15 +365,17 @@ Mount output directory:
      corresponding channels.
 > 4. Visit `http://127.0.0.1:8080/stat` to view real-time streaming status and statistics.
 
-| Streaming Endpoint | Description                     |
-|:-------------------|:--------------------------------|
-| /hls               | hls streaming endpoint          |
-| /hls/txt           | hls txt streaming endpoint      |
-| /hls/m3u           | hls m3u streaming endpoint      |
-| /hls/ipv4/txt      | hls ipv4 txt streaming endpoint |
-| /hls/ipv4/m3u      | hls ipv4 m3u streaming endpoint |
-| /hls/ipv6/txt      | hls ipv6 txt streaming endpoint |
-| /hls/ipv6/m3u      | hls ipv6 m3u streaming endpoint |
+| Streaming Endpoint | Description                         |
+|:-------------------|:------------------------------------|
+| /hls               | hls streaming endpoint              |
+| /hls/txt           | hls txt streaming endpoint          |
+| /hls/m3u           | hls m3u streaming endpoint          |
+| /hls/ipv4          | hls ipv4 default streaming endpoint |
+| /hls/ipv6          | hls ipv6 default streaming endpoint |
+| /hls/ipv4/txt      | hls ipv4 txt streaming endpoint     |
+| /hls/ipv4/m3u      | hls ipv4 m3u streaming endpoint     |
+| /hls/ipv6/txt      | hls ipv6 txt streaming endpoint     |
+| /hls/ipv6/m3u      | hls ipv6 m3u streaming endpoint     |
 
 ## Changelog
 

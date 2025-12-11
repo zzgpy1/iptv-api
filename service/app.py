@@ -1,6 +1,5 @@
 import os
 import sys
-import threading
 import time
 
 sys.path.append(os.path.dirname(sys.path[0]))
@@ -10,7 +9,7 @@ from utils.config import config
 import utils.constants as constants
 import atexit
 from service.rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hls_temp_path, STREAMS_LOCK, \
-    hls_running_streams, start_hls_to_rtmp, hls_last_access, hls_idle_monitor, HLS_WAIT_TIMEOUT, HLS_WAIT_INTERVAL
+    hls_running_streams, start_hls_to_rtmp, hls_last_access, HLS_WAIT_TIMEOUT, HLS_WAIT_INTERVAL
 import logging
 
 app = Flask(__name__)
@@ -91,6 +90,14 @@ def show_ipv4_result():
     )
 
 
+@app.route("/hls/ipv4")
+def show_hls_ipv4():
+    return get_result_file_content(
+        path=constants.hls_ipv4_result_path,
+        file_type="m3u" if config.open_m3u_result else "txt"
+    )
+
+
 @app.route("/ipv6/m3u")
 def show_ipv6_m3u():
     return get_result_file_content(path=constants.ipv6_result_path, file_type="m3u")
@@ -100,6 +107,14 @@ def show_ipv6_m3u():
 def show_ipv6_result():
     return get_result_file_content(
         path=constants.hls_ipv6_result_path if config.open_rtmp else constants.ipv6_result_path,
+        file_type="m3u" if config.open_m3u_result else "txt"
+    )
+
+
+@app.route("/hls/ipv6")
+def show_hls_ipv6():
+    return get_result_file_content(
+        path=constants.hls_ipv6_result_path,
         file_type="m3u" if config.open_m3u_result else "txt"
     )
 
@@ -218,7 +233,7 @@ def hls_proxy(channel_id):
         waited += HLS_WAIT_INTERVAL
 
     if not os.path.exists(m3u8_path):
-        return jsonify({'Error': 'HLS m3u8 not ready'}), 504
+        return jsonify({'Error': 'HLS m3u8 not ready, please refresh or try again later'}), 503
 
     try:
         with open(m3u8_path, 'rb') as f:
@@ -237,18 +252,18 @@ def hls_proxy(channel_id):
 @app.post('/on_publish')
 def on_publish():
     form = request.form
-    stream_id = form.get('name', '')
+    channel_id = form.get('name', '')
 
-    print(f'RTMP publish: stream_id={stream_id}')
+    print(f'RTMP publish: channel_id={channel_id}')
     return ''
 
 
 @app.post('/on_done')
 def on_done():
     form = request.form
-    stream_id = form.get('name', '')
+    channel_id = form.get('name', '')
 
-    print(f'RTMP done: stream_id={stream_id}')
+    print(f'RTMP done: channel_id={channel_id}')
     return ''
 
 
@@ -258,21 +273,17 @@ def run_service():
             if config.open_rtmp and sys.platform == "win32":
                 start_rtmp_service()
             public_url = get_public_url()
+            base_api = f"{public_url}/hls" if config.open_rtmp else public_url
             print(f"📄 Speed test log: {public_url}/log")
-            if config.open_rtmp:
-                print(f"🚀 RTMP api: {public_url}/hls")
-            print(f"🚀 IPv4 api: {public_url}/ipv4")
-            print(f"🚀 IPv6 api: {public_url}/ipv6")
-            print(f"✅ You can use this url to watch IPTV 📺: {public_url}")
+            print(f"🚀 IPv4 api: {base_api}/ipv4")
+            print(f"🚀 IPv6 api: {base_api}/ipv6")
+            print(f"🚀 Full api: {base_api}")
             app.run(host="0.0.0.0", port=config.app_port)
     except Exception as e:
         print(f"❌ Service start failed: {e}")
 
 
 if __name__ == "__main__":
-    if config.open_rtmp:
-        if sys.platform == "win32":
-            atexit.register(stop_rtmp_service)
-        idle_thread = threading.Thread(target=hls_idle_monitor, daemon=True)
-        idle_thread.start()
+    if config.open_rtmp and sys.platform == "win32":
+        atexit.register(stop_rtmp_service)
     run_service()

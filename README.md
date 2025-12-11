@@ -360,6 +360,8 @@ docker run -d -p 5180:5180 guovern/iptv-api
 | /hls          | 推流接口         |
 | /hls/txt      | 推流txt接口      |
 | /hls/m3u      | 推流m3u接口      |
+| /hls/ipv4     | 推流ipv4 默认接口  |
+| /hls/ipv6     | 推流ipv6 默认接口  |
 | /hls/ipv4/txt | 推流ipv4 txt接口 |
 | /hls/ipv4/m3u | 推流ipv4 m3u接口 |
 | /hls/ipv6/txt | 推流ipv6 txt接口 |
