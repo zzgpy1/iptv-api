@@ -75,12 +75,12 @@ class ConfigManager:
 
     @property
     def ipv_type(self):
-        return self.config.get("Settings", "ipv_type", fallback="全部").lower()
+        return self.config.get("Settings", "ipv_type", fallback="all").lower()
 
     @property
     def open_ipv6(self):
         return (
-                "ipv6" in self.ipv_type or "all" in self.ipv_type or "全部" in self.ipv_type
+                "ipv6" in self.ipv_type or "all" in self.ipv_type
         )
 
     @property
@@ -268,7 +268,7 @@ class ConfigManager:
         return [
             region.strip()
             for region in self.config.get(
-                "Settings", "multicast_region_list", fallback="全部"
+                "Settings", "multicast_region_list", fallback="all"
             ).split(",")
             if region.strip()
         ]
@@ -278,7 +278,7 @@ class ConfigManager:
         return [
             region.strip()
             for region in self.config.get(
-                "Settings", "hotel_region_list", fallback="全部"
+                "Settings", "hotel_region_list", fallback="all"
             ).split(",")
             if region.strip()
         ]

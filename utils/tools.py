@@ -265,11 +265,7 @@ def check_ipv_type_match(ipv_type: str) -> bool:
     Check if the ipv type matches
     """
     config_ipv_type = config.ipv_type
-    return (
-            config_ipv_type == ipv_type
-            or config_ipv_type == "全部"
-            or config_ipv_type == "all"
-    )
+    return config_ipv_type == ipv_type or config_ipv_type == "all"
 
 
 def check_url_by_keywords(url, keywords=None):

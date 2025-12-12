@@ -112,7 +112,7 @@ def get_multicast_region_result_by_rtp_txt(callback=None):
            and "_" in filename
            and (
                    filename.rsplit(".", 1)[0].partition("_")[0] in config_region_list
-                   or config_region_list & {"all", "ALL", "全部"}
+                   or config_region_list & {"all"}
            )
     ]
 

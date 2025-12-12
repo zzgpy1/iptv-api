@@ -301,10 +301,7 @@ def get_channel_multicast_region_type_list(result):
         (region, r_type)
         for region_type in result.values()
         for region, types in region_type.items()
-        if "all" in region_list
-           or "ALL" in region_list
-           or "全部" in region_list
-           or region in region_list
+        if "all" in region_list or region in region_list
         for r_type in types
     }
     return list(region_type_list)
@@ -955,7 +952,7 @@ def write_channel_to_file(data, epg=None, ipv6=False, first_channel_name=None):
             compress_to_gz(constants.epg_result_path, constants.epg_gz_result_path)
         open_empty_category = config.open_empty_category
         ipv_type_prefer = list(config.ipv_type_prefer)
-        if any(pref in ipv_type_prefer for pref in ["自动", "auto"]):
+        if any(pref == "auto" for pref in ipv_type_prefer):
             ipv_type_prefer = ["ipv6", "ipv4"] if ipv6 else ["ipv4", "ipv6"]
         origin_type_prefer = config.origin_type_prefer
         hls_url = f"{get_public_url(config.nginx_http_port)}/hls"
@@ -1026,10 +1023,7 @@ def get_multicast_fofa_search_urls():
     region_type_list = [
         (parts[0], parts[1])
         for name in rtp_file_names
-        if (parts := name.partition("_"))[0] in region_list
-           or "all" in region_list
-           or "ALL" in region_list
-           or "全部" in region_list
+        if (parts := name.partition("_"))[0] in region_list or "all" in region_list
     ]
     search_urls = []
     for region, r_type in region_type_list:

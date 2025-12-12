@@ -51,7 +51,7 @@ async def get_channels_by_hotel(callback=None):
         open_driver = config.open_driver
         page_num = config.hotel_page_num
         region_list = config.hotel_region_list
-        if "all" in region_list or "ALL" in region_list or "全部" in region_list:
+        if "all" in region_list:
             region_list = list(getattr(fofa_map, "region_url").keys())
         start_time = time()
 
