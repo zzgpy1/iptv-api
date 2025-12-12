@@ -17,6 +17,7 @@ from updates.epg.tools import write_to_xml, compress_to_gz
 from utils.alias import Alias
 from utils.config import config
 from utils.db import get_db_connection, return_db_connection
+from utils.i18n import t
 from utils.ip_checker import IPChecker
 from utils.speed import (
     get_speed,
@@ -156,7 +157,7 @@ def get_channel_items() -> CategoryChannelData:
     blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
     whitelist_len = len(list(whitelist.keys()))
     if whitelist_len:
-        print(f"Found {whitelist_len} channel in whitelist")
+        print(t("msg.whitelist_found").format(count=whitelist_len))
 
     if os.path.exists(user_source_file):
         with open(user_source_file, "r", encoding="utf-8") as file:
@@ -208,7 +209,7 @@ def get_channel_items() -> CategoryChannelData:
                                         frozen_channels.difference_update(channel_urls)
 
             except Exception as e:
-                print(f"Error loading cache file: {e}")
+                print(t("msg.error_load_cache").format(info=e))
                 pass
     return channels
 
@@ -625,7 +626,7 @@ def append_data_to_info_data(
             existing_urls.add(url)
 
         except Exception as e:
-            print(f"Error processing channel data: {e}")
+            print(t("msg.error_append_channel_data").format(info=e))
             continue
 
 
@@ -655,19 +656,19 @@ def append_old_data_to_info_data(info_data, cate, name, data, whitelist=None, bl
             print(f"{label}: {items_len}", end=", ")
 
     whitelist_data = [item for item in data if item["origin"] == "whitelist"]
-    append_and_print(whitelist_data, "whitelist", "Whitelist")
+    append_and_print(whitelist_data, "whitelist", t("name.whitelist"))
 
     if open_local:
         local_data = [item for item in data if item["origin"] == "local"]
-        append_and_print(local_data, "local", "Local")
+        append_and_print(local_data, "local", t("name.local"))
 
     if open_rtmp:
         hls_data = [item for item in data if item["origin"] == "hls"]
-        append_and_print(hls_data, None, "HLS")
+        append_and_print(hls_data, None, t("name.hls"))
 
     if open_history:
         history_data = [item for item in data if item["origin"] not in ["hls", "local", "whitelist"]]
-        append_and_print(history_data, None, "History")
+        append_and_print(history_data, None, t("name.history"))
 
 
 def print_channel_number(data: CategoryChannelData, cate: str, name: str):
@@ -678,7 +679,7 @@ def print_channel_number(data: CategoryChannelData, cate: str, name: str):
     print("IPv4:", len([channel for channel in channel_list if channel["ipv_type"] == "ipv4"]), end=", ")
     print("IPv6:", len([channel for channel in channel_list if channel["ipv_type"] == "ipv6"]), end=", ")
     print(
-        "Total:",
+        f"{t("name.total")}:",
         len(channel_list),
     )
 
@@ -726,7 +727,7 @@ def append_total_data(
                         data, cate, name, name_results, origin=origin_method, whitelist=whitelist, blacklist=blacklist,
                         ipv_type_data=url_hosts_ipv_type
                     )
-                    print(f"{method.capitalize()}:", len(name_results), end=", ")
+                    print(f"{t(f"name.{method}")}:", len(name_results), end=", ")
             print_channel_number(data, cate, name)
 
 
@@ -835,9 +836,10 @@ def generate_channel_statistic(logger, cate, name, values):
         key=lambda r: get_resolution_value(r),
         default="None"
     )
-    content = f"Category: {cate}, Name: {name}, Total: {total}, Valid: {valid}, Valid Percent: {valid_rate:.2f}%, Whitelist: {whitelist_count}, IPv4: {ipv4_count}, IPv6: {ipv6_count}, Min Delay: {min_delay} ms, Max Speed: {max_speed:.2f} M/s, Avg Speed: {avg_speed:.2f} M/s, Max Resolution: {max_resolution}"
-    print(f"\n{content}")
-    logger.info(content)
+    logger.info(
+        f"Category: {cate}, Name: {name}, Total: {total}, Valid: {valid}, Valid Percent: {valid_rate:.2f}%, Whitelist: {whitelist_count}, IPv4: {ipv4_count}, IPv6: {ipv6_count}, Min Delay: {min_delay} ms, Max Speed: {max_speed:.2f} M/s, Avg Speed: {avg_speed:.2f} M/s, Max Resolution: {max_resolution}")
+    print(
+        f"\n{f"{t("name.category")}: {cate}, {t("name.name")}: {name}, {t("name.total")}: {total}, {t("name.valid")}: {valid}, {t("name.valid_percent")}: {valid_rate:.2f}%, {t("name.whitelist")}: {whitelist_count}, IPv4: {ipv4_count}, IPv6: {ipv6_count}, {t("name.min_delay")}: {min_delay} ms, {t("name.max_speed")}: {max_speed:.2f} M/s, {t("name.average_speed")}: {avg_speed:.2f} M/s, {t("name.max_resolution")}: {max_resolution}"}")
 
 
 def process_write_content(
@@ -888,8 +890,8 @@ def process_write_content(
             if enable_log:
                 generate_channel_statistic(logger, cate, name, info_list)
     if open_empty_category and no_result_name:
-        custom_print("\n🈳 No result channel name:")
-        content += "\n\n🈳无结果频道,#genre#"
+        custom_print(f"\n{t("msg.no_result_channel")}")
+        content += f"\n\n{t("content.no_result_channel_genre")},#genre#"
         for i, name in enumerate(no_result_name):
             end_char = ", " if i < len(no_result_name) - 1 else ""
             custom_print(name, end=end_char)
@@ -907,9 +909,9 @@ def process_write_content(
             update_time_item_url = add_url_info(update_time_item_url, update_time_item["extra_info"])
         value = f"{hls_url}/{update_time_item["id"]}.m3u8" if hls_url else update_time_item_url
         if config.update_time_position == "top":
-            content = f"🕘️更新时间,#genre#\n{now},{value}\n\n{content}"
+            content = f"{t("content.update_time")},#genre#\n{now},{value}\n\n{content}"
         else:
-            content += f"\n\n🕘️更新时间,#genre#\n{now},{value}"
+            content += f"\n\n{t("content.update_time")},#genre#\n{now},{value}"
     if hls_url:
         conn = get_db_connection(constants.rtmp_data_path)
         try:
@@ -936,7 +938,7 @@ def write_channel_to_file(data, epg=None, ipv6=False, first_channel_name=None):
     Write channel to file
     """
     try:
-        print("Write channel to file...")
+        print(t("msg.writing_result"))
         output_dir = constants.output_dir
         dir_list = [
             output_dir,
@@ -990,9 +992,9 @@ def write_channel_to_file(data, epg=None, ipv6=False, first_channel_name=None):
                 logger=logger
             )
         logger.handlers.clear()
-        print("✅ Write channel to file success")
+        print(t("msg.write_success"))
     except Exception as e:
-        print(f"❌ Write channel to file failed: {e}")
+        print(t("msg.write_error").format(info=e))
 
 
 def get_multicast_fofa_search_org(region, org_type):

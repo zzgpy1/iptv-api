@@ -404,7 +404,7 @@ class ConfigManager:
     @property
     def update_times(self):
         return self.config.get("Settings", "update_times", fallback="")
-    
+
     @property
     def update_startup(self):
         return self.config.getboolean("Settings", "update_startup", fallback=True)
@@ -446,6 +446,10 @@ class ConfigManager:
         except Exception:
             pass
         return cfg
+
+    @property
+    def language(self):
+        return self.config.get("Settings", "language", fallback="zh_CN")
 
     def load(self):
         """

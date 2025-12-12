@@ -18,6 +18,7 @@ from opencc import OpenCC
 
 import utils.constants as constants
 from utils.config import config, resource_path
+from utils.i18n import t
 from utils.types import ChannelData
 
 opencc_t2s = OpenCC("t2s")
@@ -248,14 +249,14 @@ def check_ipv6_support():
         return False
     url = "https://ipv6.tokyo.test-ipv6.com/ip/?callback=?&testdomain=test-ipv6.com&testname=test_aaaa"
     try:
-        print("Checking if your network supports IPv6...")
+        print(t("msg.check_ipv6_support"))
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
-            print("Your network supports IPv6")
+            print(t("msg.ipv6_supported"))
             return True
     except Exception:
         pass
-    print("Your network does not support IPv6, don't worry, the IPv6 results will be saved")
+    print(t("msg.ipv6_not_supported"))
     return False
 
 
@@ -367,7 +368,7 @@ def convert_to_m3u(path=None, first_channel_name=None, data=None):
                             r"(CCTV|CETV)-(\d+)(\+.*)?",
                             lambda m: f"{m.group(1)}{m.group(2)}"
                                       + ("+" if m.group(3) else ""),
-                            first_channel_name if current_group == "🕘️更新时间" else original_channel_name,
+                            first_channel_name if current_group == t("content.update_time") else original_channel_name,
                         )
                         m3u_output += f'#EXTINF:-1 tvg-name="{processed_channel_name}" tvg-logo="{join_url(logo_url, f'{processed_channel_name}.{config.logo_type}')}"'
                         if current_group:
@@ -394,7 +395,6 @@ def convert_to_m3u(path=None, first_channel_name=None, data=None):
             m3u_file_path = os.path.splitext(path)[0] + ".m3u"
             with open(m3u_file_path, "w", encoding="utf-8") as m3u_file:
                 m3u_file.write(m3u_output)
-            # print(f"✅ M3U result file generated at: {m3u_file_path}")
 
 
 def get_result_file_content(path=None, show_content=False, file_type=None):

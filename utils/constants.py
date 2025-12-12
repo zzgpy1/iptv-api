@@ -1,6 +1,8 @@
 import os
 import re
 
+from utils.i18n import t
+
 config_dir = "config"
 
 output_dir = "output"
@@ -110,12 +112,12 @@ region_list = [
 ]
 
 origin_map = {
-    "hotel": "酒店源",
-    "multicast": "组播源",
-    "subscribe": "订阅源",
-    "online_search": "关键字源",
-    "whitelist": "白名单",
-    "local": "本地源",
+    "hotel": t("name.hotel"),
+    "multicast": t("name.multicast"),
+    "subscribe": t("name.subscribe"),
+    "online_search": t("name.online_search"),
+    "whitelist": t("name.whitelist"),
+    "local": t("name.local"),
 }
 
 ipv6_proxy = "http://www.ipv6proxy.net/go.php?u="
@@ -124,4 +126,4 @@ foodie_url = "http://www.foodieguide.com/iptvsearch/"
 
 foodie_hotel_url = "http://www.foodieguide.com/iptvsearch/iptvhotel.php"
 
-waiting_tip = "📄结果将在更新完成后生成，请耐心等待..."
+waiting_tip = t("msg.waiting_tip")

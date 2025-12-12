@@ -24,6 +24,7 @@ from utils.channel import (
     sort_channel_result
 )
 from utils.config import config
+from utils.i18n import t
 from utils.tools import (
     get_pbar_remaining,
     process_nested_dict,
@@ -106,8 +107,11 @@ class UpdateSource:
     def pbar_update(self, name: str = "", item_name: str = ""):
         if self.pbar.n < self.total:
             self.pbar.update()
+            remaining_total = self.total - self.pbar.n
+            remaining_time = get_pbar_remaining(n=self.pbar.n, total=self.total, start_time=self.start_time)
             self.update_progress(
-                f"正在进行{name}, 剩余{self.total - self.pbar.n}个{item_name}, 预计剩余时间: {get_pbar_remaining(n=self.pbar.n, total=self.total, start_time=self.start_time)}",
+                t("msg.progress_desc").format(name=name, remaining_total=remaining_total, item_name=item_name,
+                                              remaining_time=remaining_time),
                 int((self.pbar.n / self.total) * 100),
             )
 
@@ -123,7 +127,7 @@ class UpdateSource:
                     for name in channel_obj.keys()
                 ]
                 if not channel_names:
-                    print(f"❌ No channel names found! Please check the {config.source_file}!")
+                    print(t("msg.no_channel_names").format(file=config.source_file))
                     return
                 await self.visit_page(channel_names)
                 self.tasks = []
@@ -148,17 +152,17 @@ class UpdateSource:
                         ipv6_support=self.ipv6_support
                     )
                     self.total = get_urls_len(test_data)
-                    print(f"Total urls: {urls_total}, need to test speed: {self.total}")
+                    print(t("msg.total_urls_need_test_speed").format(total=urls_total, speed_total=self.total))
                     self.update_progress(
-                        f"正在进行测速, 共{urls_total}个接口, {self.total}个接口需要进行测速",
+                        t("msg.progress_speed_test").format(total=urls_total, speed_total=self.total),
                         0,
                     )
                     self.start_time = time()
-                    self.pbar = tqdm(total=self.total, desc="Speed test")
+                    self.pbar = tqdm(total=self.total, desc=t("pbar.speed_test"))
                     test_result = await test_speed(
                         test_data,
                         ipv6=self.ipv6_support,
-                        callback=lambda: self.pbar_update(name="测速", item_name="接口"),
+                        callback=lambda: self.pbar_update(name=t("pbar.speed_test"), item_name=t("pbar.url")),
                     )
                     cache_result = merge_objects(cache_result, test_result, match_key="url")
                     self.pbar.close()
@@ -168,7 +172,7 @@ class UpdateSource:
                     filter_host=config.speed_test_filter_host,
                     ipv6_support=self.ipv6_support
                 )
-                self.update_progress(f"正在生成结果文件", 0)
+                self.update_progress(t("msg.creating_result"), 0)
                 write_channel_to_file(
                     self.channel_data,
                     epg=self.epg_result,
@@ -185,16 +189,15 @@ class UpdateSource:
                             cache_result = merge_objects(cache, cache_result, match_key="url")
                     with gzip.open(constants.cache_path, "wb") as file:
                         pickle.dump(cache_result, file)
-                print(
-                    f"🥳 Update completed! Total time spent: {format_interval(time() - main_start_time)}."
-                )
+                print(t("msg.update_completed").format(time=format_interval(time() - main_start_time), service_tip=""))
             if self.run_ui:
                 open_service = config.open_service
-                service_tip = ", 可使用以下地址进行观看" if open_service else ""
+                service_tip = t("msg.service_tip") if open_service else ""
                 tip = (
-                    f"✅ 服务启动成功{service_tip}"
+                    t("msg.service_run_success").format(service_tip=service_tip)
                     if open_service and config.open_update == False
-                    else f"🥳更新完成, 耗时: {format_interval(time() - main_start_time)}{service_tip}"
+                    else t("msg.update_completed").format(time=format_interval(time() - main_start_time),
+                                                          service_tip=service_tip)
                 )
                 self.update_progress(
                     tip,
@@ -204,7 +207,7 @@ class UpdateSource:
                     now=self.now
                 )
         except asyncio.exceptions.CancelledError:
-            print("Update cancelled!")
+            print(t("msg.update_cancelled"))
 
     async def start(self, callback=None):
         def default_callback(self, *args, **kwargs):
@@ -213,7 +216,7 @@ class UpdateSource:
         self.update_progress = callback or default_callback
         self.run_ui = True if callback else False
         if self.run_ui:
-            self.update_progress(f"正在检查网络是否支持IPv6", 0)
+            self.update_progress(t("msg.check_ipv6_support"), 0)
         self.ipv6_support = config.ipv6_support or check_ipv6_support()
         if not os.getenv("GITHUB_ACTIONS") and (config.update_interval or config.update_times):
             await self.scheduler(asyncio.Event())
@@ -252,7 +255,7 @@ class UpdateSource:
                         candidates.append(candidate)
                     next_time = min(candidates)
                     wait_seconds = (next_time - self.now).total_seconds()
-                    print(f"🕒 Next scheduled update: {next_time:%Y-%m-%d %H:%M:%S}")
+                    print(t("msg.schedule_update_time").format(time=next_time.strftime("%Y-%m-%d %H:%M:%S")))
                     try:
                         await asyncio.wait_for(stop_event.wait(), timeout=wait_seconds)
                         if stop_event.is_set():
@@ -263,18 +266,18 @@ class UpdateSource:
                         continue
                 else:
                     next_time = self.now + datetime.timedelta(hours=config.update_interval)
-                    print(f"🕒 Next scheduled update: {next_time:%Y-%m-%d %H:%M:%S}")
+                    print(t("msg.schedule_update_time").format(time=next_time.strftime("%Y-%m-%d %H:%M:%S")))
                     try:
                         await asyncio.wait_for(stop_event.wait(), timeout=config.update_interval * 3600)
                     except asyncio.TimeoutError:
                         continue
         except asyncio.CancelledError:
-            print("Scheduler cancelled!")
+            print(t("msg.schedule_cancelled"))
 
 
 if __name__ == "__main__":
     info = get_version_info()
-    print(f"✡️ {info['name']} Version: {info['version']}")
+    print(t("msg.version_info").format(name=info['name'], version=info['version']))
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     update_source = UpdateSource()

@@ -9,6 +9,7 @@ from collections import OrderedDict
 import utils.constants as constants
 from utils.config import config
 from utils.db import get_db_connection, return_db_connection
+from utils.i18n import t
 from utils.tools import join_url, resource_path, render_nginx_conf
 
 nginx_dir = resource_path(os.path.join('utils', 'nginx-rtmp-win32'))
@@ -41,32 +42,32 @@ def ensure_hls_idle_monitor_started():
         try:
             if not config.open_rtmp:
                 return
-            t = threading.Thread(target=hls_idle_monitor, daemon=True, name="hls-idle-monitor")
-            t.start()
+            thread = threading.Thread(target=hls_idle_monitor, daemon=True, name="hls-idle-monitor")
+            thread.start()
             _hls_monitor_started_evt.set()
-            print("✅ HLS idle monitor started successfully")
+            print(t("msg.rtmp_hls_idle_monitor_start_success"))
         except Exception as e:
-            print(f"❌ Failed to start HLS idle monitor: {e}")
+            print(t("msg.rtmp_hls_idle_monitor_start_fail").format(info=e))
 
 
 def start_hls_to_rtmp(host, channel_id):
     ensure_hls_idle_monitor_started()
 
     if not host:
-        return print('Error: Host is required')
+        return None
     if not channel_id:
-        return print('Error: Channel id is required')
+        return print(t("msg.error_channel_id_not_found"))
 
     data = get_channel_data(channel_id)
     url = data.get("url", "")
     if not url:
-        return print('Error: Channel url not found')
+        return print(t("msg.error_channel_url_not_found"))
 
     with STREAMS_LOCK:
         if channel_id in hls_running_streams:
             process = hls_running_streams[channel_id]
             if process.poll() is None:
-                return print(f'HLS stream {channel_id} is already running')
+                return print(t("msg.rtmp_hls_stream_already_running"))
             else:
                 del hls_running_streams[channel_id]
 
@@ -93,10 +94,8 @@ def start_hls_to_rtmp(host, channel_id):
             stderr=subprocess.DEVNULL,
             stdin=subprocess.DEVNULL
         )
-    except FileNotFoundError as e:
-        return print(f'ffmpeg not found: {e}')
     except Exception as e:
-        return print(f'Failed to start ffmpeg: {e}')
+        return print(t("msg.error_start_ffmpeg_failed").format(info=e))
 
     threading.Thread(
         target=monitor_stream_process,
@@ -157,7 +156,8 @@ def hls_idle_monitor():
                 proc = hls_running_streams.get(channel_id)
                 if proc and proc.poll() is None:
                     if now - last_ts > HLS_IDLE_TIMEOUT:
-                        print(f"[HLS_IDLE] {channel_id} idle for {now - last_ts:.1f}s, will stop")
+                        print(t("msg_rtmp_hls_idle_will_stop").format(channel_id=channel_id,
+                                                                      second=f"{now - last_ts:.1f}"))
                         to_stop.append(channel_id)
 
         for cid in to_stop:
@@ -181,7 +181,7 @@ def get_channel_data(channel_id):
                 'headers': json.loads(data[1]) if data[1] else None
             }
     except Exception as e:
-        print(f"❌ Error retrieving channel data: {e}")
+        print(t("msg.error_get_channel_data_from_database").format(info=e))
     finally:
         return_db_connection(constants.rtmp_data_path, conn)
     return channel_data
@@ -194,7 +194,7 @@ def stop_stream(channel_id):
             try:
                 _terminate_process_safe(process)
             except Exception as e:
-                print(f"❌ Stop stream {channel_id} failed: {e}")
+                print(t("msg.error_stop_channel_stream").format(channel_id=channel_id, info=e))
         hls_running_streams.pop(channel_id, None)
 
 
@@ -205,7 +205,7 @@ def start_rtmp_service():
         os.chdir(nginx_dir)
         subprocess.Popen([nginx_path], shell=True)
     except Exception as e:
-        print(f"❌ Rtmp service start failed: {e}")
+        print(t("msg.error_rtmp_service_start_failed").format(info=e))
     finally:
         os.chdir(original_dir)
 
@@ -215,4 +215,4 @@ def stop_rtmp_service():
         os.chdir(nginx_dir)
         subprocess.Popen([stop_path], shell=True)
     except Exception as e:
-        print(f"❌ Rtmp service stop failed: {e}")
+        print(t("msg.error_rtmp_service_stop_failed").format(info=e))
