@@ -143,7 +143,7 @@ def get_multicast_region_result_by_rtp_txt(callback=None):
             callback(
                 t("msg.progress_loading_region_type_rtp").format(region=region, type=type,
                                                                  remaining_files=remaining_files,
-                                                                 remaining_time=estimated_time),
+                                                                 estimated_time=estimated_time),
                 int((pbar.n / total_files) * 100),
             )
 

@@ -1,8 +1,8 @@
 {
   "msg.version_info": "✡\uFE0F {name} Version: {version}",
-  "msg.check_ipv6_support": "Checking if your network supports IPv6...",
-  "msg.ipv6_supported": "✅ Your network supports IPv6!",
-  "msg.ipv6_not_supported": "❌ Your network does not support IPv6, don't worry, the IPv6 results will be saved",
+  "msg.check_ipv6_support": "Checking whether the current network supports IPv6...",
+  "msg.ipv6_supported": "✅ The current network supports IPv6!",
+  "msg.ipv6_not_supported": "❌ The current network does not support IPv6. Don't worry. The results of IPv6 will be saved",
   "msg.schedule_update_time": "\uD83D\uDD52 Next scheduled update: {time}",
   "msg.schedule_cancelled": "Scheduled update has been cancelled!",
   "msg.update_cancelled": "Update has been cancelled!",
