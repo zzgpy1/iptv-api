@@ -544,22 +544,22 @@ def get_headers_key_value(content: str) -> dict:
     return key_value
 
 
-def get_name_url(content, pattern, open_headers=False, check_url=True):
+def get_name_value(content, pattern, open_headers=False, check_value=True):
     """
-    Extract name and URL from content using a regex pattern.
+    Extract name and value from content using a regex pattern.
     :param content: str, the input content to search.
     :param pattern: re.Pattern, the compiled regex pattern to match.
     :param open_headers: bool, whether to extract headers.
-    :param check_url: bool, whether to validate the presence of a URL.
+    :param check_value: bool, whether to validate the presence of a URL.
     """
     result = []
     for match in pattern.finditer(content):
         group_dict = match.groupdict()
         name = (group_dict.get("name", "") or "").strip()
-        url = (group_dict.get("url", "") or "").strip()
-        if not name or (check_url and not url):
+        value = (group_dict.get("value", "") or "").strip()
+        if not name or (check_value and not value):
             continue
-        data = {"name": name, "url": url}
+        data = {"name": name, "value": value}
         attributes = {**get_headers_key_value(group_dict.get("attributes", "")),
                       **get_headers_key_value(group_dict.get("options", ""))}
         headers = {
@@ -625,10 +625,10 @@ def get_name_urls_from_file(path: str, format_name_flag: bool = False) -> dict[s
                 line = line.strip()
                 if line.startswith("#"):
                     continue
-                name_url = get_name_url(line, pattern=constants.txt_pattern)
-                if name_url and name_url[0]:
-                    name = format_name(name_url[0]["name"]) if format_name_flag else name_url[0]["name"]
-                    url = name_url[0]["url"]
+                name_value = get_name_value(line, pattern=constants.txt_pattern)
+                if name_value and name_value[0]:
+                    name = format_name(name_value[0]["name"]) if format_name_flag else name_value[0]["name"]
+                    url = name_value[0]["value"]
                     if url not in name_urls[name]:
                         name_urls[name].append(url)
     return name_urls

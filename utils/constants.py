@@ -54,20 +54,18 @@ url_pattern = re.compile(
 
 rt_url_pattern = re.compile(r"^(rtmp|rtsp)://.*$")
 
-rtp_pattern = re.compile(r"^(?P<name>[^,，]+)[,，]?(?P<url>rtp://.*)$")
+rtp_pattern = re.compile(r"^(?P<name>[^,，]+)[,，]?(?P<value>rtp://.*)$")
 
-demo_txt_pattern = re.compile(r"^(?P<name>[^,，]+)[,，]?(?!#genre#)" + r"(" + url_pattern.pattern + r")?")
+demo_txt_pattern = re.compile(r"^(?P<name>[^,，]+)[,，]?(?!#genre#)(?P<value>.+)?$")
 
-txt_pattern = re.compile(r"^(?P<name>[^,，]+)[,，](?!#genre#)" + r"(" + url_pattern.pattern + r")")
+txt_pattern = re.compile(r"^(?P<name>[^,，]+)[,，](?!#genre#)(?P<value>.+)$")
 
-multiline_txt_pattern = re.compile(r"^(?P<name>[^,，]+)[,，](?!#genre#)" + r"(" + url_pattern.pattern + r")",
-                                   re.MULTILINE)
+multiline_txt_pattern = re.compile(r"^(?P<name>[^,，]+)[,，](?!#genre#)(?P<value>.+)$", re.MULTILINE)
 
-m3u_pattern = re.compile(
-    r"^#EXTINF:-1[\s+,，](?P<attributes>[^,，]+)[，,](?P<name>.*?)\n" + r"(" + url_pattern.pattern + r")")
+m3u_pattern = re.compile(r"^#EXTINF:-1[\s+,，](?P<attributes>[^,，]+)[，,](?P<name>.*?)\n(?P<value>.+)$")
 
 multiline_m3u_pattern = re.compile(
-    r"^#EXTINF:-1[\s+,，](?P<attributes>[^,，]+)[，,](?P<name>.*?)\n(?P<options>(#EXTVLCOPT:.*\n)*?)" + r"(" + url_pattern.pattern + r")",
+    r"^#EXTINF:-1[\s+,，](?P<attributes>[^,，]+)[，,](?P<name>.*?)\n(?P<options>(#EXTVLCOPT:.*\n)*?)(?P<value>.+)$",
     re.MULTILINE)
 
 key_value_pattern = re.compile(r'(?P<key>\w+)=(?P<value>\S+)')

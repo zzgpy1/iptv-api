@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from logging import INFO
@@ -14,8 +15,8 @@ from utils.retry import retry_func
 from utils.tools import (
     merge_objects,
     get_pbar_remaining,
-    get_name_url,
-    get_logger
+    get_name_value,
+    get_logger, join_url
 )
 
 
@@ -27,14 +28,21 @@ async def get_channels_by_subscribe_urls(
         retry=True,
         error_print=True,
         whitelist=None,
-        pbar_desc="Processing subscribe",
+        pbar_desc=t("pbar.getting_name").format(name=t("name.subscribe")),
         callback=None,
 ):
     """
     Get the channels by subscribe urls
     """
+    if not os.getenv("GITHUB_ACTIONS") and config.cdn_url:
+        def _map_raw(u):
+            return join_url(config.cdn_url, u) if "raw.githubusercontent.com" in u else u
+
+        urls = [_map_raw(u) for u in urls]
+        whitelist = [_map_raw(u) for u in whitelist] if whitelist else None
     if whitelist:
-        urls.sort(key=lambda url: whitelist.index(url) if url in whitelist else len(whitelist))
+        index_map = {u: i for i, u in enumerate(whitelist)}
+        urls.sort(key=lambda u: index_map.get(u, len(whitelist)))
     subscribe_results = {}
     subscribe_urls_len = len(urls)
     pbar = tqdm_asyncio(
@@ -81,7 +89,7 @@ async def get_channels_by_subscribe_urls(
                 response.encoding = "utf-8"
                 content = response.text
                 m3u_type = True if "#EXTM3U" in content else False
-                data = get_name_url(
+                data = get_name_value(
                     content,
                     pattern=(
                         constants.multiline_m3u_pattern
@@ -91,12 +99,12 @@ async def get_channels_by_subscribe_urls(
                     open_headers=config.open_headers if m3u_type else False
                 )
                 for item in data:
-                    name = item["name"]
-                    url = item["url"]
-                    if name and url:
-                        name = format_channel_name(name)
+                    data_name = item.get("name", "").strip()
+                    url = item.get("value", "").strip()
+                    if data_name and url:
+                        name = format_channel_name(data_name)
                         if names and name not in names:
-                            logger.info(f"{item["name"]},{item["url"]}")
+                            logger.info(f"{data_name},{url}")
                             continue
                         url_partition = url.partition("$")
                         url = url_partition[0]

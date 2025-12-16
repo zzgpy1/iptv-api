@@ -32,18 +32,20 @@ from utils.tools import (
     check_ipv6_support,
     get_urls_from_file,
     get_version_info,
-    join_url,
     get_urls_len,
     merge_objects,
     get_public_url,
     parse_times
 )
 from utils.types import CategoryChannelData
+from utils.whitelist import load_whitelist_maps, get_section_entries
 
 
 class UpdateSource:
 
     def __init__(self):
+        self.whitelist_maps = None
+        self.blacklist = None
         self.update_progress = None
         self.run_ui = False
         self.tasks = []
@@ -83,15 +85,16 @@ class UpdateSource:
                 continue
             if config.open_method[setting]:
                 if setting == "subscribe":
-                    subscribe_urls = get_urls_from_file(constants.subscribe_path)
-                    whitelist_urls = get_urls_from_file(constants.whitelist_path)
-                    if not os.getenv("GITHUB_ACTIONS") and config.cdn_url:
-                        subscribe_urls = [join_url(config.cdn_url, url) if "raw.githubusercontent.com" in url else url
-                                          for url in subscribe_urls]
+                    whitelist_subscribe_urls, default_subscribe_urls = get_section_entries(constants.subscribe_path,
+                                                                                           pattern=constants.url_pattern)
+                    subscribe_urls = list(dict.fromkeys(whitelist_subscribe_urls + default_subscribe_urls))
+                    print(t("msg.subscribe_urls_whitelist_total").format(default_count=len(default_subscribe_urls),
+                                                                         whitelist_count=len(whitelist_subscribe_urls),
+                                                                         total=len(subscribe_urls)))
                     task = asyncio.create_task(
                         task_func(subscribe_urls,
                                   names=channel_names,
-                                  whitelist=whitelist_urls,
+                                  whitelist=whitelist_subscribe_urls,
                                   callback=self.update_progress
                                   )
                     )
@@ -119,7 +122,9 @@ class UpdateSource:
         try:
             main_start_time = time()
             if config.open_update:
-                self.channel_items = get_channel_items()
+                self.whitelist_maps = load_whitelist_maps(constants.whitelist_path)
+                self.blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
+                self.channel_items = get_channel_items(self.whitelist_maps, self.blacklist)
                 self.channel_data = {}
                 channel_names = [
                     name
@@ -139,6 +144,8 @@ class UpdateSource:
                     self.hotel_foodie_result,
                     self.subscribe_result,
                     self.online_search_result,
+                    self.whitelist_maps,
+                    self.blacklist
                 )
                 cache_result = self.channel_data
                 test_result = {}
