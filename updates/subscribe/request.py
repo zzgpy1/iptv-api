@@ -28,7 +28,7 @@ async def get_channels_by_subscribe_urls(
         retry=True,
         error_print=True,
         whitelist=None,
-        pbar_desc="Processing subscribe",
+        pbar_desc=t("pbar.getting_name").format(name=t("name.subscribe")),
         callback=None,
 ):
     """
