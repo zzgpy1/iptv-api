@@ -8,7 +8,7 @@ from utils.driver.tools import get_soup_driver
 from utils.config import config
 import utils.constants as constants
 from utils.channel import format_channel_name
-from utils.tools import get_pbar_remaining, resource_path, get_name_url
+from utils.tools import get_pbar_remaining, resource_path, get_name_value
 import json
 
 # import asyncio
@@ -130,12 +130,12 @@ def get_multicast_region_result_by_rtp_txt(callback=None):
                 os.path.join(rtp_path, f"{filename}.txt"), "r", encoding="utf-8"
         ) as f:
             for line in f:
-                name_url = get_name_url(line, pattern=constants.rtp_pattern)
-                if name_url and name_url[0]:
-                    channel_name = format_channel_name(name_url[0]["name"])
-                    url = name_url[0]["url"]
-                    if url not in multicast_result[channel_name][region][type]:
-                        multicast_result[channel_name][region][type].append(url)
+                name_value = get_name_value(line, pattern=constants.rtp_pattern)
+                if name_value and name_value[0]:
+                    channel_name = format_channel_name(name_value[0]["name"])
+                    value = name_value[0]["value"]
+                    if value not in multicast_result[channel_name][region][type]:
+                        multicast_result[channel_name][region][type].append(value)
         pbar.update()
         if callback:
             remaining_files = total_files - pbar.n

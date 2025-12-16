@@ -27,12 +27,11 @@ from utils.speed import (
 )
 from utils.tools import (
     format_name,
-    get_name_url,
+    get_name_value,
     check_url_by_keywords,
     get_total_urls,
     add_url_info,
     resource_path,
-    get_urls_from_file,
     get_name_urls_from_file,
     get_logger,
     get_datetime_now,
@@ -41,9 +40,11 @@ from utils.tools import (
     convert_to_m3u,
     custom_print,
     get_name_uri_from_dir,
-    get_resolution_value, get_public_url
+    get_resolution_value,
+    get_public_url
 )
-from utils.types import ChannelData, OriginType, CategoryChannelData, TestResult
+from utils.types import ChannelData, OriginType, CategoryChannelData, TestResult, WhitelistMaps
+from utils.whitelist import is_url_whitelisted, get_whitelist_url, get_whitelist_total_count
 
 channel_alias = Alias()
 ip_checker = IPChecker()
@@ -91,7 +92,7 @@ def check_channel_need_frozen(info: TestResult) -> bool:
     return False
 
 
-def get_channel_data_from_file(channels, file, whitelist, blacklist,
+def get_channel_data_from_file(channels, file, whitelist_maps, blacklist,
                                local_data=None, hls_data=None) -> CategoryChannelData:
     """
     Get the channel data from the file
@@ -103,18 +104,17 @@ def get_channel_data_from_file(channels, file, whitelist, blacklist,
         if "#genre#" in line:
             current_category = line.partition(",")[0]
         else:
-            name_url = get_name_url(
-                line, pattern=constants.demo_txt_pattern, check_url=False
+            name_value = get_name_value(
+                line, pattern=constants.demo_txt_pattern, check_value=False
             )
-            if name_url and name_url[0]:
-                name = name_url[0]["name"]
-                url = name_url[0]["url"]
+            if name_value and name_value[0]:
+                name = name_value[0]["name"]
+                url = name_value[0]["value"]
                 category_dict = channels[current_category]
                 if name not in category_dict:
                     category_dict[name] = []
-                    if name in whitelist:
-                        for whitelist_url in whitelist[name]:
-                            category_dict[name].append(format_channel_data(whitelist_url, "whitelist"))
+                    for whitelist_url in get_whitelist_url(whitelist_maps, name):
+                        category_dict[name].append(format_channel_data(whitelist_url, "whitelist"))
                     if hls_data and name in hls_data:
                         for hls_url in hls_data[name]:
                             category_dict[name].append(format_channel_data(hls_url, "hls"))
@@ -137,13 +137,15 @@ def get_channel_data_from_file(channels, file, whitelist, blacklist,
                                                     category_dict[name].append(format_channel_data(local_url, "local"))
                                 except re.error:
                                     pass
-                if open_local and url:
-                    if not check_url_by_keywords(url, blacklist):
+                if url:
+                    if is_url_whitelisted(whitelist_maps, url, name):
+                        category_dict[name].append(format_channel_data(url, "whitelist"))
+                    elif open_local and not check_url_by_keywords(url, blacklist):
                         category_dict[name].append(format_channel_data(url, "local"))
     return channels
 
 
-def get_channel_items() -> CategoryChannelData:
+def get_channel_items(whitelist_maps, blacklist) -> CategoryChannelData:
     """
     Get the channel items from the source file
     """
@@ -153,16 +155,17 @@ def get_channel_items() -> CategoryChannelData:
     if config.open_rtmp:
         hls_data = get_name_uri_from_dir(constants.hls_path)
     local_data = get_name_urls_from_file(config.local_file)
-    whitelist = get_name_urls_from_file(constants.whitelist_path)
-    blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
-    whitelist_len = len(list(whitelist.keys()))
-    if whitelist_len:
-        print(t("msg.whitelist_found").format(count=whitelist_len))
+    whitelist_count = get_whitelist_total_count(whitelist_maps)
+    blacklist_count = len(blacklist)
+    if whitelist_count:
+        print(t("msg.whitelist_found").format(count=whitelist_count))
+    if blacklist_count:
+        print(t("msg.blacklist_found").format(count=blacklist_count))
 
     if os.path.exists(user_source_file):
         with open(user_source_file, "r", encoding="utf-8") as file:
             channels = get_channel_data_from_file(
-                channels, file, whitelist, blacklist, local_data, hls_data
+                channels, file, whitelist_maps, blacklist, local_data, hls_data
             )
 
     if config.open_history:
@@ -531,7 +534,7 @@ def append_data_to_info_data(
         name: str,
         data: list,
         origin: str = None,
-        whitelist: list = None,
+        whitelist_maps: WhitelistMaps = None,
         blacklist: list = None,
         ipv_type_data: dict = None
 ) -> None:
@@ -544,7 +547,7 @@ def append_data_to_info_data(
         name: Name key within the category
         data: List of channel items to process
         origin: Default origin for items
-        whitelist: List of whitelist keywords
+        whitelist_maps: Maps of whitelist keywords
         blacklist: List of blacklist keywords
         ipv_type_data: Dictionary to cache IP type information
     """
@@ -573,14 +576,15 @@ def append_data_to_info_data(
             if not url or url in existing_urls:
                 continue
 
-            if url_origin != "whitelist" and whitelist and check_url_by_keywords(url, whitelist):
+            if url_origin != "whitelist" and whitelist_maps and is_url_whitelisted(whitelist_maps, url, name):
                 url_origin = "whitelist"
 
             if not url_origin:
                 continue
 
             if url_origin not in retain_origin:
-                if url in frozen_channels or blacklist and check_url_by_keywords(url, blacklist):
+                url = get_channel_url(url)
+                if not url or url in frozen_channels or blacklist and check_url_by_keywords(url, blacklist):
                     continue
 
                 if not ipv_type:
@@ -634,7 +638,7 @@ def get_origin_method_name(method):
     return "hotel" if method.startswith("hotel_") else method
 
 
-def append_old_data_to_info_data(info_data, cate, name, data, whitelist=None, blacklist=None, ipv_type_data=None):
+def append_old_data_to_info_data(info_data, cate, name, data, whitelist_maps=None, blacklist=None, ipv_type_data=None):
     """
     Append old existed channel data to total info data
     """
@@ -644,7 +648,7 @@ def append_old_data_to_info_data(info_data, cate, name, data, whitelist=None, bl
             append_data_to_info_data(
                 info_data, cate, name, items,
                 origin=origin if origin else None,
-                whitelist=whitelist,
+                whitelist_maps=whitelist_maps,
                 blacklist=blacklist,
                 ipv_type_data=ipv_type_data
             )
@@ -689,6 +693,8 @@ def append_total_data(
         hotel_foodie_result=None,
         subscribe_result=None,
         online_search_result=None,
+        whitelist_maps=None,
+        blacklist=None,
 ):
     """
     Append all method data to total info data
@@ -700,8 +706,6 @@ def append_total_data(
         ("subscribe", subscribe_result),
         ("online_search", online_search_result),
     ]
-    whitelist = get_urls_from_file(constants.whitelist_path)
-    blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
     url_hosts_ipv_type = {}
     for obj in data.values():
         for value_list in obj.values():
@@ -712,7 +716,8 @@ def append_total_data(
         for name, old_info_list in channel_obj.items():
             print(f"{name}:", end=" ")
             if old_info_list:
-                append_old_data_to_info_data(data, cate, name, old_info_list, whitelist=whitelist, blacklist=blacklist,
+                append_old_data_to_info_data(data, cate, name, old_info_list, whitelist_maps=whitelist_maps,
+                                             blacklist=blacklist,
                                              ipv_type_data=url_hosts_ipv_type)
             for method, result in total_result:
                 if config.open_method[method]:
@@ -721,7 +726,8 @@ def append_total_data(
                         continue
                     name_results = get_channel_results_by_name(name, result)
                     append_data_to_info_data(
-                        data, cate, name, name_results, origin=origin_method, whitelist=whitelist, blacklist=blacklist,
+                        data, cate, name, name_results, origin=origin_method, whitelist_maps=whitelist_maps,
+                        blacklist=blacklist,
                         ipv_type_data=url_hosts_ipv_type
                     )
                     print(f"{t(f"name.{method}")}:", len(name_results), end=", ")

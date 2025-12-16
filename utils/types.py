@@ -37,3 +37,5 @@ class TestResult(TypedDict):
 TestResultCacheData = dict[str, list[TestResult]]
 
 ChannelTestResult = Union[ChannelData, TestResult]
+
+WhitelistMaps = tuple[dict[str, list[str]], dict[str, list[str]]]
