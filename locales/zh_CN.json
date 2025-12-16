@@ -34,7 +34,7 @@
   "msg.writing_result": "正在写入结果，生成结果文件...",
   "msg.write_success": "✅ 结果文件生成成功",
   "msg.write_error": "❌ 写入结果文件出错：{info}",
-  "msg.failed_retrying_count": "请求{name}失败，正在进行第{count}重试...",
+  "msg.failed_retrying_count": "请求{name}失败，正在进行第{count}次重试...",
   "msg.failed_retry_max": "❌ 请求{name}失败，已达到最大重试次数",
   "msg.request_timeout": "请求超时：{name}",
   "msg.request_failed": "❌ 请求失败：{name}",
