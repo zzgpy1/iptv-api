@@ -1,3 +1,4 @@
+import copy
 import datetime
 import json
 import logging
@@ -280,39 +281,72 @@ def check_url_by_keywords(url, keywords=None):
 
 def merge_objects(*objects, match_key=None):
     """
-    Merge objects
-
+    Merge objects while preserving defaultdict types (including default_factory).
     Args:
         *objects: Dictionaries to merge
         match_key: If dict1[key] is a list of dicts, this key will be used to match and merge dicts
     """
+
+    def clone_empty(value):
+        """
+        Return an empty container of the same *container* type as value,
+        preserving defaultdict default_factory when applicable.
+        """
+        if isinstance(value, defaultdict):
+            return defaultdict(value.default_factory)
+        if isinstance(value, dict):
+            return {}
+        if isinstance(value, list):
+            return []
+        if isinstance(value, set):
+            return set()
+        try:
+            return copy.copy(value)
+        except Exception:
+            return value
 
     def merge_dicts(dict1, dict2):
         for key, value in dict2.items():
             if key in dict1:
                 if isinstance(dict1[key], dict) and isinstance(value, dict):
                     merge_dicts(dict1[key], value)
-                elif isinstance(dict1[key], set):
+                elif isinstance(dict1[key], set) and isinstance(value, (set, list)):
                     dict1[key].update(value)
                 elif isinstance(dict1[key], list) and isinstance(value, list):
                     if match_key and all(isinstance(x, dict) for x in dict1[key] + value):
-                        existing_items = {item[match_key]: item for item in dict1[key]}
+                        existing_items = {item.get(match_key): item for item in dict1[key] if match_key in item}
                         for new_item in value:
                             if match_key in new_item and new_item[match_key] in existing_items:
                                 merge_dicts(existing_items[new_item[match_key]], new_item)
                             else:
                                 dict1[key].append(new_item)
                     else:
-                        dict1[key].extend(x for x in value if x not in dict1[key])
+                        for x in value:
+                            if x not in dict1[key]:
+                                dict1[key].append(x)
                 elif value != dict1[key]:
-                    dict1[key] = value
+                    dict1[key] = copy.deepcopy(value)
             else:
-                dict1[key] = value
+                if isinstance(value, dict):
+                    dict1[key] = clone_empty(value)
+                    merge_dicts(dict1[key], value)
+                else:
+                    dict1[key] = copy.deepcopy(value)
 
-    merged_dict = {}
+    if not objects:
+        return {}
+
     for obj in objects:
         if not isinstance(obj, dict):
             raise TypeError("All input objects must be dictionaries")
+
+    first_obj = objects[0]
+    if isinstance(first_obj, defaultdict):
+        merged_dict = defaultdict(first_obj.default_factory)
+    else:
+        merged_dict = {}
+
+    for obj in objects:
         merge_dicts(merged_dict, obj)
 
     return merged_dict
