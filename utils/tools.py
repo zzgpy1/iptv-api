@@ -29,13 +29,38 @@ def get_logger(path, level=logging.ERROR, init=False):
     """
     get the logger
     """
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    dir_name = os.path.dirname(path) or "."
+    os.makedirs(dir_name, exist_ok=True)
     os.makedirs(constants.output_dir, exist_ok=True)
-    if init and os.path.exists(path):
-        os.remove(path)
-    handler = RotatingFileHandler(path, encoding="utf-8")
+
     logger = logging.getLogger(path)
-    logger.addHandler(handler)
+
+    if init:
+        for h in logger.handlers[:]:
+            try:
+                logger.removeHandler(h)
+                h.close()
+            except Exception:
+                pass
+
+        if os.path.exists(path):
+            try:
+                with open(path, "w", encoding="utf-8"):
+                    pass
+            except PermissionError:
+                pass
+            except Exception:
+                pass
+
+    handler = RotatingFileHandler(path, encoding="utf-8", delay=True)
+
+    abs_path = os.path.abspath(path)
+    if not any(
+            isinstance(h, RotatingFileHandler) and getattr(h, "baseFilename", None) == abs_path
+            for h in logger.handlers
+    ):
+        logger.addHandler(handler)
+
     logger.setLevel(level)
     return logger
 
