@@ -35,11 +35,6 @@ pipeline 🚀. Supports extensive customization; paste the resulting URL into yo
 
 </div>
 
-🎉💻 [IPTV-Web](https://github.com/Guovin/iptv-web): IPTV live stream management platform, supports online playback and
-other features, under development...
-
-💖 [Channel Alias Collection Plan](https://github.com/Guovin/iptv-api/discussions/1082)
-
 - [✅ Core Features](#core-features)
 - [🔗 Latest results](#latest-results)
 - [⚙️ Config parameter](#Config)
