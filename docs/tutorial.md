@@ -300,7 +300,7 @@ docker compose up -d
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 代理加速（推荐国内用户使用，可能会有缓存）：
+🚀 代理加速（若拉取失败可以使用该命令，但有可能拉取的是旧版本）：
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
@@ -309,13 +309,14 @@ docker pull docker.1ms.run/guovern/iptv-api:latest
 #### 2. 运行容器
 
 ```bash
-docker run -d -p 5180:5180 guovern/iptv-api
+docker run -d -p 80:8080 guovern/iptv-api
 ```
 
 **环境变量：**
 
 | 变量              | 描述             | 默认值  |
 |:----------------|:---------------|:-----|
+| PUBLIC_PORT     | 公网端口           | 80   |
 | APP_PORT        | 服务端口           | 5180 |
 | NGINX_HTTP_PORT | Nginx HTTP服务端口 | 8080 |
 | NGINX_RTMP_PORT | Nginx RTMP服务端口 | 1935 |
@@ -358,9 +359,9 @@ docker run -d -p 5180:5180 guovern/iptv-api
 **RTMP 推流：**
 
 > [!NOTE]
-> 1. 开启推流后，默认会将获取到的接口（如订阅源）进行推流
-> 2. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹
-> 3. 将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
+> 1. 如果是服务器部署，请务必配置`PUBLIC_DOMAIN`环境变量为服务器公网地址，否则推流地址无法访问
+> 2. 开启推流后，默认会将获取到的接口（如订阅源）进行推流
+> 3. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹，将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
 > 4. 可访问 http://127.0.0.1:8080/stat 查看实时推流状态统计数据
 
 | 推流接口          | 描述           |

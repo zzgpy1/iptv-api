@@ -961,7 +961,7 @@ def write_channel_to_file(data, epg=None, ipv6=False, first_channel_name=None):
         if any(pref == "auto" for pref in ipv_type_prefer):
             ipv_type_prefer = ["ipv6", "ipv4"] if ipv6 else ["ipv4", "ipv6"]
         origin_type_prefer = config.origin_type_prefer
-        hls_url = f"{get_public_url(config.nginx_http_port)}/hls"
+        hls_url = f"{get_public_url()}/hls"
         logger = get_logger(constants.statistic_log_path, level=INFO, init=True)
         file_list = [
             {"path": config.final_file, "enable_log": True},

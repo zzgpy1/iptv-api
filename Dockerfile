@@ -50,7 +50,7 @@ RUN mkdir -p /var/log/nginx && \
 
 RUN apk update && apk add --no-cache ffmpeg pcre
 
-EXPOSE $APP_PORT $NGINX_HTTP_PORT $NGINX_RTMP_PORT
+EXPOSE $NGINX_HTTP_PORT
 
 COPY entrypoint.sh /iptv-api-entrypoint.sh
 

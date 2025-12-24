@@ -80,7 +80,7 @@
 | **自定义模板**    |  ✅   | 生成您想要的个性化频道                                  |
 | **频道别名**     |  ✅   | 提升频道结果获取量与准确率，支持正则表达式                        |
 | **多种源获取方式**  |  ✅   | 支持本地源、组播源、酒店源、订阅源、关键字搜索                      |
-| **RTMP推流**   |  ✅   | 支持 HLS 模式（分段/自适应码率），提高兼容性并减少缓冲，改善弱网播放体验      |
+| **RTMP推流**   |  ✅   | 支持 HLS 模式，提高兼容性并减少缓冲，改善弱网播放体验，并支持浏览器或播放器播放   |
 | **回放类接口**    |  ✅   | 支持回放类接口的获取与生成                                |
 | **EPG电子节目单** |  ✅   | 显示频道预告内容                                     |
 | **频道台标**     |  ✅   | 支持自定义频道台标库来源                                 |
@@ -148,6 +148,7 @@ https://raw.githubusercontent.com/Guovin/iptv-api/gd/source.json
 | app_port               | 页面服务端口，用于控制页面服务的端口号                                                                                                                                                         | 5180              |
 | public_scheme          | 公网协议；可选值: http、https                                                                                                                                                        | http              |
 | public_domain          | 公网 Host 地址，用于生成结果中的访问地址，默认使用本机 IP                                                                                                                                           | 127.0.0.1         |
+| public_port            | 公网端口，用于生成结果中的访问端口号                                                                                                                                                          | 80                |
 | cdn_url                | CDN 代理加速地址，用于订阅源、频道图标等资源的加速访问                                                                                                                                               |                   |
 | open_driver            | 开启浏览器运行，若更新无数据可开启此模式，较消耗性能                                                                                                                                                  | False             |
 | open_hotel             | 开启酒店源功能，关闭后所有酒店源工作模式都将关闭                                                                                                                                                    | False             |
@@ -199,7 +200,7 @@ https://raw.githubusercontent.com/Guovin/iptv-api/gd/source.json
 | open_rtmp              | 开启 RTMP 推流功能，需要安装 FFmpeg，利用本地带宽提升接口播放体验                                                                                                                                     | True              |
 | nginx_http_port        | Nginx HTTP 服务端口，用于 RTMP 推流转发的 HTTP 服务端口                                                                                                                                     | 8080              |
 | nginx_rtmp_port        | Nginx RTMP 服务端口，用于 RTMP 推流转发的 RTMP 服务端口                                                                                                                                     | 1935              |
-| rtmp_idle_timeout      | RTMP 频道接口空闲停止推流超时时长，单位秒(s)，用于控制接口无人观看时超过该时长后停止推流，调整此值能优化服务器资源占用                                                                                                             | 60                |
+| rtmp_idle_timeout      | RTMP 频道接口空闲停止推流超时时长，单位秒(s)，用于控制接口无人观看时超过该时长后停止推流，调整此值能优化服务器资源占用                                                                                                             | 300               |
 | rtmp_max_streams       | RTMP 推流最大并发数量，用于控制同时推流的频道数量，数值越大服务器压力越大，调整此值能优化服务器资源占用                                                                                                                      | 10                |
 
 ## 快速上手
@@ -289,7 +290,7 @@ docker compose up -d
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 代理加速（推荐国内用户使用，可能会有缓存）：
+🚀 代理加速（若拉取失败可以使用该命令，但有可能拉取的是旧版本）：
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
@@ -298,13 +299,14 @@ docker pull docker.1ms.run/guovern/iptv-api:latest
 ##### 2. 运行容器
 
 ```bash
-docker run -d -p 5180:5180 guovern/iptv-api
+docker run -d -p 80:8080 guovern/iptv-api
 ```
 
 **环境变量：**
 
 | 变量              | 描述             | 默认值  |
 |:----------------|:---------------|:-----|
+| PUBLIC_PORT     | 公网端口           | 80   |
 | APP_PORT        | 服务端口           | 5180 |
 | NGINX_HTTP_PORT | Nginx HTTP服务端口 | 8080 |
 | NGINX_RTMP_PORT | Nginx RTMP服务端口 | 1935 |
@@ -347,9 +349,9 @@ docker run -d -p 5180:5180 guovern/iptv-api
 **RTMP 推流：**
 
 > [!NOTE]
-> 1. 开启推流后，默认会将获取到的接口（如订阅源）进行推流
-> 2. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹
-> 3. 将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
+> 1. 如果是服务器部署，请务必配置`PUBLIC_DOMAIN`环境变量为服务器公网地址，否则推流地址无法访问
+> 2. 开启推流后，默认会将获取到的接口（如订阅源）进行推流
+> 3. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹，将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
 > 4. 可访问 http://127.0.0.1:8080/stat 查看实时推流状态统计数据
 
 | 推流接口          | 描述           |

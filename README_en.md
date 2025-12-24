@@ -77,20 +77,20 @@ pipeline 🚀. Supports extensive customization; paste the resulting URL into yo
 
 ## Core Features
 
-| Feature                               | Status | Description                                                                                                                         |
-|:--------------------------------------|:------:|:------------------------------------------------------------------------------------------------------------------------------------|
-| **Custom Templates**                  |   ✅    | Generate personalized channels as you wish                                                                                          |
-| **Channel Alias**                     |   ✅    | Improves channel result coverage and accuracy, supports regular expressions                                                         |
-| **Multiple Source Types**             |   ✅    | Supports local sources, multicast, hotel sources, subscriptions, and keyword search                                                 |
-| **RTMP streaming**                    |   ✅    | Supports HLS mode (segmented / adaptive bitrate), improves compatibility and reduces buffering, enhancing playback on weak networks |
-| **Playback Interfaces**               |   ✅    | Supports acquisition and generation of playback interfaces                                                                          |
-| **EPG (Electronic Program Guide)**    |   ✅    | Displays channel preview content                                                                                                    |
-| **Channel Logo**                      |   ✅    | Supports custom channel logo library sources                                                                                        |
-| **Interface Speed Test & Validation** |   ✅    | Measures latency, speed, resolution, and filters invalid interfaces                                                                 |
-| **Advanced Preferences**              |   ✅    | IPv4/IPv6, interface sorting priority, quantity configuration, blacklist/whitelist, region & ISP filtering                          |
-| **Scheduled Tasks**                   |   ✅    | Automatically updates at 6:00 and 18:00 Beijing time daily by default; customizable schedule                                        |
-| **Multiple Run Modes**                |   ✅    | Supports workflow, CLI, GUI software, Docker (amd64/arm64/arm v7)                                                                   |
-| **More Features**                     |   ✨    | See [Configuration Parameters](#Config) section for details                                                                         |
+| Feature                               | Status | Description                                                                                                                                        |
+|:--------------------------------------|:------:|:---------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Custom Templates**                  |   ✅    | Generate personalized channels as you wish                                                                                                         |
+| **Channel Alias**                     |   ✅    | Improves channel result coverage and accuracy, supports regular expressions                                                                        |
+| **Multiple Source Types**             |   ✅    | Supports local sources, multicast, hotel sources, subscriptions, and keyword search                                                                |
+| **RTMP streaming**                    |   ✅    | Supports HLS mode to improve compatibility and reduce buffering, enhancing playback on poor networks, and supports playback in browsers or players |
+| **Playback Interfaces**               |   ✅    | Supports acquisition and generation of playback interfaces                                                                                         |
+| **EPG (Electronic Program Guide)**    |   ✅    | Displays channel preview content                                                                                                                   |
+| **Channel Logo**                      |   ✅    | Supports custom channel logo library sources                                                                                                       |
+| **Interface Speed Test & Validation** |   ✅    | Measures latency, speed, resolution, and filters invalid interfaces                                                                                |
+| **Advanced Preferences**              |   ✅    | IPv4/IPv6, interface sorting priority, quantity configuration, blacklist/whitelist, region & ISP filtering                                         |
+| **Scheduled Tasks**                   |   ✅    | Automatically updates at 6:00 and 18:00 Beijing time daily by default; customizable schedule                                                       |
+| **Multiple Run Modes**                |   ✅    | Supports workflow, CLI, GUI software, Docker (amd64/arm64/arm v7)                                                                                  |
+| **More Features**                     |   ✨    | See [Configuration Parameters](#Config) section for details                                                                                        |
 
 ## Latest results
 
@@ -203,7 +203,7 @@ https://raw.githubusercontent.com/Guovin/iptv-api/gd/source.json
 | open_rtmp              | Enable RTMP push function. Requires FFmpeg installed, uses local bandwidth to improve playback experience.                                                                                                                                                                                                                                                           | True              |
 | nginx_http_port        | Nginx HTTP service port, used for the HTTP service of RTMP push forwarding.                                                                                                                                                                                                                                                                                          | 8080              |
 | nginx_rtmp_port        | Nginx RTMP service port, used for the RTMP service of RTMP push forwarding.                                                                                                                                                                                                                                                                                          | 1935              |
-| rtmp_idle_timeout      | RTMP channel idle stop-streaming timeout in seconds. When no one watches for longer than this duration, streaming is stopped, helping reduce server resource usage.                                                                                                                                                                                                  | 60                |
+| rtmp_idle_timeout      | RTMP channel idle stop-streaming timeout in seconds. When no one watches for longer than this duration, streaming is stopped, helping reduce server resource usage.                                                                                                                                                                                                  | 300               |
 | rtmp_max_streams       | Maximum number of concurrent RTMP push streams. Controls how many channels can be pushed at the same time. Larger values increase server load; tune to optimize resource usage.                                                                                                                                                                                      | 10                |
 
 ## Quick Start
@@ -295,7 +295,7 @@ docker compose up -d
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 Proxy acceleration (recommended for users in Mainland China, may be cached):
+🚀 Proxy acceleration (use this command if pulling fails, but it may download an older version):
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
@@ -304,13 +304,14 @@ docker pull docker.1ms.run/guovern/iptv-api:latest
 ##### 2. Run the container
 
 ```bash
-docker run -d -p 5180:5180 guovern/iptv-api
+docker run -d -p 80:8080 guovern/iptv-api
 ```
 
 **Environment Variables:**
 
 | Variable        | Description             | Default Value |
 |:----------------|:------------------------|:--------------|
+| PUBLIC_PORT     | Public network port     | 80            |
 | APP_PORT        | Service port            | 5180          |
 | NGINX_HTTP_PORT | Nginx HTTP service port | 8080          |
 | NGINX_RTMP_PORT | Nginx RTMP service port | 1935          |
@@ -355,11 +356,12 @@ Mount output directory:
 **RTMP Streaming:**
 
 > [!NOTE]
-> 1. After enabling streaming, obtained sources (for example subscription sources) will be streamed by default.
-> 2. To stream local video sources, create an `hls` folder inside the `config` directory.
-> 3. Place video files named with the `channel name` into that folder; the program will automatically stream them to the
-     corresponding channels.
-> 4. Visit `http://127.0.0.1:8080/stat` to view real-time streaming status and statistics.
+> 1. If deploying on a server, be sure to set the `PUBLIC_DOMAIN` environment variable to the server's public address;
+     otherwise stream URLs will not be accessible.
+> 2. When streaming is enabled, obtained interfaces (e.g., subscription sources) will be streamed by default.
+> 3. To stream local video sources, create an `hls` folder under the `config` directory and place video files named
+     after the channel; the program will automatically stream them to the corresponding channels.
+> 4. Visit http://127.0.0.1:8080/stat to view real-time streaming status and statistics.
 
 | Streaming Endpoint | Description                         |
 |:-------------------|:------------------------------------|
