@@ -356,8 +356,9 @@ Mount output directory:
 **RTMP Streaming:**
 
 > [!NOTE]
-> 1. If deploying on a server, be sure to set the `PUBLIC_DOMAIN` environment variable to the server's public address;
-     otherwise stream URLs will not be accessible.
+> 1. If deploying on a server, be sure to set the `PUBLIC_DOMAIN` environment variable to the server's domain name or IP
+     address and the `PUBLIC_PORT` environment variable to the public port; otherwise the streaming addresses will not
+     be accessible.
 > 2. When streaming is enabled, obtained interfaces (e.g., subscription sources) will be streamed by default.
 > 3. To stream local video sources, create an `hls` folder under the `config` directory and place video files named
      after the channel; the program will automatically stream them to the corresponding channels.
