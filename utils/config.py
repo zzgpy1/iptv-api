@@ -455,7 +455,7 @@ class ConfigManager:
                 return int(env)
             except ValueError:
                 return env
-        return self.nginx_http_port
+        return self.nginx_http_port if self.open_rtmp else self.app_port
 
     @property
     def language(self):
