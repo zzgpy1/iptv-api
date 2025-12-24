@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${PUBLIC_PORT}:${NGINX_HTTP_PORT}"
+      - "80:8080"
 
     volumes:
       - /iptv-api/config:/iptv-api/config
