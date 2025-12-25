@@ -284,17 +284,17 @@ pipenv run ui
 
 ## Docker
 
-### Compose一键部署
+### 1. Compose部署（推荐）
 
-[docker-compose.yml](../docker-compose.yml)
+下载[docker-compose.yml](../docker-compose.yml)或复制内容创建（内部参数可按需更改），在文件所在路径下运行以下命令即可部署：
 
 ```bash
 docker compose up -d
 ```
 
-### 手动命令部署
+### 2. 手动命令部署
 
-#### 1. 拉取镜像
+#### （1）拉取镜像
 
 ```bash
 docker pull guovern/iptv-api:latest
@@ -306,7 +306,7 @@ docker pull guovern/iptv-api:latest
 docker pull docker.1ms.run/guovern/iptv-api:latest
 ```
 
-#### 2. 运行容器
+#### （2）运行容器
 
 ```bash
 docker run -d -p 80:8080 guovern/iptv-api
@@ -314,26 +314,31 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 **环境变量：**
 
-| 变量              | 描述             | 默认值  |
-|:----------------|:---------------|:-----|
-| PUBLIC_PORT     | 公网端口           | 80   |
-| APP_PORT        | 服务端口           | 5180 |
-| NGINX_HTTP_PORT | Nginx HTTP服务端口 | 8080 |
-| NGINX_RTMP_PORT | Nginx RTMP服务端口 | 1935 |
+| 变量              | 描述                                | 默认值       |
+|:----------------|:----------------------------------|:----------|
+| PUBLIC_DOMAIN   | 公网域名或IP地址，决定外部访问或推流结果的Host地址      | 127.0.0.1 |
+| PUBLIC_PORT     | 公网端口，设置为映射后的端口，决定外部访问地址和推流结果地址的端口 | 80        |
+| NGINX_HTTP_PORT | HTTP服务端口，外部访问需要映射该端口              | 8080      |
+| APP_PORT        | 内部应用服务端口，无需映射                     | 5180      |
+| NGINX_RTMP_PORT | 内部推流RTMP服务端口，无需映射                 | 1935      |
+
+如果需要修改环境变量，在上述运行命令后添加以下参数：
+
+```bash
+# 修改公网域名
+-e PUBLIC_DOMAIN=your.domain.com
+# 修改公网端口
+-e PUBLIC_PORT=80
+```
 
 除了以上环境变量，还支持通过环境变量覆盖配置文件中的[配置项](../docs/config.md)
 
 **挂载：** 实现宿主机文件与容器文件同步，修改模板、配置、获取更新结果文件可直接在宿主机文件夹下操作，在上述运行命令后添加以下参数
 
-挂载配置目录：
-
 ```bash
+# 挂载配置目录
 -v /iptv-api/config:/iptv-api/config
-```
-
-挂载结果目录：
-
-```bash
+# 挂载结果目录
 -v /iptv-api/output:/iptv-api/output
 ```
 

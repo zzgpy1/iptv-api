@@ -324,17 +324,18 @@ If you do not understand the software configuration options, do not change anyth
 
 ## Docker
 
-### One‑click deployment with Compose
+### 1. Deployment with Compose
 
-[docker-compose.yml](../docker-compose.yml)
+Download the [docker-compose.yml](../docker-compose.yml) or create one by copying the content (internal parameters can
+be changed as needed), then run the following command in the path where the file is located:
 
 ```bash
 docker compose up -d
 ```
 
-### Manual deployment with commands
+### 2. Manual deployment with commands
 
-#### 1. Pull the image
+#### (1) Pull the image
 
 ```bash
 docker pull guovern/iptv-api:latest
@@ -346,37 +347,41 @@ docker pull guovern/iptv-api:latest
 docker pull docker.1ms.run/guovern/iptv-api:latest
 ```
 
-#### 2. Run the container
+#### (2) Run the container
 
 ```bash
 docker run -d -p 80:8080 guovern/iptv-api
 ```
 
-**Environment Variables:**
+**Environment variables:**
 
-| Variable        | Description             | Default Value |
-|:----------------|:------------------------|:--------------|
-| PUBLIC_PORT     | Public network port     | 80            |
-| APP_PORT        | Service port            | 5180          |
-| NGINX_HTTP_PORT | Nginx HTTP service port | 8080          |
-| NGINX_RTMP_PORT | Nginx RTMP service port | 1935          |
+| Variable        | Description                                                                                                      | Default   |
+|:----------------|:-----------------------------------------------------------------------------------------------------------------|:----------|
+| PUBLIC_DOMAIN   | Public domain or IP address, determines external access and the Host used in push stream results                 | 127.0.0.1 |
+| PUBLIC_PORT     | Public port, set to the mapped port, determines external access address and the port used in push stream results | 80        |
+| NGINX_HTTP_PORT | Nginx HTTP service port, needs to be mapped for external access                                                  | 8080      |
+| APP_PORT        | Internal application service port, no mapping required                                                           | 5180      |
+| NGINX_RTMP_PORT | Internal RTMP push service port, no mapping required                                                             | 1935      |
+
+If you need to modify environment variables, add the following parameters after the above run command:
+
+```bash
+# Modify public domain
+-e PUBLIC_DOMAIN=your.domain.com
+# Modify public port
+-e PUBLIC_PORT=80
+```
 
 In addition to the environment variables listed above, you can also override
-the [configuration items](../docs/config_en.md) in the
-configuration file via environment variables.
+the [configuration items](../docs/config_en.md) in the configuration file via environment variables.
 
 **Mounts:** used to synchronize files between the host and the container. You can edit templates, configs, and access
 generated result files directly on the host. Append the following options to the run command above:
 
-Mount config directory:
-
 ```bash
+# Mount config directory
 -v /iptv-api/config:/iptv-api/config
-```
-
-Mount output directory:
-
-```bash
+# Mount output directory
 -v /iptv-api/output:/iptv-api/output
 ```
 
