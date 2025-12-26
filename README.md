@@ -308,8 +308,6 @@ docker run -d -p 80:8080 guovern/iptv-api
 | PUBLIC_DOMAIN   | 公网域名或IP地址，决定外部访问或推流结果的Host地址      | 127.0.0.1 |
 | PUBLIC_PORT     | 公网端口，设置为映射后的端口，决定外部访问地址和推流结果地址的端口 | 80        |
 | NGINX_HTTP_PORT | HTTP服务端口，外部访问需要映射该端口              | 8080      |
-| APP_PORT        | 内部应用服务端口，无需映射                     | 5180      |
-| NGINX_RTMP_PORT | 内部推流RTMP服务端口，无需映射                 | 1935      |
 
 如果需要修改环境变量，在上述运行命令后添加以下参数：
 

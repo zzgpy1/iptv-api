@@ -315,8 +315,6 @@ docker run -d -p 80:8080 guovern/iptv-api
 | PUBLIC_DOMAIN   | Public domain or IP address, determines external access and the Host used in push stream results                 | 127.0.0.1 |
 | PUBLIC_PORT     | Public port, set to the mapped port, determines external access address and the port used in push stream results | 80        |
 | NGINX_HTTP_PORT | Nginx HTTP service port, needs to be mapped for external access                                                  | 8080      |
-| APP_PORT        | Internal application service port, no mapping required                                                           | 5180      |
-| NGINX_RTMP_PORT | Internal RTMP push service port, no mapping required                                                             | 1935      |
 
 If you need to modify environment variables, add the following parameters after the above run command:
 
