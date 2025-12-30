@@ -36,7 +36,7 @@ a = Analysis(
         ('../static/images/subscribe_icon.png', 'static/images'),
         ('../static/images/online_search_icon.png', 'static/images'),
         ('../static/images/epg_icon.png', 'static/images'),
-        ('favicon.ico', '.'),
+        ('../favicon.ico', '.'),
         ('about.py', '.'),
         ('default.py', '.'),
         ('speed.py', '.'),
@@ -79,5 +79,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='favicon.ico'
+    icon='../favicon.ico'
 )
