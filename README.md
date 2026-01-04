@@ -313,6 +313,10 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 ![微信公众号](./static/images/qrcode.jpg)
 
+### 定制化（付费）
+
+需要远程部署或定制化服务可联系邮箱：`360996299@qq.com`
+
 ## Star统计
 
 [![Star统计](https://starchart.cc/Guovin/iptv-api.svg?variant=adaptive)](https://starchart.cc/Guovin/iptv-api)

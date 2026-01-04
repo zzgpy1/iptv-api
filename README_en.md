@@ -324,6 +324,10 @@ WeChat public account search for Govin, or scan the code to receive updates and 
 
 ![Wechat public account](./static/images/qrcode.jpg)
 
+### Customization (Paid)
+
+For remote deployment or custom services, please contact: `360996299@qq.com`
+
 ## Star History
 
 [![Star History Chart](https://starchart.cc/Guovin/iptv-api.svg?variant=adaptive)](https://starchart.cc/Guovin/iptv-api)
