@@ -52,8 +52,8 @@ pipeline 🚀. Supports extensive customization; paste the resulting URL into yo
 - [⚖️ License](#license)
 
 > [!IMPORTANT]
-> 1. The default data sources, such as subscription sources, come from open-source projects on GitHub and are for
-     demonstration purposes only. They may have stability issues.
+> 1. Visit the `Govin` WeChat official account and reply with `cdn` to get a proxy acceleration address to improve
+     access speed for subscription sources and channel icons.
 > 2. This project does not guarantee or explain the stability of the interface results.
 > 3. To achieve optimal stability, it is recommended to maintain the data sources yourself.
 
@@ -63,7 +63,7 @@ pipeline 🚀. Supports extensive customization; paste the resulting URL into yo
 |:--------------------------------------|:------:|:---------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Custom Templates**                  |   ✅    | Generate personalized channels as you wish                                                                                                         |
 | **Channel Alias**                     |   ✅    | Improves channel result coverage and accuracy, supports regular expressions                                                                        |
-| **Multiple Source Types**             |   ✅    | Supports local sources, multicast, hotel sources, subscriptions, and keyword search                                                                |
+| **Multiple Source Types**             |   ✅    | Supports local sources, subscriptions                                                                                                              |
 | **RTMP streaming**                    |   ✅    | Supports HLS mode to improve compatibility and reduce buffering, enhancing playback on poor networks, and supports playback in browsers or players |
 | **Playback Interfaces**               |   ✅    | Supports acquisition and generation of playback interfaces                                                                                         |
 | **EPG (Electronic Program Guide)**    |   ✅    | Displays channel preview content                                                                                                                   |
