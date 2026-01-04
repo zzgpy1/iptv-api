@@ -167,12 +167,6 @@ Adjust the configuration as needed, here is the default configuration descriptio
   interface address, only filling in the interface address will apply to all channels, multiple records are entered on
   separate lines.
 
-
-- Multicast data (`config/rtp`)
-
-  In addition, you can also maintain multicast source data yourself, the files are located in the config/rtp directory,
-  and the file naming format is: `region_operator.txt`.
-
 ### Run Update
 
 If your template and configuration modifications are correct, you can configure `Actions` to achieve automatic updates.

@@ -140,7 +140,6 @@
 iptv-api/                  # 项目根目录
 ├── config                 # 配置文件目录，包含配置文件、模板文件等
 │   └── config.ini         # 配置参数文件
-│   └── rtp                # 各地区运营商组播源ip
 │   └── demo.txt           # 频道模板
 │   └── alias.txt          # 频道别名
 │   └── blacklist.txt      # 接口黑名单

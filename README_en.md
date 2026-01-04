@@ -143,7 +143,6 @@ pipeline 🚀. Supports extensive customization; paste the resulting URL into yo
 iptv-api/                  # Project root directory
 ├── config                 # Configuration files directory, includes config files, templates, etc.
 │   └── config.ini         # Configuration parameters file
-│   └── rtp                # Multicast IPs for each region/operator
 │   └── demo.txt           # Channel template
 │   └── alias.txt          # Channel aliases
 │   └── blacklist.txt      # Interface blacklist
