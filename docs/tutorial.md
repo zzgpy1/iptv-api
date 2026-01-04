@@ -92,9 +92,10 @@
 2. 配置文件命名为`user_config.ini`
 3. 粘贴默认配置 （创建`user_config.ini`可以只输入想要修改的配置项即可，无需全部复制 config.ini，注意配置文件上方的
    `[Settings]`必须保留，否则下方的自定义配置不生效）
-4. 修改模板和结果文件配置：
+4. 修改模板和结果文件配置以及CDN代理加速（推荐）：
     - source_file = config/user_demo.txt
     - final_file = output/user_result.txt
+    - cdn_url = （前往`Govin`公众号回复`cdn`获取）
 5. 点击`Commit changes...`进行保存
 
 ![创建user_config.ini](./images/edit-user-config.png '创建user_config.ini')
@@ -121,7 +122,6 @@
 - 本地源（`config/local.txt`）
 
   频道接口数据来源于本地文件，程序将依次读取其中的频道接口数据
-  ![本地源](./images/local.png '本地源')
 
 
 - EPG源（`config/epg.txt`）
@@ -137,19 +137,16 @@
 - 黑名单（`config/blacklist.txt`）
 
   符合黑名单关键字的接口将会被过滤，不会被收集，比如含广告等低质量接口
-  ![黑名单](./images/blacklist.png '黑名单')
 
 
 - 白名单（`config/whitelist.txt`）
 
   白名单内的接口或订阅源获取的接口将不会参与测速，优先排序至结果最前。填写频道名称会直接保留该记录至最终结果，如：CCTV-1,接口地址，只填写接口地址则对所有频道生效，多条记录换行输入。
-  ![白名单](./images/whitelist.png '白名单')
 
 
 - 组播数据（`config/rtp`）
 
   此外，对于组播源数据你也可以自行维护，文件位于config/rtp目录下，文件命名格式为：`地区_运营商.txt`
-  ![组播数据](./images/rtp.png '组播数据')
 
 ### 运行更新
 
@@ -210,8 +207,8 @@
 此时您可以访问文件链接，查看最新结果有没有同步即可：
 https://raw.githubusercontent.com/您的github用户名/仓库名称（对应上述Fork创建时的iptv-api）/master/output/user_result.txt
 
-或者代理地址：
-https://cdn.jsdelivr.net/gh/您的github用户名/仓库名称（对应上述Fork创建时的TV）@master/output/user_result.txt
+代理加速地址（推荐）：
+{cdn_url}/https://raw.githubusercontent.com/您的github用户名/仓库名称（对应上述Fork创建时的iptv-api）/master/output/user_result.txt
 
 ![用户名与仓库名称](./images/rep-info.png '用户名与仓库名称')
 

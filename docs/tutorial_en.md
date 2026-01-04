@@ -103,9 +103,10 @@ Like editing templates, modify the runtime configuration.
 3. Paste the default configuration. (when creating `user_config.ini`, you can only enter the configuration items you
    want to modify, no need to copy the entire `config.ini`. Note that the `[Settings]` at the top of the configuration
    file must be retained, otherwise the custom configuration below will not take effect)
-4. Modify the template and result file configuration:
+4. Modify the template and result file configuration and CDN proxy acceleration (recommended):
     - source_file = config/user_demo.txt
     - final_file = output/user_result.txt
+    - cdn_url = (go to the `Govin` public account and reply `cdn` to get it)
 5. Click `Commit changes...` to save.
 
 ![Create user_config.ini](./images/edit-user-config.png 'Create user_config.ini')
@@ -139,7 +140,6 @@ Adjust the configuration as needed, here is the default configuration descriptio
 - Local sources（`config/local.txt`）
 
   The channel interface data comes from local files, and the program will read the channel interface data in sequence.
-  ![Local sources](./images/local.png 'Local sources')
 
 
 - EPG Source (`config/epg.txt`)
@@ -158,7 +158,6 @@ Adjust the configuration as needed, here is the default configuration descriptio
 
   Interfaces that match the blacklist keywords will be filtered and not collected, such as low-quality interfaces with
   ads.
-  ![Blacklist](./images/blacklist.png 'Blacklist')
 
 
 - Whitelist (`config/whitelist.txt`)
@@ -167,14 +166,12 @@ Adjust the configuration as needed, here is the default configuration descriptio
   the top of the results. Fill in the channel name to directly retain the record in the final result, such as: CCTV-1,
   interface address, only filling in the interface address will apply to all channels, multiple records are entered on
   separate lines.
-  ![Whitelist](./images/whitelist.png 'Whitelist')
 
 
 - Multicast data (`config/rtp`)
 
   In addition, you can also maintain multicast source data yourself, the files are located in the config/rtp directory,
   and the file naming format is: `region_operator.txt`.
-  ![Multicast data](./images/rtp.png 'Multicast data')
 
 ### Run Update
 
@@ -236,13 +233,10 @@ mark).
 ![Workflow executed successfully](./images/workflow-success.png 'Workflow executed successfully')
 
 At this point, you can visit the file link to see if the latest results have been synchronized:
-https://raw.githubusercontent.com/your\_github\_username/repository\_name (corresponding to the TV
-created when forking)
-/master/output/user\_result.txt
+https://raw.githubusercontent.com/your-github-username/repository-name/master/output/user_result.txt
 
-Or proxy address:
-https://cdn.jsdelivr.net/gh/your\_github\_username/repository\_name (corresponding to the TV created when forking)
-@master/output/user\_result.txt
+Recommended CDN-accelerated URL:
+{cdn_url}/https://raw.githubusercontent.com/your-github-username/repository-name/master/output/user_result.txt
 
 ![Username and Repository Name](./images/rep-info.png 'Username and Repository Name')
 
