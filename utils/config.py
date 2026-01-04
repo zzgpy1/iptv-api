@@ -373,7 +373,13 @@ class ConfigManager:
 
     @property
     def update_interval(self):
-        return self.config.getfloat("Settings", "update_interval", fallback=12)
+        raw = self.config.get("Settings", "update_interval", fallback="12")
+        if raw is None or str(raw).strip() == "":
+            return None
+        try:
+            return float(raw)
+        except (ValueError, TypeError):
+            return 12.0
 
     @property
     def update_times(self):
