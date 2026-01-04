@@ -48,7 +48,6 @@ pipeline 🚀. Supports extensive customization; paste the resulting URL into yo
 - [❤️ Donations](#donations)
 - [👀 Follow](#follow)
 - [⭐️ Star History](#star-history)
-- [📣 Disclaimer](#disclaimer)
 - [⚖️ License](#license)
 
 > [!IMPORTANT]
@@ -337,11 +336,6 @@ WeChat public account search for Govin, or scan the code to receive updates and 
 | Alipay                                | Wechat                                    |
 |---------------------------------------|-------------------------------------------|
 | ![Alipay](./static/images/alipay.jpg) | ![Wechat](./static/images/appreciate.jpg) |
-
-## Disclaimer
-
-This project is for learning and communication purposes only. All interface data comes from the internet. If there is
-any infringement, please contact us for removal.
 
 ## License
 
