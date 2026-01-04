@@ -58,23 +58,6 @@ pipeline 🚀. Supports extensive customization; paste the resulting URL into yo
 > 2. This project does not guarantee or explain the stability of the interface results.
 > 3. To achieve optimal stability, it is recommended to maintain the data sources yourself.
 
-<details>
-  <summary>Default Data Sources</summary>
-
-📍Subscription sources are from:
-
-- [Guovin/iptv-database](https://github.com/Guovin/iptv-database)
-- [iptv-org/iptv](https://github.com/iptv-org/iptv)
-- [suxuang/myIPTV](https://github.com/suxuang/myIPTV)
-- [kimwang1978/collect-tv-txt](https://github.com/kimwang1978/collect-tv-txt)
-- [vbskycn/iptv](https://github.com/vbskycn/iptv)
-
-📍Channel icons are from:
-
-- [fanmingming/live](https://github.com/fanmingming/live)
-
-</details>
-
 ## Core Features
 
 | Feature                               | Status | Description                                                                                                                                        |
