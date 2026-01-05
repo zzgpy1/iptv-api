@@ -11,13 +11,13 @@ from tqdm import tqdm
 
 import utils.constants as constants
 from updates.epg import get_epg
+from updates.epg.tools import write_to_xml, compress_to_gz
 from updates.subscribe import get_channels_by_subscribe_urls
+from utils.aggregator import ResultAggregator
 from utils.channel import (
     get_channel_items,
     append_total_data,
-    test_speed,
-    write_channel_to_file,
-    sort_channel_result
+    test_speed
 )
 from utils.config import config
 from utils.i18n import t
@@ -46,6 +46,7 @@ class UpdateSource:
         self.run_ui = False
         self.tasks = []
         self.channel_items: CategoryChannelData = {}
+        self.channel_names = []
         self.subscribe_result = {}
         self.epg_result = {}
         self.channel_data: CategoryChannelData = {}
@@ -55,6 +56,7 @@ class UpdateSource:
         self.stop_event = None
         self.ipv6_support = False
         self.now = None
+        self.aggregator = None
 
     async def visit_page(self, channel_names: list[str] = None):
         tasks_config = [
@@ -104,15 +106,18 @@ class UpdateSource:
                 self.blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
                 self.channel_items = get_channel_items(self.whitelist_maps, self.blacklist)
                 self.channel_data = {}
-                channel_names = [
+                self.channel_names = [
                     name
                     for channel_obj in self.channel_items.values()
                     for name in channel_obj.keys()
                 ]
-                if not channel_names:
+                if not self.channel_names:
                     print(t("msg.no_channel_names").format(file=config.source_file))
                     return
-                await self.visit_page(channel_names)
+                await self.visit_page(self.channel_names)
+                if self.epg_result:
+                    write_to_xml(self.epg_result, constants.epg_result_path)
+                    compress_to_gz(constants.epg_result_path, constants.epg_gz_result_path)
                 self.tasks = []
                 append_total_data(
                     self.channel_items.items(),
@@ -121,8 +126,14 @@ class UpdateSource:
                     self.whitelist_maps,
                     self.blacklist
                 )
+                self.aggregator = ResultAggregator(
+                    base_data=self.channel_data,
+                    first_channel_name=self.channel_names[0] if self.channel_names else None,
+                    ipv6_support=self.ipv6_support,
+                    write_interval=2.0
+                )
+                await self.aggregator.start()
                 cache_result = self.channel_data
-                test_result = {}
                 if config.open_speed_test:
                     urls_total = get_urls_len(self.channel_data)
                     test_data = copy.deepcopy(self.channel_data)
@@ -144,22 +155,14 @@ class UpdateSource:
                         test_data,
                         ipv6=self.ipv6_support,
                         callback=lambda: self.pbar_update(name=t("pbar.speed_test"), item_name=t("pbar.url")),
+                        on_task_complete=self.aggregator.add_item
                     )
                     cache_result = merge_objects(cache_result, test_result, match_key="url")
                     self.pbar.close()
-                self.channel_data = sort_channel_result(
-                    self.channel_data,
-                    result=test_result,
-                    filter_host=config.speed_test_filter_host,
-                    ipv6_support=self.ipv6_support
-                )
-                self.update_progress(t("msg.creating_result"), 0)
-                write_channel_to_file(
-                    self.channel_data,
-                    epg=self.epg_result,
-                    ipv6=self.ipv6_support,
-                    first_channel_name=channel_names[0],
-                )
+                else:
+                    self.aggregator.is_last = True
+                    await self.aggregator.flush_once(force=True)
+                await self.aggregator.stop()
                 if config.open_history:
                     if os.path.exists(constants.cache_path):
                         with gzip.open(constants.cache_path, "rb") as file:

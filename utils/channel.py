@@ -2,7 +2,6 @@ import asyncio
 import base64
 import gzip
 import json
-import logging
 import math
 import os
 import pickle
@@ -13,7 +12,6 @@ from logging import INFO
 from bs4 import NavigableString
 
 import utils.constants as constants
-from updates.epg.tools import write_to_xml, compress_to_gz
 from utils.alias import Alias
 from utils.config import config
 from utils.db import get_db_connection, return_db_connection
@@ -750,7 +748,7 @@ def append_total_data(
             print_channel_number(data, cate, name)
 
 
-async def test_speed(data, ipv6=False, callback=None):
+async def test_speed(data, ipv6=False, callback=None, on_task_complete=None):
     """
     Test speed of channel data
     """
@@ -761,9 +759,6 @@ async def test_speed(data, ipv6=False, callback=None):
     logger = get_logger(constants.speed_test_log_path, level=INFO, init=True)
 
     async def limited_get_speed(channel_info):
-        """
-        Wrapper for get_speed with rate limiting
-        """
         async with semaphore:
             headers = (open_headers and channel_info.get("headers")) or None
             return await get_speed(
@@ -775,31 +770,59 @@ async def test_speed(data, ipv6=False, callback=None):
                 callback=callback,
             )
 
+    total_tasks = sum(len(info_list) for channel_obj in data.values() for info_list in channel_obj.values())
+    total_tasks_by_channel = defaultdict(int)
+    for cate, channel_obj in data.items():
+        for name, info_list in channel_obj.items():
+            total_tasks_by_channel[(cate, name)] += len(info_list)
+    completed = 0
     tasks = []
     channel_map = {}
+    grouped_results = {}
+    completed_by_channel = defaultdict(int)
+
+    def _on_task_done(task):
+        nonlocal completed
+        try:
+            result = task.result()
+        except Exception:
+            result = {}
+        meta = channel_map.get(task)
+        if not meta:
+            return
+        cate, name, info = meta
+        if cate not in grouped_results:
+            grouped_results[cate] = {}
+        if name not in grouped_results[cate]:
+            grouped_results[cate][name] = []
+        merged = {**info, **result}
+        grouped_results[cate][name].append(merged)
+
+        completed += 1
+        completed_by_channel[(cate, name)] += 1
+
+        is_channel_last = completed_by_channel[(cate, name)] >= total_tasks_by_channel.get((cate, name), 0)
+        is_last = completed >= total_tasks
+
+        if on_task_complete:
+            try:
+                on_task_complete(cate, name, merged, is_channel_last, is_last)
+            except Exception:
+                pass
 
     for cate, channel_obj in data.items():
         for name, info_list in channel_obj.items():
             for info in info_list:
                 info['name'] = name
                 task = asyncio.create_task(limited_get_speed(info))
-                tasks.append(task)
                 channel_map[task] = (cate, name, info)
+                task.add_done_callback(_on_task_done)
+                tasks.append(task)
 
-    results = await asyncio.gather(*tasks)
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     logger.handlers.clear()
-
-    grouped_results = {}
-
-    for task, result in zip(tasks, results):
-        cate, name, info = channel_map[task]
-        if cate not in grouped_results:
-            grouped_results[cate] = {}
-        if name not in grouped_results[cate]:
-            grouped_results[cate][name] = []
-        grouped_results[cate][name].append({**info, **result})
-
     return grouped_results
 
 
@@ -808,27 +831,20 @@ def sort_channel_result(channel_data, result=None, filter_host=False, ipv6_suppo
     Sort channel result
     """
     channel_result = defaultdict(lambda: defaultdict(list))
-    logger = get_logger(constants.result_log_path, level=INFO, init=True)
     for cate, obj in channel_data.items():
         for name, values in obj.items():
-            if not values:
-                continue
             whitelist_result = []
             test_result = result.get(cate, {}).get(name, []) if result else []
-            for value in values:
-                if value["origin"] in retain_origin or (
-                        not ipv6_support and result and value["ipv_type"] == "ipv6"
-                ):
-                    whitelist_result.append(value)
-                elif filter_host or not result:
-                    test_result.append({**value, **get_speed_result(value["host"])} if filter_host else value)
+            if values:
+                for value in values:
+                    if value["origin"] in retain_origin or (
+                            not ipv6_support and result and value["ipv_type"] == "ipv6"
+                    ):
+                        whitelist_result.append(value)
+                    elif filter_host or not result:
+                        test_result.append({**value, **get_speed_result(value["host"])} if filter_host else value)
             total_result = whitelist_result + get_sort_result(test_result, ipv6_support=ipv6_support)
             channel_result[cate][name].extend(total_result)
-            for item in total_result:
-                logger.info(
-                    f"Name: {name}, URL: {item.get('url')}, From: {item.get('origin')}, IPv_Type: {item.get("ipv_type")}, Location: {item.get('location')}, ISP: {item.get('isp')}, Date: {item["date"]}, Delay: {item.get('delay') or -1} ms, Speed: {item.get('speed') or 0:.2f} M/s, Resolution: {item.get('resolution')}"
-                )
-    logger.handlers.clear()
     return channel_result
 
 
@@ -870,7 +886,7 @@ def process_write_content(
         origin_type_prefer: list[str] = None,
         first_channel_name: str = None,
         enable_log: bool = False,
-        logger: logging.Logger = None
+        is_last: bool = False,
 ):
     """
     Get channel write content
@@ -880,6 +896,9 @@ def process_write_content(
     :param ipv_type_prefer: ipv type prefer
     :param origin_type_prefer: origin type prefer
     :param first_channel_name: the first channel name
+    :param enable_log: enable log
+    :param logger: logger
+    :param is_last: is last write
     """
     content = ""
     no_result_name = []
@@ -906,8 +925,6 @@ def process_write_content(
                     item_url = add_url_info(item_url, item["extra_info"])
                 total_item_url = f"{hls_url}/{item['id']}.m3u8" if hls_url else item_url
                 content += f"\n{name},{total_item_url}"
-            if enable_log:
-                generate_channel_statistic(logger, cate, name, info_list)
     if open_empty_category and no_result_name:
         custom_print(f"\n{t("msg.no_result_channel")}")
         content += f"\n\n{t("content.no_result_channel_genre")},#genre#"
@@ -924,61 +941,56 @@ def process_write_content(
         )
         now = get_datetime_now()
         update_time_item_url = update_time_item["url"]
+        update_title = t("content.update_time") if is_last else t("content.update_running")
         if open_url_info and update_time_item["extra_info"]:
             update_time_item_url = add_url_info(update_time_item_url, update_time_item["extra_info"])
         value = f"{hls_url}/{update_time_item["id"]}.m3u8" if hls_url else update_time_item_url
         if config.update_time_position == "top":
-            content = f"{t("content.update_time")},#genre#\n{now},{value}\n\n{content}"
+            content = f"{update_title},#genre#\n{now},{value}\n\n{content}"
         else:
-            content += f"\n\n{t("content.update_time")},#genre#\n{now},{value}"
+            content += f"\n\n{update_title},#genre#\n{now},{value}"
     if hls_url:
-        conn = get_db_connection(constants.rtmp_data_path)
+        db_dir = os.path.dirname(constants.rtmp_data_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+
         try:
-            cursor = conn.cursor()
-            cursor.execute(
-                "CREATE TABLE IF NOT EXISTS result_data (id TEXT PRIMARY KEY, url TEXT, headers TEXT)"
-            )
-            for data_list in result_data.values():
-                for item in data_list:
-                    cursor.execute(
-                        "INSERT OR REPLACE INTO result_data (id, url, headers) VALUES (?, ?, ?)",
-                        (item["id"], item["url"], json.dumps(item.get("headers", None)))
-                    )
-            conn.commit()
-        finally:
-            return_db_connection(constants.rtmp_data_path, conn)
+            conn = get_db_connection(constants.rtmp_data_path)
+        except Exception as e:
+            print(t("msg.write_error").format(info=f"open rtmp db error: {e}"))
+        else:
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS result_data (id TEXT PRIMARY KEY, url TEXT, headers TEXT)"
+                )
+                for data_list in result_data.values():
+                    for item in data_list:
+                        cursor.execute(
+                            "INSERT OR REPLACE INTO result_data (id, url, headers) VALUES (?, ?, ?)",
+                            (item["id"], item["url"], json.dumps(item.get("headers", None)))
+                        )
+                conn.commit()
+            finally:
+                return_db_connection(constants.rtmp_data_path, conn)
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
     convert_to_m3u(path, first_channel_name, data=result_data)
 
 
-def write_channel_to_file(data, epg=None, ipv6=False, first_channel_name=None):
+def write_channel_to_file(data, ipv6=False, first_channel_name=None, skip_print=False, is_last=False):
     """
     Write channel to file
     """
     try:
-        print(t("msg.writing_result"))
-        output_dir = constants.output_dir
-        dir_list = [
-            output_dir,
-            f"{output_dir}/epg",
-            f"{output_dir}/ipv4",
-            f"{output_dir}/ipv6",
-            f"{output_dir}/data",
-            f"{output_dir}/log",
-        ]
-        for dir_name in dir_list:
-            os.makedirs(dir_name, exist_ok=True)
-        if epg:
-            write_to_xml(epg, constants.epg_result_path)
-            compress_to_gz(constants.epg_result_path, constants.epg_gz_result_path)
+        if not skip_print:
+            print(t("msg.writing_result"))
         open_empty_category = config.open_empty_category
         ipv_type_prefer = list(config.ipv_type_prefer)
         if any(pref == "auto" for pref in ipv_type_prefer):
             ipv_type_prefer = ["ipv6", "ipv4"] if ipv6 else ["ipv4", "ipv6"]
         origin_type_prefer = config.origin_type_prefer
         hls_url = f"{get_public_url()}/hls"
-        logger = get_logger(constants.statistic_log_path, level=INFO, init=True)
         file_list = [
             {"path": config.final_file, "enable_log": True},
             {"path": constants.ipv4_result_path, "ipv_type_prefer": ["ipv4"]},
@@ -999,6 +1011,9 @@ def write_channel_to_file(data, epg=None, ipv6=False, first_channel_name=None):
                 },
             ]
         for file in file_list:
+            target_dir = os.path.dirname(file["path"])
+            if target_dir:
+                os.makedirs(target_dir, exist_ok=True)
             process_write_content(
                 path=file["path"],
                 data=data,
@@ -1008,10 +1023,10 @@ def write_channel_to_file(data, epg=None, ipv6=False, first_channel_name=None):
                 origin_type_prefer=origin_type_prefer,
                 first_channel_name=first_channel_name,
                 enable_log=file.get("enable_log", False),
-                logger=logger
+                is_last=is_last
             )
-        logger.handlers.clear()
-        print(t("msg.write_success"))
+        if not skip_print:
+            print(t("msg.write_success"))
     except Exception as e:
         print(t("msg.write_error").format(info=e))
 

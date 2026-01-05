@@ -11,7 +11,6 @@
   "msg.progress_speed_test": "🚀 Speed testing now, total urls: {total}, need to test speed: {speed_total}",
   "msg.progress_desc": "Running {name}, remaining {remaining_total} of {item_name}, estimated remaining time: {remaining_time}",
   "msg.progress_loading_region_type_rtp": "Loading multicast RTP data for {region}_{type}, remaining {remaining_files} files, estimated remaining time: {estimated_time}",
-  "msg.creating_result": "Creating result file",
   "msg.update_completed": "\uD83E\uDD73 Update completed! Total time spent: {time}{service_tip}",
   "msg.service_tip": ", You can watch it at the following address",
   "msg.service_run_success": "✅ Service run successful{service_tip}",
@@ -40,7 +39,7 @@
   "msg.failed_retry_max": "❌ Failed to request the {name} reached the maximum retries",
   "msg.request_timeout": "Request timed out: {name}",
   "msg.request_failed": "❌ Request failed: {name}",
-  "msg.waiting_tip": "\uD83D\uDCC4 The result will be generated after the update is complete, please wait patiently...",
+  "msg.waiting_tip": "\uD83D\uDCC4 Results will be generated gradually, please be patient...",
   "msg.rtmp_publish": "\uD83D\uDE80 RTMP publishing started at {channel_id}, source: {source}",
   "msg.rtmp_on_done": "\uD83D\uDD1A RTMP publishing ended at {channel_id}",
   "msg.rtmp_hls_idle_monitor_start_success": "✅ HLS idle monitor started successfully",
@@ -98,5 +97,6 @@
   "name.region": "Region",
   "name.channel": "Channel",
   "content.no_result_channel": "\uD83C\uDE33No result channel",
-  "content.update_time": "\uD83D\uDD58\uFE0FUpdate time"
+  "content.update_time": "\uD83D\uDD58\uFE0FUpdate time",
+  "content.update_running": "\uD83D\uDD58\uFE0F Update in progress, refresh to get the latest results"
 }

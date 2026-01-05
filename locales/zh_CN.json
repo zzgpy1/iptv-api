@@ -11,7 +11,6 @@
   "msg.progress_speed_test": "🚀 正在进行测速, 总接口数量: {total}, 需要进行测速的接口数量: {speed_total}",
   "msg.progress_desc": "正在进行{name}，剩余{remaining_total}个{item_name}，预计完成剩余时间：{remaining_time}",
   "msg.progress_loading_region_type_rtp": "正在加载{region}_{type}的组播RTP数据, 剩余{remaining_files}个文件, 预计完成剩余时间: {estimated_time}",
-  "msg.creating_result": "正在生成结果文件",
   "msg.update_completed": "\uD83E\uDD73 更新完成！总耗时：{time}{service_tip}",
   "msg.service_tip": "，可使用以下地址进行观看",
   "msg.service_run_success": "✅ 服务启动成功{service_tip}",
@@ -40,7 +39,7 @@
   "msg.failed_retry_max": "❌ 请求{name}失败，已达到最大重试次数",
   "msg.request_timeout": "请求超时：{name}",
   "msg.request_failed": "❌ 请求失败：{name}",
-  "msg.waiting_tip": "\uD83D\uDCC4 结果将在更新完成后生成，请耐心等待...",
+  "msg.waiting_tip": "\uD83D\uDCC4 结果马上逐步生成，请耐心等待...",
   "msg.rtmp_publish": "\uD83D\uDE80 频道：{channel_id} 推流启动，数据源：{source}",
   "msg.rtmp_on_done": "\uD83D\uDD1A 频道：{channel_id} 推流结束",
   "msg.rtmp_hls_idle_monitor_start_success": "✅ HLS推流监控启动成功",
@@ -98,5 +97,6 @@
   "name.region": "地区",
   "name.channel": "频道",
   "content.no_result_channel": "\uD83C\uDE33无结果频道",
-  "content.update_time": "\uD83D\uDD58\uFE0F更新时间"
+  "content.update_time": "\uD83D\uDD58\uFE0F更新时间",
+  "content.update_running": "\uD83D\uDD58\uFE0F正在更新中，刷新获取最新结果"
 }
