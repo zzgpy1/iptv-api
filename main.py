@@ -179,8 +179,12 @@ class UpdateSource:
                             except EOFError:
                                 cache = {}
                             cache_result = merge_objects(cache, cache_result, match_key="url")
-                    with gzip.open(constants.cache_path, "wb") as file:
-                        pickle.dump(cache_result, file)
+                    cache_path = constants.cache_path
+                    cache_dir = os.path.dirname(cache_path)
+                    if cache_dir:
+                        os.makedirs(cache_dir, exist_ok=True)
+                        with gzip.open(constants.cache_path, "wb") as file:
+                            pickle.dump(cache_result, file)
                 print(t("msg.update_completed").format(time=format_interval(time() - main_start_time), service_tip=""))
             if self.run_ui:
                 open_service = config.open_service
