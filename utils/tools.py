@@ -572,8 +572,6 @@ def format_name(name: str) -> str:
     Format the  name with sub and replace and lower
     """
     name = opencc_t2s.convert(name)
-    for region in constants.region_list:
-        name = name.replace(f"{region}｜", "")
     name = constants.sub_pattern.sub("", name)
     for old, new in constants.replace_dict.items():
         name = name.replace(old, new)
