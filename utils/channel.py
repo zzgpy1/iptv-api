@@ -5,6 +5,7 @@ import math
 import os
 import pickle
 import re
+import tempfile
 from collections import defaultdict
 from logging import INFO
 
@@ -610,13 +611,13 @@ def process_write_content(
     """
     Get channel write content
     :param path: write into path
+    :param data: channel data
     :param hls_url: hls url
     :param open_empty_category: show empty category
     :param ipv_type_prefer: ipv type prefer
     :param origin_type_prefer: origin type prefer
     :param first_channel_name: the first channel name
     :param enable_log: enable log
-    :param logger: logger
     :param is_last: is last write
     """
     content = ""
@@ -691,10 +692,28 @@ def process_write_content(
                         )
                 conn.commit()
             finally:
-                return_db_connection(constants.rtmp_data_path, conn)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
-    convert_to_m3u(path, first_channel_name, data=result_data)
+                if is_last:
+                    return_db_connection(constants.rtmp_data_path, conn)
+    try:
+        target_dir = os.path.dirname(path) or "."
+        os.makedirs(target_dir, exist_ok=True)
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False, dir=target_dir,
+                                         prefix=os.path.basename(path) + ".tmp.") as tmpf:
+            tmpf.write(content)
+            tmp_path = tmpf.name
+        os.replace(tmp_path, path)
+    except Exception as e:
+        print(e)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+        except Exception as e2:
+            print(t("msg.write_error").format(info=e2))
+            return
+    try:
+        convert_to_m3u(path, first_channel_name, data=result_data)
+    except Exception:
+        pass
 
 
 def write_channel_to_file(data, ipv6=False, first_channel_name=None, skip_print=False, is_last=False):

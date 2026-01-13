@@ -129,11 +129,19 @@ class UpdateSource:
                     self.whitelist_maps,
                     self.blacklist
                 )
+                cache = {}
+                if config.open_history and os.path.exists(constants.cache_path):
+                    with gzip.open(constants.cache_path, "rb") as file:
+                        try:
+                            cache = pickle.load(file)
+                        except Exception:
+                            pass
                 self.aggregator = ResultAggregator(
                     base_data=self.channel_data,
                     first_channel_name=self.channel_names[0] if self.channel_names else None,
                     ipv6_support=self.ipv6_support,
-                    write_interval=2.0
+                    write_interval=2.0,
+                    last_full_sorted=cache
                 )
                 await self.aggregator.start()
                 cache_result = self.channel_data
@@ -172,15 +180,8 @@ class UpdateSource:
                     await self.aggregator.flush_once(force=True)
                 await self.aggregator.stop()
                 if config.open_history:
-                    if os.path.exists(constants.cache_path):
-                        with gzip.open(constants.cache_path, "rb") as file:
-                            try:
-                                cache = pickle.load(file)
-                            except EOFError:
-                                cache = {}
-                            cache_result = merge_objects(cache, cache_result, match_key="url")
-                    cache_path = constants.cache_path
-                    cache_dir = os.path.dirname(cache_path)
+                    cache_result = merge_objects(cache, cache_result, match_key="url")
+                    cache_dir = os.path.dirname(constants.cache_path)
                     if cache_dir:
                         os.makedirs(cache_dir, exist_ok=True)
                         with gzip.open(constants.cache_path, "wb") as file:
