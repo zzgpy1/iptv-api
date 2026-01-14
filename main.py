@@ -271,6 +271,8 @@ class UpdateSource:
                     try:
                         await asyncio.wait_for(stop_event.wait(), timeout=config.update_interval * 3600)
                     except asyncio.TimeoutError:
+                        self.now = datetime.datetime.now(tz)
+                        await self.main()
                         continue
         except asyncio.CancelledError:
             print(t("msg.schedule_cancelled"))
