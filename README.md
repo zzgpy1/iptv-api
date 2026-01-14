@@ -147,19 +147,18 @@ iptv-api/                  # 项目根目录
 │   └── subscribe.txt      # 频道订阅源列表
 │   └── local.txt          # 本地源文件
 │   └── epg.txt            # EPG订阅源列表
-├── output                 # 结果文件目录，包含生成的结果文件等
-│   └── data               # 结果数据缓存目录
-│   └── epg                # EPG结果目录
-│   └── ipv4               # IPv4结果目录
-│   └── ipv6               # IPv6结果目录
-│   └── result.m3u/txt     # m3u/txt结果
-│   └── hls.m3u/txt        # RTMP hls推流结果
-│   └── log                # 日志文件目录
-│       └── result.log     # 有效结果日志
-│       └── speed_test.log # 测速日志
-│       └── statistic.log  # 统计结果日志
-│       └── nomatch.log    # 未匹配频道记录
-└── source.json            # 点播源配置文件
+└── output                 # 结果文件目录，包含生成的结果文件等
+    └── data               # 结果数据缓存目录
+    └── epg                # EPG结果目录
+    └── ipv4               # IPv4结果目录
+    └── ipv6               # IPv6结果目录
+    └── result.m3u/txt     # m3u/txt结果
+    └── hls.m3u/txt        # RTMP hls推流结果
+    └── log                # 日志文件目录
+        └── result.log     # 有效结果日志
+        └── speed_test.log # 测速日志
+        └── statistic.log  # 统计结果日志
+        └── nomatch.log    # 未匹配频道记录
 ```
 
 ### 工作流

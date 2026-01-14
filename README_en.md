@@ -151,19 +151,18 @@ iptv-api/                  # Project root directory
 │   └── subscribe.txt      # Channel subscription sources list
 │   └── local.txt          # Local source file
 │   └── epg.txt            # EPG subscription sources list
-├── output                 # Output files directory, includes generated result files, etc.
-│   └── data               # Result data cache directory
-│   └── epg                # EPG result directory
-│   └── ipv4               # IPv4 result directory
-│   └── ipv6               # IPv6 result directory
-│   └── result.m3u/txt     # m3u/txt result
-│   └── hls.m3u/txt        # RTMP hls stream result
-│   └── log                # Log files directory
-│       └── result.log     # Valid result log
-│       └── speed_test.log # Speed test log
-│       └── statistic.log  # Statistics result log
-│       └── nomatch.log    # Unmatched channel records
-└── source.json            # VOD source configuration file
+└── output                 # Output files directory, includes generated result files, etc.
+    └── data               # Result data cache directory
+    └── epg                # EPG result directory
+    └── ipv4               # IPv4 result directory
+    └── ipv6               # IPv6 result directory
+    └── result.m3u/txt     # m3u/txt result
+    └── hls.m3u/txt        # RTMP hls stream result
+    └── log                # Log files directory
+        └── result.log     # Valid result log
+        └── speed_test.log # Speed test log
+        └── statistic.log  # Statistics result log
+        └── nomatch.log    # Unmatched channel records
 ```
 
 ### Workflow
