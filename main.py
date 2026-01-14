@@ -10,6 +10,7 @@ import pytz
 from tqdm import tqdm
 
 import utils.constants as constants
+import utils.frozen as frozen
 from updates.epg import get_epg
 from updates.epg.tools import write_to_xml, compress_to_gz
 from updates.subscribe import get_channels_by_subscribe_urls
@@ -114,6 +115,8 @@ class UpdateSource:
                     for channel_obj in self.channel_items.values()
                     for name in channel_obj.keys()
                 ]
+                if config.open_history and os.path.exists(constants.frozen_path):
+                    frozen.load(constants.frozen_path)
                 if not self.channel_names:
                     print(t("msg.no_channel_names").format(file=config.source_file))
                     return
@@ -144,7 +147,7 @@ class UpdateSource:
                     last_full_sorted=cache
                 )
                 await self.aggregator.start()
-                cache_result = self.channel_data
+                cache_result = copy.deepcopy(self.channel_data)
                 if config.open_speed_test:
                     urls_total = get_urls_len(self.channel_data)
                     test_data = copy.deepcopy(self.channel_data)
@@ -186,6 +189,7 @@ class UpdateSource:
                         os.makedirs(cache_dir, exist_ok=True)
                         with gzip.open(constants.cache_path, "wb") as file:
                             pickle.dump(cache_result, file)
+                    frozen.save(constants.frozen_path)
                 print(t("msg.update_completed").format(time=format_interval(time() - main_start_time), service_tip=""))
             if self.run_ui:
                 open_service = config.open_service
