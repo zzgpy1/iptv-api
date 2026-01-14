@@ -19,6 +19,7 @@ from utils.aggregator import ResultAggregator
 from utils.channel import get_channel_items, append_total_data, test_speed
 from utils.config import config
 from utils.i18n import t
+from utils.speed import clear_cache
 from utils.tools import (
     get_pbar_remaining,
     process_nested_dict,
@@ -307,6 +308,7 @@ class UpdateSource:
                 cache_result = copy.deepcopy(self.channel_data)
 
                 if config.open_speed_test:
+                    clear_cache()
                     test_result = await self._run_speed_test()
                     cache_result = merge_objects(cache_result, test_result, match_key="url")
                 else:
