@@ -53,7 +53,7 @@ pipeline 🚀. Supports extensive customization; paste the resulting URL into yo
 > [!IMPORTANT]
 > 1. Go to the `Govin` WeChat public account and reply with `cdn` to get an acceleration address to improve access speed
      for subscription sources and channel logos.
-> 2. This project does not provide any channel data sources; please prepare and add them yourself.
+> 2. This project does not provide data sources. Please add your own before generating results.
 > 3. The quality of generated results depends on the data sources and network conditions; please adjust
      the [configuration](#Config) accordingly to obtain results that better meet your needs.
 
