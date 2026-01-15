@@ -324,9 +324,9 @@ WeChat public account search for Govin, or scan the code to receive updates and 
 
 ![Wechat public account](./static/images/qrcode.jpg)
 
-### Customization (Paid)
+### Need more help?
 
-For remote deployment or custom services, please contact: `360996299@qq.com`
+Contact via email: `360996299@qq.com`
 
 ## Star History
 
