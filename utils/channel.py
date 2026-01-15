@@ -700,6 +700,10 @@ def process_write_content(
             tmpf.write(content)
             tmp_path = tmpf.name
         os.replace(tmp_path, path)
+        try:
+            os.chmod(path, 0o644)
+        except Exception:
+            pass
     except Exception as e:
         print(e)
         try:
