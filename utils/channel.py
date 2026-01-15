@@ -691,8 +691,7 @@ def process_write_content(
                         )
                 conn.commit()
             finally:
-                if is_last:
-                    return_db_connection(constants.rtmp_data_path, conn)
+                return_db_connection(constants.rtmp_data_path, conn)
     try:
         target_dir = os.path.dirname(path) or "."
         os.makedirs(target_dir, exist_ok=True)
