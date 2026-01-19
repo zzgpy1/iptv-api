@@ -1,5 +1,5 @@
 #EXTM3U x-tvg-url="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/zzgpy1/iptv-api/refs/heads/master/output/epg/epg.gz"
-#EXTINF:-1 tvg-name="CCTV1" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="🕘️更新时间",2026-01-19 06:30:41
+#EXTINF:-1 tvg-name="CCTV1" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="🕘️更新时间",2026-01-19 18:40:22
 http://iptv.huuc.edu.cn/hls/cctv1hd.m3u8
 #EXTINF:-1 tvg-name="CCTV1" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV1.png" group-title="📺央视频道",CCTV-1
 http://iptv.huuc.edu.cn/hls/cctv1hd.m3u8
@@ -189,6 +189,8 @@ https://migu.188766.xyz/?migutoken=4b4fcf74218d43cc86ab51bb0ca9ac63&id=CCTV9&typ
 https://migu.188766.xyz/?migutoken=bf2e9042229fd4c91f53340eb191dd44&id=CCTV9&type=yy
 #EXTINF:-1 tvg-name="CCTV9" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV9.png" group-title="📺央视频道",CCTV-9
 https://migu.188766.xyz/?migutoken=47fafd9372b3556d8a58e25d7df0c9be&id=CCTV9&type=yy
+#EXTINF:-1 tvg-name="CCTV9" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV9.png" group-title="📺央视频道",CCTV-9
+https://migu.188766.xyz/?migutoken=ae67bb121c504e33d6a480573cf01c56&id=CCTV9&type=yy
 #EXTINF:-1 tvg-name="CCTV10" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV10.png" group-title="📺央视频道",CCTV-10
 http://iptv.huuc.edu.cn/hls/cctv10hd.m3u8
 #EXTINF:-1 tvg-name="CCTV10" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV10.png" group-title="📺央视频道",CCTV-10
@@ -305,6 +307,8 @@ https://migu.188766.xyz/?migutoken=fd03337719881612c26dfe0835bd6a11&id=CCTV15&ty
 https://migu.188766.xyz/?migutoken=9f1b09530df3f1a8ebb95d0030d3eb2d&id=CCTV15&type=yy
 #EXTINF:-1 tvg-name="CCTV15" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV15.png" group-title="📺央视频道",CCTV-15
 https://migu.188766.xyz/?migutoken=8fec6f4fbbe67c00e31cdeeb2c79d2e2&id=CCTV15&type=yy
+#EXTINF:-1 tvg-name="CCTV15" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV15.png" group-title="📺央视频道",CCTV-15
+https://migu.188766.xyz/?migutoken=6f069f1b2a496b18e24786f975c7f104&id=CCTV15&type=yy
 #EXTINF:-1 tvg-name="CCTV16" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV16.png" group-title="📺央视频道",CCTV-16
 https://zby.130519.xyz/PLTV/11/224/3221226120/index.m3u8
 #EXTINF:-1 tvg-name="CCTV16" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV16.png" group-title="📺央视频道",CCTV-16
@@ -315,6 +319,8 @@ http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221
 http://[2409:8087:1a01:df::4077]/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221226100/index.m3u8
 #EXTINF:-1 tvg-name="CCTV16" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV16.png" group-title="📺央视频道",CCTV-16
 https://epg.pw/stream/c1beb2abcba5aef09c2f58efc3ca84b76de2c7b9cf60762b0d79772d9e70d454.m3u8
+#EXTINF:-1 tvg-name="CCTV16" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV16.png" group-title="📺央视频道",CCTV-16
+http://lu.wqwqwq.sbs/itv/1000000006000233002.m3u8?cdn=ystenlive
 #EXTINF:-1 tvg-name="CCTV17" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV17.png" group-title="📺央视频道",CCTV-17
 https://migu.188766.xyz/?migutoken=9329985fa4cf1658da3753d2ff66cc8a&id=CCTV17&type=yy
 #EXTINF:-1 tvg-name="CCTV17" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV17.png" group-title="📺央视频道",CCTV-17
@@ -327,6 +333,8 @@ https://migu.188766.xyz/?migutoken=d944543e3216e1f96b71a9c80db844d8&id=CCTV17&ty
 https://migu.188766.xyz/?migutoken=6e8f0ce24e6992edd268da6eb19b19b4&id=CCTV17&type=yy
 #EXTINF:-1 tvg-name="CCTV17" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV17.png" group-title="📺央视频道",CCTV-17
 https://migu.188766.xyz/?migutoken=36439288f6866850b7dd1774671196dd&id=CCTV17&type=yy
+#EXTINF:-1 tvg-name="CCTV17" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CCTV17.png" group-title="📺央视频道",CCTV-17
+https://migu.188766.xyz/?migutoken=d32625450edaf4b0d4736fab06ee86d7&id=CCTV17&type=yy
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
 https://migu.188766.xyz/?migutoken=7025fbbac417e2fb8e16c9493647325c&id=CETV1&type=yy
 #EXTINF:-1 tvg-name="CETV1" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV1.png" group-title="📺央视频道",CETV-1
@@ -365,6 +373,8 @@ https://migu.188766.xyz/?migutoken=40587ce1f3dc9d1db0d1e40530f2c857&id=CETV2&typ
 https://migu.188766.xyz/?migutoken=10de32222b3e0eaa5c2761a299af762e&id=CETV2&type=yy
 #EXTINF:-1 tvg-name="CETV2" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
 https://migu.188766.xyz/?migutoken=12c623ad85072d0d367ab603aa22d415&id=CETV2&type=yy
+#EXTINF:-1 tvg-name="CETV2" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV2.png" group-title="📺央视频道",CETV-2
+https://migu.188766.xyz/?migutoken=a1758d23feb454b49b204c8b28e7cb18&id=CETV2&type=yy
 #EXTINF:-1 tvg-name="CETV3" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV3.png" group-title="📺央视频道",CETV-3
 http://[2409:8087:7004:20:1000::22]:6610/yinhe/2/ch00000090990000001309/index.m3u8
 #EXTINF:-1 tvg-name="CETV3" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CETV3.png" group-title="📺央视频道",CETV-3
@@ -409,6 +419,8 @@ https://hls-gateway.vpstv.net/streams/709501.m3u8
 https://hls-gateway.vpstv.net/streams/709650.m3u8
 #EXTINF:-1 tvg-name="CGTN" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CGTN.png" group-title="📺央视频道",CGTN
 http://[2409:8087:1a0a:df::4031]:80/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225604/index.m3u8
+#EXTINF:-1 tvg-name="CGTN" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CGTN.png" group-title="📺央视频道",CGTN
+https://live.catvod.com/live.php?id=CGTN
 #EXTINF:-1 tvg-name="CGTN俄语" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CGTN俄语.png" group-title="📺央视频道",CGTN俄语
 https://0472.org/hls/cgtne.m3u8
 #EXTINF:-1 tvg-name="CGTN俄语" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CGTN俄语.png" group-title="📺央视频道",CGTN俄语
@@ -467,6 +479,8 @@ https://migu.188766.xyz/?migutoken=862714ec07e27dbf0787d108744b63d4&id=%E5%B9%BF
 https://migu.188766.xyz/?migutoken=f8d864ad49c290525c0b176bf696bc35&id=%E5%B9%BF%E4%B8%9C%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="广东卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/广东卫视.png" group-title="📡卫视频道",广东卫视
 https://migu.188766.xyz/?migutoken=1837f3d31cf26abed1033c331a1e7969&id=%E5%B9%BF%E4%B8%9C%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="广东卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/广东卫视.png" group-title="📡卫视频道",广东卫视
+https://migu.188766.xyz/?migutoken=869502ab36e68ce8a531da1020f873a1&id=%E5%B9%BF%E4%B8%9C%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="香港卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="📡卫视频道",香港卫视
 http://cctvtxyh5c.liveplay.myqcloud.com/cstv/xianggangweishi_2/index.m3u8
 #EXTINF:-1 tvg-name="香港卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/香港卫视.png" group-title="📡卫视频道",香港卫视
@@ -555,6 +569,8 @@ https://migu.188766.xyz/?migutoken=9ce8cee147b666a41ccba5b8fd9d2b71&id=%E6%B9%96
 https://migu.188766.xyz/?migutoken=7d642c583b9d3204097ba740ef911a95&id=%E6%B9%96%E5%8C%97%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="湖北卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
 https://migu.188766.xyz/?migutoken=771e2e5605d9863fcf7a4c4e81c49b8c&id=%E6%B9%96%E5%8C%97%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="湖北卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/湖北卫视.png" group-title="📡卫视频道",湖北卫视
+https://migu.188766.xyz/?migutoken=468efcda22526731bb02619d4ba25dde&id=%E6%B9%96%E5%8C%97%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
 http://iptv.huuc.edu.cn/hls/hljhd.m3u8
 #EXTINF:-1 tvg-name="黑龙江卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/黑龙江卫视.png" group-title="📡卫视频道",黑龙江卫视
@@ -677,6 +693,8 @@ https://migu.188766.xyz/?migutoken=348ede165e082801c132180c82f54a88&id=%E6%B2%B3
 https://migu.188766.xyz/?migutoken=93bd8e7b4544acefb39c72bc0b9b624f&id=%E6%B2%B3%E5%8D%97%E5%8D%AB%E8%A7%86%E9%AB%98%E6%B8%85&type=yy
 #EXTINF:-1 tvg-name="河南卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/河南卫视.png" group-title="📡卫视频道",河南卫视
 https://migu.188766.xyz/?migutoken=3b5a77125c189db7d96eef7233a4cb3d&id=%E6%B2%B3%E5%8D%97%E5%8D%AB%E8%A7%86%E9%AB%98%E6%B8%85&type=yy
+#EXTINF:-1 tvg-name="河南卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/河南卫视.png" group-title="📡卫视频道",河南卫视
+https://migu.188766.xyz/?migutoken=4bc11db70071b10771b818c7e5e7fb63&id=%E6%B2%B3%E5%8D%97%E5%8D%AB%E8%A7%86%E9%AB%98%E6%B8%85&type=yy
 #EXTINF:-1 tvg-name="吉林卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/吉林卫视.png" group-title="📡卫视频道",吉林卫视
 https://zby.130519.xyz/PLTV/11/224/3221226149/index.m3u8
 #EXTINF:-1 tvg-name="吉林卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/吉林卫视.png" group-title="📡卫视频道",吉林卫视
@@ -711,6 +729,8 @@ https://migu.188766.xyz/?migutoken=e02ffc9d5a08d0b21ed620c8ce0da9ba&id=%E6%B1%9F
 https://migu.188766.xyz/?migutoken=ef63a7c2a0fc825feee538b99d5859d2&id=%E6%B1%9F%E8%8B%8F%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="江苏卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏卫视.png" group-title="📡卫视频道",江苏卫视
 https://migu.188766.xyz/?migutoken=5588b23af2abc00d04c166e86d83e2d7&id=%E6%B1%9F%E8%8B%8F%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="江苏卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/江苏卫视.png" group-title="📡卫视频道",江苏卫视
+https://migu.188766.xyz/?migutoken=0e360ac712387d55d7de0f5ba22fc3b8&id=%E6%B1%9F%E8%8B%8F%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="江西卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
 http://iptv.huuc.edu.cn/hls/jxhd.m3u8
 #EXTINF:-1 tvg-name="江西卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
@@ -729,6 +749,8 @@ https://migu.188766.xyz/?migutoken=80fd770920459a474a970d3e03dcd28b&id=%E6%B1%9F
 https://migu.188766.xyz/?migutoken=abbbc7b2c05b7986ddc35e6835c4e83c&id=%E6%B1%9F%E8%A5%BF%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="江西卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
 https://migu.188766.xyz/?migutoken=58d8956dec93f17311ddc92d654b373f&id=%E6%B1%9F%E8%A5%BF%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="江西卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/江西卫视.png" group-title="📡卫视频道",江西卫视
+https://migu.188766.xyz/?migutoken=8b69820c57b04ba9ecb1d4d89f391e1b&id=%E6%B1%9F%E8%A5%BF%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
 http://iptv.huuc.edu.cn/hls/lnhd.m3u8
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
@@ -745,6 +767,8 @@ https://hlsbkmgsplive.miguvideo.com/migu/kailu/lnwshd265/54/20200407/01.m3u8?&Hl
 https://migu.188766.xyz/?migutoken=a83d4d5b49a2424f6675e9bfaabe5cc0&id=%E8%BE%BD%E5%AE%81%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
 https://migu.188766.xyz/?migutoken=135bbab94fc314e082568724a564940a&id=%E8%BE%BD%E5%AE%81%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="辽宁卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/辽宁卫视.png" group-title="📡卫视频道",辽宁卫视
+https://migu.188766.xyz/?migutoken=ae3b55c5cb12d99746b2c1394c04592e&id=%E8%BE%BD%E5%AE%81%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="内蒙古卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/内蒙古卫视.png" group-title="📡卫视频道",内蒙古卫视
 https://migu.188766.xyz/?migutoken=517fc2ced2c87ff5d24c4ef5ea37453c&id=%E5%86%85%E8%92%99%E5%8F%A4%E5%8D%AB%E8%A7%86&pp=1
 #EXTINF:-1 tvg-name="内蒙古卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/内蒙古卫视.png" group-title="📡卫视频道",内蒙古卫视
@@ -763,6 +787,8 @@ https://migu.188766.xyz/?migutoken=9b2b2ea7b65eb1fb01d9e2e487ed454f&id=%E5%86%85
 https://migu.188766.xyz/?migutoken=82f3f0f13f1026ad895a6fa815b75d76&id=%E5%86%85%E8%92%99%E5%8F%A4%E5%8D%AB%E8%A7%86&pp=1
 #EXTINF:-1 tvg-name="内蒙古卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/内蒙古卫视.png" group-title="📡卫视频道",内蒙古卫视
 https://migu.188766.xyz/?migutoken=3a41b1405f4f27a89cf047f22334d131&id=%E5%86%85%E8%92%99%E5%8F%A4%E5%8D%AB%E8%A7%86&pp=1
+#EXTINF:-1 tvg-name="内蒙古卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/内蒙古卫视.png" group-title="📡卫视频道",内蒙古卫视
+https://migu.188766.xyz/?migutoken=3668909561932d81acbb6cb341234796&id=%E5%86%85%E8%92%99%E5%8F%A4%E5%8D%AB%E8%A7%86&pp=1
 #EXTINF:-1 tvg-name="宁夏卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/宁夏卫视.png" group-title="📡卫视频道",宁夏卫视
 https://migu.188766.xyz/?migutoken=012de0a3bdb81063b705ce8a52c13ecd&id=%E5%AE%81%E5%A4%8F%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="宁夏卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/宁夏卫视.png" group-title="📡卫视频道",宁夏卫视
@@ -777,6 +803,8 @@ https://migu.188766.xyz/?migutoken=e5ebdb498beb06d150da05595a961cbb&id=%E5%AE%81
 https://migu.188766.xyz/?migutoken=1d9569f0a599002aefe10992c97b086a&id=%E5%AE%81%E5%A4%8F%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="宁夏卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/宁夏卫视.png" group-title="📡卫视频道",宁夏卫视
 https://migu.188766.xyz/?migutoken=5826a39230af6d15838be437fdcb48e2&id=%E5%AE%81%E5%A4%8F%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="宁夏卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/宁夏卫视.png" group-title="📡卫视频道",宁夏卫视
+https://migu.188766.xyz/?migutoken=858676426e1f55d3eac804344d130063&id=%E5%AE%81%E5%A4%8F%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="青海卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/青海卫视.png" group-title="📡卫视频道",青海卫视
 https://zby.130519.xyz/PLTV/11/224/3221226105/index.m3u8
 #EXTINF:-1 tvg-name="青海卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/青海卫视.png" group-title="📡卫视频道",青海卫视
@@ -791,6 +819,8 @@ https://migu.188766.xyz/?migutoken=498034b126f19c3de50143c43d9fd29c&id=%E9%9D%92
 https://migu.188766.xyz/?migutoken=2a99e08c6f9d7c71d0f44bc80c7db170&id=%E9%9D%92%E6%B5%B7%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="青海卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/青海卫视.png" group-title="📡卫视频道",青海卫视
 https://migu.188766.xyz/?migutoken=3f20379829f1e1fad50873a632595e84&id=%E9%9D%92%E6%B5%B7%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="青海卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/青海卫视.png" group-title="📡卫视频道",青海卫视
+https://migu.188766.xyz/?migutoken=c18ea41b280bbdf6cb1d21886eb44167&id=%E9%9D%92%E6%B5%B7%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="山东卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/山东卫视.png" group-title="📡卫视频道",山东卫视
 http://iptv.huuc.edu.cn/hls/sdhd.m3u8
 #EXTINF:-1 tvg-name="山东卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/山东卫视.png" group-title="📡卫视频道",山东卫视
@@ -819,6 +849,8 @@ https://migu.188766.xyz/?migutoken=e574660a9a85fd77ae197b6b4dfffcef&id=%E9%99%95
 https://migu.188766.xyz/?migutoken=535753902d86a35d2b7435d408da79f5&id=%E9%99%95%E8%A5%BF%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="陕西卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/陕西卫视.png" group-title="📡卫视频道",陕西卫视
 https://migu.188766.xyz/?migutoken=80536eb12a5ffef3fa57cf398d7a6a41&id=%E9%99%95%E8%A5%BF%E5%8D%AB%E8%A7%86&type=yy
+#EXTINF:-1 tvg-name="陕西卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/陕西卫视.png" group-title="📡卫视频道",陕西卫视
+https://migu.188766.xyz/?migutoken=824bff24430298039bd03cfdf3b36aeb&id=%E9%99%95%E8%A5%BF%E5%8D%AB%E8%A7%86&type=yy
 #EXTINF:-1 tvg-name="四川卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/四川卫视.png" group-title="📡卫视频道",四川卫视
 http://iptv.huuc.edu.cn/hls/schd.m3u8
 #EXTINF:-1 tvg-name="四川卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/四川卫视.png" group-title="📡卫视频道",四川卫视
@@ -843,6 +875,8 @@ https://migu.188766.xyz/?migutoken=053b95cc9854161ab2d3ec4a19a64762&id=hn_ssws&t
 https://migu.188766.xyz/?migutoken=cf6e7d6491238c29f6ea5395ef164794&id=hn_ssws&type=sz
 #EXTINF:-1 tvg-name="三沙卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/三沙卫视.png" group-title="📡卫视频道",三沙卫视
 https://migu.188766.xyz/?migutoken=ed07b4b725d1cc9896d5c1feb2ee05b4&id=hn_ssws&type=sz
+#EXTINF:-1 tvg-name="三沙卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/三沙卫视.png" group-title="📡卫视频道",三沙卫视
+https://migu.188766.xyz/?migutoken=7b99217ca65766ba49605ed3dd7561cb&id=hn_ssws&type=sz
 #EXTINF:-1 tvg-name="天津卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/天津卫视.png" group-title="📡卫视频道",天津卫视
 http://iptv.huuc.edu.cn/hls/tjhd.m3u8
 #EXTINF:-1 tvg-name="天津卫视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/天津卫视.png" group-title="📡卫视频道",天津卫视
@@ -887,6 +921,8 @@ https://hk.188766.xyz/?migutoken=624eacd4dc9801dbee0d4cdff8558abf&id=gd_gdzj&typ
 https://hk.188766.xyz/?migutoken=828a784e389333db23944fe638eb6707&id=gd_gdzj&type=sz
 #EXTINF:-1 tvg-name="广东珠江" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/广东珠江.png" group-title="☘️广东频道",广东珠江
 https://hk.188766.xyz/?migutoken=b2a8f4997ff765f83f8132f38698a5e7&id=gd_gdzj&type=sz
+#EXTINF:-1 tvg-name="广东珠江" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/广东珠江.png" group-title="☘️广东频道",广东珠江
+https://hk.188766.xyz/?migutoken=54a1555dbec8ff2e7944b19547509608&id=gd_gdzj&type=sz
 #EXTINF:-1 tvg-name="广东体育" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/广东体育.png" group-title="☘️广东频道",广东体育
 http://r.jdshipin.com/LiYdg
 #EXTINF:-1 tvg-name="广东体育" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/广东体育.png" group-title="☘️广东频道",广东体育
@@ -1311,6 +1347,8 @@ https://migu.188766.xyz/?migutoken=35fb58abdb81b2d238e06a763ae7680d&id=%E5%8C%97
 https://migu.188766.xyz/?migutoken=4916b2e17a686e9144cb975b04afb93e&id=%E5%8C%97%E4%BA%AC%E6%96%B0%E9%97%BB&type=yy
 #EXTINF:-1 tvg-name="北京新闻" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
 https://migu.188766.xyz/?migutoken=bc6dd6ad76b6217619fbabaa1bdd3041&id=%E5%8C%97%E4%BA%AC%E6%96%B0%E9%97%BB&type=yy
+#EXTINF:-1 tvg-name="北京新闻" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京新闻.png" group-title="☘️北京频道",北京新闻
+https://migu.188766.xyz/?migutoken=d1303dc190d857760b1d68298e920c33&id=%E5%8C%97%E4%BA%AC%E6%96%B0%E9%97%BB&type=yy
 #EXTINF:-1 tvg-name="北京生活" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京生活.png" group-title="☘️北京频道",北京生活
 https://migu.188766.xyz/?migutoken=ebac33487fb14297e10f0a7f96677c9d&id=%E5%8C%97%E4%BA%ACi%E7%94%9F%E6%B4%BB&type=yy
 #EXTINF:-1 tvg-name="北京生活" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京生活.png" group-title="☘️北京频道",北京生活
@@ -1319,6 +1357,8 @@ https://migu.188766.xyz/?migutoken=136fbb78e4d83281d95615b20e411bed&id=%E5%8C%97
 https://migu.188766.xyz/?migutoken=b5a17d96fc35fc63b25cc763a1785672&id=%E5%8C%97%E4%BA%ACi%E7%94%9F%E6%B4%BB&type=yy
 #EXTINF:-1 tvg-name="北京生活" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京生活.png" group-title="☘️北京频道",北京生活
 https://migu.188766.xyz/?migutoken=e5ba633a55b22307c0e4272af6ea6632&id=%E5%8C%97%E4%BA%ACi%E7%94%9F%E6%B4%BB&type=yy
+#EXTINF:-1 tvg-name="北京生活" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京生活.png" group-title="☘️北京频道",北京生活
+https://migu.188766.xyz/?migutoken=3043429f49c0a3a99b8e02f242d42224&id=%E5%8C%97%E4%BA%ACi%E7%94%9F%E6%B4%BB&type=yy
 #EXTINF:-1 tvg-name="北京财经" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京财经.png" group-title="☘️北京频道",北京财经
 https://migu.188766.xyz/?migutoken=cc53eb44d2b32d63d359c351275b9ae6&id=%E5%8C%97%E4%BA%AC%E8%B4%A2%E7%BB%8F&type=yy
 #EXTINF:-1 tvg-name="北京财经" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/北京财经.png" group-title="☘️北京频道",北京财经
@@ -1359,6 +1399,8 @@ https://migu.188766.xyz/?migutoken=f162d79cfa5cd6a82772cf04a780fbf6&id=dycj&type
 https://migu.188766.xyz/?migutoken=f7d1839936c9e9599abe6d13f273815f&id=dycj&type=sz
 #EXTINF:-1 tvg-name="上海第一财经" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/上海第一财经.png" group-title="☘️上海频道",上海第一财经
 https://migu.188766.xyz/?migutoken=7788ea616cdaf1cbf20503ac35a45536&id=dycj&type=sz
+#EXTINF:-1 tvg-name="上海第一财经" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/上海第一财经.png" group-title="☘️上海频道",上海第一财经
+https://migu.188766.xyz/?migutoken=82a78e07753ce670fd48b5aaf5f8d25b&id=dycj&type=sz
 #EXTINF:-1 tvg-name="上海纪实" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/上海纪实.png" group-title="☘️上海频道",上海纪实
 http://iptv.huuc.edu.cn/hls/docuchina.m3u8
 #EXTINF:-1 tvg-name="上海纪实" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/上海纪实.png" group-title="☘️上海频道",上海纪实
@@ -2469,6 +2511,8 @@ https://migu.188766.xyz/?migutoken=cedd42b2cf40eadf91c730b6cd932c28&id=%E9%83%BD
 https://migu.188766.xyz/?migutoken=93074b0c634eccb59328736714de9c01&id=%E9%83%BD%E5%B8%82%E9%A2%91%E9%81%93&type=yy
 #EXTINF:-1 tvg-name="河南都市" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/河南都市.png" group-title="☘️河南频道",河南都市
 https://migu.188766.xyz/?migutoken=3c7b839592f415b249663deca8801e89&id=%E9%83%BD%E5%B8%82%E9%A2%91%E9%81%93&type=yy
+#EXTINF:-1 tvg-name="河南都市" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/河南都市.png" group-title="☘️河南频道",河南都市
+https://migu.188766.xyz/?migutoken=c923c5b8236a69f755ae0fd839085405&id=%E9%83%BD%E5%B8%82%E9%A2%91%E9%81%93&type=yy
 #EXTINF:-1 tvg-name="河南民生" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/河南民生.png" group-title="☘️河南频道",河南民生
 https://migu.188766.xyz/?migutoken=8b7305a8d46cfe98635e66d0e757c394&id=%E6%B0%91%E7%94%9F%E9%A2%91%E9%81%93&type=yy
 #EXTINF:-1 tvg-name="河南民生" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/河南民生.png" group-title="☘️河南频道",河南民生
@@ -2477,6 +2521,8 @@ https://migu.188766.xyz/?migutoken=97b2be6f258ae481d8bc142a1fac8bef&id=%E6%B0%91
 https://migu.188766.xyz/?migutoken=999fa1172c8b97bce4c61b4728d49542&id=%E6%B0%91%E7%94%9F%E9%A2%91%E9%81%93&type=yy
 #EXTINF:-1 tvg-name="河南民生" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/河南民生.png" group-title="☘️河南频道",河南民生
 https://migu.188766.xyz/?migutoken=0ec1f5f231bfb2cd0cce9a7edcf8947b&id=%E6%B0%91%E7%94%9F%E9%A2%91%E9%81%93&type=yy
+#EXTINF:-1 tvg-name="河南民生" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/河南民生.png" group-title="☘️河南频道",河南民生
+https://migu.188766.xyz/?migutoken=4a884c07c800248f7a295d74d86ba677&id=%E6%B0%91%E7%94%9F%E9%A2%91%E9%81%93&type=yy
 #EXTINF:-1 tvg-name="沁阳新闻综合" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/沁阳新闻综合.png" group-title="☘️河南频道",沁阳新闻综合
 http://tvpull.dxhmt.cn:9081/tv/10882-1.m3u8
 #EXTINF:-1 tvg-name="沁阳新闻综合" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/沁阳新闻综合.png" group-title="☘️河南频道",沁阳新闻综合
@@ -3083,6 +3129,8 @@ https://epg.pw/stream/4f18dfe0593db5c686eb64ae8edaf2a9202d4d46bdc9bbde2cee27708e
 https://hls-gateway.vpstv.net/streams/477081.m3u8
 #EXTINF:-1 tvg-name="纬来育乐" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/纬来育乐.png" group-title="🌊港·澳·台",纬来育乐
 https://smart.pendy.dpdns.org/Smart.php?id=videolandyule
+#EXTINF:-1 tvg-name="纬来育乐" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/纬来育乐.png" group-title="🌊港·澳·台",纬来育乐
+https://live.catvod.com/live.php?id=videolandyule
 #EXTINF:-1 tvg-name="星空国际" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/星空国际.png" group-title="🌊港·澳·台",星空国际
 https://hls-gateway.vpstv.net/streams/709269.m3u8
 #EXTINF:-1 tvg-name="环球电视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/环球电视.png" group-title="🌊港·澳·台",环球电视
@@ -3101,6 +3149,8 @@ https://hls-gateway.vpstv.net/streams/476982.m3u8
 https://t.freetv.fun/live/tai-shi-11.m3u8
 #EXTINF:-1 tvg-name="台视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/台视.png" group-title="🌊港·澳·台",台视
 https://t.freetv.fun/live/tai-shi.m3u8
+#EXTINF:-1 tvg-name="台视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/台视.png" group-title="🌊港·澳·台",台视
+https://live.catvod.com/live.php?id=ttv_taiwan
 #EXTINF:-1 tvg-name="民视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/民视.png" group-title="🌊港·澳·台",民视
 http://breezy-audrie-zspace-7524863c.koyeb.app/vipsir?token=leifeng&id=4gtv-4gtv002
 #EXTINF:-1 tvg-name="民视" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/民视.png" group-title="🌊港·澳·台",民视
@@ -3167,12 +3217,6 @@ https://tmxk.pp.ua/litv.php?token=tmxk&id=4gtv-4gtv065
 https://t.freetv.fun/live/jing-tian-zi-xun-10.m3u8
 #EXTINF:-1 tvg-name="靖天资讯" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/靖天资讯.png" group-title="🌊港·澳·台",靖天资讯
 https://t.freetv.fun/live/jing-tian-zi-xun-11.m3u8
-#EXTINF:-1 tvg-name="靖天资讯" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/靖天资讯.png" group-title="🌊港·澳·台",靖天资讯
-https://hls-gateway.vpstv.net/streams/476258.m3u8
-#EXTINF:-1 tvg-name="靖天资讯" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/靖天资讯.png" group-title="🌊港·澳·台",靖天资讯
-https://stream1.freetv.fun/jing-tian-zi-xun-2.ctv
-#EXTINF:-1 tvg-name="靖天资讯" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/靖天资讯.png" group-title="🌊港·澳·台",靖天资讯
-http://breezy-audrie-zspace-7524863c.koyeb.app/vipsir?token=leifeng&id=4gtv-4gtv065
 #EXTINF:-1 tvg-name="新加坡国际" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/新加坡国际.png" group-title="☘️国际频道",新加坡国际
 https://d2e1asnsl7br7b.cloudfront.net/7782e205e72f43aeb4a48ec97f66ebbe/index_4.m3u8
 #EXTINF:-1 tvg-name="CNA新闻" tvg-logo="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/fanmingming/live/main/tv/CNA新闻.png" group-title="☘️国际频道",CNA新闻
