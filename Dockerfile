@@ -20,7 +20,7 @@ RUN wget https://github.com/arut/nginx-rtmp-module/archive/v${RTMP_VER}.tar.gz &
 
 WORKDIR $APP_WORKDIR/nginx-${NGINX_VER}
 RUN ./configure \
-    --add-module=/app/nginx-rtmp-module-${RTMP_VER} \
+    --add-module=$APP_WORKDIR/nginx-rtmp-module-${RTMP_VER} \
     --conf-path=/etc/nginx/nginx.conf \
     --error-log-path=/var/log/nginx/error.log \
     --http-log-path=/var/log/nginx/access.log \
