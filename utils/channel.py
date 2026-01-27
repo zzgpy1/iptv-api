@@ -132,7 +132,10 @@ def get_channel_data_from_file(channels, file, whitelist_maps, blacklist,
                             if alias_name in local_data:
                                 for local_url in local_data[alias_name]:
                                     if not check_url_by_keywords(local_url, blacklist):
-                                        formatted = format_channel_data(local_url, "local")
+                                        local_url_origin: OriginType = "whitelist" if is_url_whitelisted(whitelist_maps,
+                                                                                                         local_url,
+                                                                                                         name) else "local"
+                                        formatted = format_channel_data(local_url, local_url_origin)
                                         if formatted["url"] not in existing_urls:
                                             category_dict[name].append(formatted)
                                             existing_urls.add(formatted["url"])
@@ -144,7 +147,11 @@ def get_channel_data_from_file(channels, file, whitelist_maps, blacklist,
                                         if re.match(pattern, local_name):
                                             for local_url in local_data[local_name]:
                                                 if not check_url_by_keywords(local_url, blacklist):
-                                                    formatted = format_channel_data(local_url, "local")
+                                                    local_url_origin: OriginType = "whitelist" if is_url_whitelisted(
+                                                        whitelist_maps,
+                                                        local_url,
+                                                        name) else "local"
+                                                    formatted = format_channel_data(local_url, local_url_origin)
                                                     if formatted["url"] not in existing_urls:
                                                         category_dict[name].append(formatted)
                                                         existing_urls.add(formatted["url"])
@@ -591,7 +598,6 @@ def generate_channel_statistic(logger, cate, name, values):
     total = len(values)
     valid = len([v for v in values if (v.get("speed") or 0) > 0 and (v.get("delay") or -1) != -1])
     valid_rate = (valid / total * 100) if total > 0 else 0
-    whitelist_count = len([v for v in values if v.get("origin") == "whitelist"])
     ipv4_count = len([v for v in values if v.get("ipv_type") == "ipv4"])
     ipv6_count = len([v for v in values if v.get("ipv_type") == "ipv6"])
     min_delay = min((v.get("delay") for v in values if (v.get("delay") or -1) != -1), default=-1)
@@ -608,9 +614,9 @@ def generate_channel_statistic(logger, cate, name, values):
         default="None"
     )
     logger.info(
-        f"Category: {cate}, Name: {name}, Total: {total}, Valid: {valid}, Valid Percent: {valid_rate:.2f}%, Whitelist: {whitelist_count}, IPv4: {ipv4_count}, IPv6: {ipv6_count}, Min Delay: {min_delay} ms, Max Speed: {max_speed:.2f} M/s, Avg Speed: {avg_speed:.2f} M/s, Max Resolution: {max_resolution}")
+        f"Category: {cate}, Name: {name}, Total: {total}, Valid: {valid}, Valid Percent: {valid_rate:.2f}%, IPv4: {ipv4_count}, IPv6: {ipv6_count}, Min Delay: {min_delay} ms, Max Speed: {max_speed:.2f} M/s, Avg Speed: {avg_speed:.2f} M/s, Max Resolution: {max_resolution}")
     print(
-        f"\n{f"{t("name.category")}: {cate}, {t("name.name")}: {name}, {t("name.total")}: {total}, {t("name.valid")}: {valid}, {t("name.valid_percent")}: {valid_rate:.2f}%, {t("name.whitelist")}: {whitelist_count}, IPv4: {ipv4_count}, IPv6: {ipv6_count}, {t("name.min_delay")}: {min_delay} ms, {t("name.max_speed")}: {max_speed:.2f} M/s, {t("name.average_speed")}: {avg_speed:.2f} M/s, {t("name.max_resolution")}: {max_resolution}"}")
+        f"\n{f"{t("name.category")}: {cate}, {t("name.name")}: {name}, {t("name.total")}: {total}, {t("name.valid")}: {valid}, {t("name.valid_percent")}: {valid_rate:.2f}%, IPv4: {ipv4_count}, IPv6: {ipv6_count}, {t("name.min_delay")}: {min_delay} ms, {t("name.max_speed")}: {max_speed:.2f} M/s, {t("name.average_speed")}: {avg_speed:.2f} M/s, {t("name.max_resolution")}: {max_resolution}"}")
 
 
 def process_write_content(
