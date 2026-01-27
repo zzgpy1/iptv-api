@@ -546,25 +546,41 @@ async def test_speed(data, ipv6=False, callback=None, on_task_complete=None):
     return grouped_results
 
 
-def sort_channel_result(channel_data, result=None, filter_host=False, ipv6_support=True):
+def sort_channel_result(channel_data, result=None, filter_host=False, ipv6_support=True, cate=None, name=None):
     """
     Sort channel result
     """
     channel_result = defaultdict(lambda: defaultdict(list))
-    for cate, obj in channel_data.items():
-        for name, values in obj.items():
+    categories = [cate] if cate else list(channel_data.keys())
+    retain = retain_origin
+    speed_lookup = get_speed_result
+    sorter = get_sort_result
+
+    for c in categories:
+        obj = channel_data.get(c, {}) or {}
+        names = [name] if name else list(obj.keys())
+        for n in names:
+            values = obj.get(n) or []
             whitelist_result = []
-            test_result = result.get(cate, {}).get(name, []) if result else []
-            if values:
-                for value in values:
-                    if value["origin"] in retain_origin or (
-                            not ipv6_support and result and value["ipv_type"] == "ipv6"
-                    ):
-                        whitelist_result.append(value)
-                    elif filter_host or not result:
-                        test_result.append({**value, **get_speed_result(value["host"])} if filter_host else value)
-            total_result = whitelist_result + get_sort_result(test_result, ipv6_support=ipv6_support)
-            channel_result[cate][name].extend(total_result)
+            test_result = (result.get(c, {}).get(n, []) if result else []).copy()
+
+            for value in values:
+                origin = value.get("origin")
+                if origin in retain or (not ipv6_support and result and value.get("ipv_type") == "ipv6"):
+                    whitelist_result.append(value)
+                elif filter_host:
+                    host = value.get("host")
+                    merged = {**value, **(speed_lookup(host) or {})}
+                    test_result.append(merged)
+
+            total_result = whitelist_result + sorter(test_result, ipv6_support=ipv6_support)
+            seen_urls = set()
+            for item in total_result:
+                url = item.get("url")
+                if url and url not in seen_urls:
+                    channel_result[c][n].append(item)
+                    seen_urls.add(url)
+
     return channel_result
 
 
@@ -645,9 +661,9 @@ def process_write_content(
                     item_url = add_url_info(item_url, item["extra_info"])
                 total_item_url = f"{hls_url}/{item['id']}.m3u8" if hls_url else item_url
                 content += f"\n{name},{total_item_url}"
-    if open_empty_category and no_result_name:
+    if open_empty_category and no_result_name and is_last:
         custom_print(f"\n{t("msg.no_result_channel")}")
-        content += f"\n\n{t("content.no_result_channel_genre")},#genre#"
+        content += f"\n\n{t("content.no_result_channel")},#genre#"
         for i, name in enumerate(no_result_name):
             end_char = ", " if i < len(no_result_name) - 1 else ""
             custom_print(name, end=end_char)
