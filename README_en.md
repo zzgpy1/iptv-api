@@ -69,7 +69,7 @@
 | **Stream relay**              |    ✅    | Improve playback on weak networks, supports direct browser playback                                                                                         |
 | **Replay/VOD interfaces**     |    ✅    | Fetching and generating replay/VOD interfaces                                                                                                               |
 | **EPG**                       |    ✅    | Fetch and display channel program guides                                                                                                                    |
-| **Channel logos**             |    ✅    | Custom channel logo library sources                                                                                                                         |
+| **Channel logos**             |    ✅    | Custom channel logos, supports local additions or a remote library                                                                                          |
 | **Speed test & validation**   |    ✅    | Obtain latency, bitrate, resolution; filter invalid interfaces; supports real-time output                                                                   |
 | **Advanced preferences**      |    ✅    | Rate, resolution, blacklist/whitelist, location and ISP custom filters                                                                                      |
 | **Results management**        |    ✅    | Categorized storage and access of results, log recording, unmatched channel records, statistical analysis, freeze filtering/unfreeze rollback, data caching |
