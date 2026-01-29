@@ -932,3 +932,41 @@ def to_serializable(obj):
     except Exception:
         pass
     return obj
+
+
+def count_files_by_ext(
+        dir_path: Union[str, Path],
+        exts: Optional[Union[str, Iterable[str]]] = None,
+        recursive: bool = False,
+        include_hidden: bool = False
+) -> int:
+    """
+    Count files in a directory with filtering options.
+    :param dir_path: The directory path to search.
+    :param exts: Optional; A string or iterable of file extensions to filter by (e.g., '.txt', 'jpg'). Case-insensitive.
+    :param recursive: Whether to search subdirectories recursively.
+    :param include_hidden: Whether to include hidden files (those starting with a dot).
+    :return: The count of files matching the criteria.
+    """
+    p = Path(dir_path)
+    if not p.exists() or not p.is_dir():
+        return 0
+
+    exts_set = None
+    if exts:
+        if isinstance(exts, str):
+            exts = [exts]
+        exts_set = {e.lower() if e.startswith('.') else f".{e.lower()}" for e in exts}
+
+    iterator = p.rglob("*") if recursive else p.glob("*")
+    count = 0
+    for f in iterator:
+        if not f.is_file():
+            continue
+        if not include_hidden and f.name.startswith("."):
+            continue
+        if exts_set and f.suffix.lower() not in exts_set:
+            continue
+        count += 1
+
+    return count

@@ -40,7 +40,7 @@ def show_logo(filename):
         return jsonify({"error": "filename required"}), 400
 
     safe_name = secure_filename(filename)
-    logo_dir = resource_path('config/logo')
+    logo_dir = resource_path(constants.channel_logo_path)
     file_path = os.path.join(logo_dir, safe_name)
 
     if not os.path.exists(file_path):
