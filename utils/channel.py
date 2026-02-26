@@ -644,10 +644,13 @@ def sort_channel_result(channel_data, result=None, filter_host=False, ipv6_suppo
                 origin = value.get("origin")
                 if origin in retain or (not ipv6_support and result and value.get("ipv_type") == "ipv6"):
                     whitelist_result.append(value)
-                elif filter_host:
-                    host = value.get("host")
-                    merged = {**value, **(speed_lookup(host) or {})}
-                    test_result.append(merged)
+                else:
+                    if filter_host:
+                        host = value.get("host")
+                        merged = {**value, **(speed_lookup(host) or {})}
+                        test_result.append(merged)
+                    else:
+                        test_result.append(value)
 
             total_result = whitelist_result + sorter(test_result, ipv6_support=ipv6_support)
             seen_urls = set()
