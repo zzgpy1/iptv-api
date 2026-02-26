@@ -315,13 +315,13 @@ def append_data_to_info_data(
     init_info_data(info_data, category, name)
 
     channel_list = info_data[category][name]
-    existing_urls = {info["url"] for info in channel_list if "url" in info}
+    existing_map = {info["url"]: idx for idx, info in enumerate(channel_list) if "url" in info}
 
     for item in data:
         try:
             channel_id = item.get("id") or hash(item["url"])
-            url = item["url"]
-            host = item.get("host") or get_url_host(url)
+            raw_url = item.get("url")
+            host = item.get("host") or (get_url_host(raw_url) if raw_url else None)
             date = item.get("date")
             delay = item.get("delay")
             speed = item.get("speed")
@@ -334,20 +334,50 @@ def append_data_to_info_data(
             catchup = item.get("catchup")
             extra_info = item.get("extra_info", "")
 
-            if not url or url in existing_urls:
+            if not raw_url:
                 continue
 
-            if url_origin != "whitelist" and whitelist_maps and is_url_whitelisted(whitelist_maps, url, name):
-                url_origin = "whitelist"
-
-            if not url_origin:
-                continue
-
+            normalized_url = raw_url
             if url_origin not in retain_origin:
-                url = get_channel_url(url)
-                if not url or is_url_frozen(url) or blacklist and check_url_by_keywords(url, blacklist):
+                normalized_url = get_channel_url(raw_url)
+                if not normalized_url:
+                    continue
+                if is_url_frozen(normalized_url):
+                    continue
+                if blacklist and check_url_by_keywords(normalized_url, blacklist):
                     continue
 
+            if url_origin != "whitelist" and whitelist_maps and is_url_whitelisted(whitelist_maps, normalized_url,
+                                                                                   name):
+                url_origin = "whitelist"
+
+            if normalized_url in existing_map:
+                existing_idx = existing_map[normalized_url]
+                existing_origin = channel_list[existing_idx].get("origin")
+                if existing_origin != "whitelist" and url_origin == "whitelist":
+                    channel_list[existing_idx] = {
+                        "id": channel_id,
+                        "url": normalized_url,
+                        "host": host or get_url_host(normalized_url),
+                        "date": date,
+                        "delay": delay,
+                        "speed": speed,
+                        "resolution": resolution,
+                        "origin": url_origin,
+                        "ipv_type": ipv_type,
+                        "location": location,
+                        "isp": isp,
+                        "headers": headers,
+                        "catchup": catchup,
+                        "extra_info": extra_info
+                    }
+                    continue
+                else:
+                    continue
+
+            url = normalized_url
+
+            if url_origin not in retain_origin:
                 if not ipv_type:
                     if ipv_type_data and host in ipv_type_data:
                         ipv_type = ipv_type_data[host]
@@ -369,10 +399,11 @@ def append_data_to_info_data(
 
                 if isp and isp_list and not any(item in isp for item in isp_list):
                     continue
+
             channel_list.append({
                 "id": channel_id,
                 "url": url,
-                "host": host,
+                "host": host or get_url_host(url),
                 "date": date,
                 "delay": delay,
                 "speed": speed,
@@ -385,7 +416,7 @@ def append_data_to_info_data(
                 "catchup": catchup,
                 "extra_info": extra_info
             })
-            existing_urls.add(url)
+            existing_map[url] = len(channel_list) - 1
 
         except Exception as e:
             print(t("msg.error_append_channel_data").format(info=e))
