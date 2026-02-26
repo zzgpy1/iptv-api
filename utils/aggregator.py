@@ -122,13 +122,6 @@ class ResultAggregator:
             finished = set()
 
         speed_test_filter_host = config.speed_test_filter_host
-
-        def _result_has_any(res):
-            try:
-                return any(len(vlist) > 0 for c in res.values() for vlist in c.values())
-            except Exception:
-                return False
-
         if affected:
             partial_base = defaultdict(lambda: defaultdict(list))
             partial_result = defaultdict(lambda: defaultdict(list))
@@ -152,29 +145,27 @@ class ResultAggregator:
                             partial_result[cate][name].append(item)
                             seen.add(url)
             try:
-                use_filter = speed_test_filter_host and _result_has_any(partial_result)
                 if len(affected) == 1:
                     cate_single, name_single = next(iter(affected))
                     new_sorted = sort_channel_result(
                         partial_base,
                         result=partial_result,
-                        filter_host=use_filter,
+                        filter_host=speed_test_filter_host,
                         ipv6_support=self.ipv6_support,
                         cate=cate_single,
                         name=name_single,
                     )
                 else:
                     new_sorted = sort_channel_result(
-                        partial_base, result=partial_result, filter_host=use_filter,
+                        partial_base, result=partial_result, filter_host=speed_test_filter_host,
                         ipv6_support=self.ipv6_support
                     )
             except Exception:
                 new_sorted = defaultdict(lambda: defaultdict(list))
         else:
             try:
-                use_filter = speed_test_filter_host and _result_has_any(test_copy)
                 new_sorted = sort_channel_result(
-                    self.base_data, result=test_copy, filter_host=use_filter,
+                    self.base_data, result=test_copy, filter_host=speed_test_filter_host,
                     ipv6_support=self.ipv6_support
                 )
             except Exception:
