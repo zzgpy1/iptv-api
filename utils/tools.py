@@ -63,6 +63,15 @@ def get_logger(path, level=logging.ERROR, init=False):
     ):
         logger.addHandler(handler)
 
+    has_stream = any(isinstance(h, logging.StreamHandler) for h in logger.handlers)
+    if not has_stream:
+        try:
+            stream_handler = logging.StreamHandler(sys.stdout)
+            stream_handler.setLevel(level)
+            logger.addHandler(stream_handler)
+        except Exception:
+            pass
+
     logger.setLevel(level)
     return logger
 
