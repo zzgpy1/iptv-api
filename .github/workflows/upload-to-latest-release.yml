@@ -167,6 +167,6 @@ jobs:
       - name: Confirm upload
         if: ${{ success() }}
         run: |
-          Write-Host "Uploaded $(${{ steps.package.outputs.zip_name }}) to the latest release."
+          Write-Host "Uploaded ${{ steps.package.outputs.zip_name }} to the latest release."
         shell: pwsh
 
