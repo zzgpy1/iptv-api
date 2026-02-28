@@ -53,7 +53,7 @@ jobs:
           $ver = $json.version
           if (-not $ver) { $ver = 'unknown' }
           $repoName = $env:GITHUB_REPOSITORY.Split('/')[1]
-          $ts = Get-Date -Format yyyyMMdd-HHmmss
+          $ts = (Get-Date).ToUniversalTime().AddHours(8).ToString('yyyyMMdd-HHmmss')
           $zipName = "${repoName}-v${ver}-${ts}.zip"
           $zipPath = Join-Path -Path $PWD -ChildPath $zipName
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
@@ -96,14 +96,28 @@ jobs:
         shell: pwsh
 
       - name: Upload zip to latest release
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_latest_release.outputs.upload_url }}
-          asset_path: ${{ steps.package.outputs.zip_path }}
-          asset_name: ${{ steps.package.outputs.zip_name }}
-          asset_content_type: application/zip
+        run: |
+          $uploadUrl = "${{ steps.get_latest_release.outputs.upload_url }}"
+          $zipPath = "${{ steps.package.outputs.zip_path }}"
+          $zipName = "${{ steps.package.outputs.zip_name }}"
+          if (-not (Test-Path $zipPath)) {
+            Write-Error "Zip not found: $zipPath"
+            exit 1
+          }
+          $uri = "$uploadUrl?name=$zipName"
+          Write-Host "Uploading $zipName to $uri"
+          $headers = @{ Authorization = "Bearer $env:GITHUB_TOKEN"; Accept = 'application/vnd.github+json' }
+          try {
+            $bytes = [System.IO.File]::ReadAllBytes($zipPath)
+            $resp = Invoke-RestMethod -Uri $uri -Method Post -Body $bytes -Headers $headers -ContentType 'application/zip' -UseBasicParsing -ErrorAction Stop
+            Write-Host "Upload successful. Asset id: $($resp.id)"
+          } catch {
+            Write-Error "Upload failed: $($_.Exception.Message)"
+            exit 1
+          }
+        shell: pwsh
 
       - name: Confirm upload
         if: ${{ success() }}
