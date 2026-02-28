@@ -7,7 +7,9 @@ import pickle
 import re
 import tempfile
 from collections import defaultdict
+from itertools import chain
 from logging import INFO
+from typing import cast
 
 import utils.constants as constants
 from utils.alias import Alias
@@ -72,7 +74,7 @@ def format_channel_data(url: str, origin: OriginType) -> ChannelData:
         "id": hash(url),
         "url": url,
         "host": get_url_host(url),
-        "origin": origin,
+        "origin": cast(OriginType, origin),
         "ipv_type": None,
         "extra_info": info
     }
@@ -614,7 +616,8 @@ async def test_speed(data, ipv6=False, callback=None, on_task_complete=None):
         else:
             mark_url_good(merged.get("url"))
 
-        if is_valid_speed_result(merged):
+        is_valid = is_valid_speed_result(merged)
+        if is_valid:
             valid_count_by_channel[(cate, name)] += 1
             if not open_full_speed_test and valid_count_by_channel[(cate, name)] >= urls_limit:
                 _cancel_remaining_channel_tasks(cate, name)
@@ -627,7 +630,7 @@ async def test_speed(data, ipv6=False, callback=None, on_task_complete=None):
 
         if on_task_complete:
             try:
-                on_task_complete(cate, name, merged, is_channel_last, is_last)
+                on_task_complete(cate, name, merged, is_channel_last, is_last, is_valid)
             except Exception:
                 pass
 
@@ -669,18 +672,29 @@ def sort_channel_result(channel_data, result=None, filter_host=False, ipv6_suppo
         for n in names:
             values = obj.get(n) or []
             whitelist_result = []
-            test_result = (result.get(c, {}).get(n, []) if result else []).copy()
+            result_list = (result.get(c, {}).get(n, []) if result else [])
 
-            for value in values:
-                origin = value.get("origin")
-                if origin in retain or (not ipv6_support and result and value.get("ipv_type") == "ipv6"):
-                    whitelist_result.append(value)
-                elif filter_host:
-                    host = value.get("host")
-                    merged = {**value, **(speed_lookup(host) or {})}
-                    test_result.append(merged)
+            if filter_host:
+                merged_items = []
+                for value in values:
+                    origin = value.get("origin")
+                    if origin in retain or (not ipv6_support and result and value.get("ipv_type") == "ipv6"):
+                        whitelist_result.append(value)
+                    else:
+                        host = value.get("host")
+                        merged = {**value, **(speed_lookup(host) or {})}
+                        merged_items.append(merged)
 
-            total_result = whitelist_result + sorter(test_result, ipv6_support=ipv6_support)
+                sorter_input = chain(result_list, merged_items) if merged_items else result_list
+                total_result = whitelist_result + sorter(sorter_input, ipv6_support=ipv6_support)
+            else:
+                for value in values:
+                    origin = value.get("origin")
+                    if origin in retain or (not ipv6_support and result and value.get("ipv_type") == "ipv6"):
+                        whitelist_result.append(value)
+
+                total_result = whitelist_result + sorter(result_list, ipv6_support=ipv6_support)
+
             seen_urls = set()
             for item in total_result:
                 url = item.get("url")
