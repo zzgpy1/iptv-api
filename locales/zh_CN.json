@@ -64,6 +64,7 @@
   "msg.name_no_results_refresh_retrying": "{name}：未找到任何结果，正在刷新并重试...",
   "msg.name_no_elements_refresh_retrying": "{name}：未找到任何元素，正在刷新并重试...",
   "msg.reach_retry_limit_jump_next": "{name}：已达到重试上限，跳转下一页",
+  "msg.update_disabled": "⚠️ 更新功能已被禁用",
   "pbar.progressing": "正在进行",
   "pbar.speed_test": "测速",
   "pbar.get": "获取",
