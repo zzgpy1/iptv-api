@@ -16,7 +16,7 @@ from utils.tools import (
     merge_objects,
     get_pbar_remaining,
     get_name_value,
-    get_logger, join_url
+    get_logger, join_url, github_blob_to_raw
 )
 
 
@@ -34,7 +34,8 @@ async def get_channels_by_subscribe_urls(
     """
     if not os.getenv("GITHUB_ACTIONS") and config.cdn_url:
         def _map_raw(u):
-            return join_url(config.cdn_url, u) if "raw.githubusercontent.com" in u else u
+            raw_u = github_blob_to_raw(u)
+            return join_url(config.cdn_url, raw_u) if "raw.githubusercontent.com" in raw_u else raw_u
 
         urls = [_map_raw(u) for u in urls]
         whitelist = [_map_raw(u) for u in whitelist] if whitelist else None

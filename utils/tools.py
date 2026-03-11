@@ -11,7 +11,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import time
 from typing import Iterable, List, Optional, Union
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, unquote, quote
 
 import pytz
 import requests
@@ -789,6 +789,45 @@ def join_url(url1: str, url2: str) -> str:
     if not url1.endswith("/"):
         url1 += "/"
     return url1 + url2
+
+
+def github_blob_to_raw(url: str) -> str:
+    """
+    Convert a GitHub repository blob (or tree) page URL to the corresponding
+    raw.githubusercontent.com URL. Handles percent-encoded path segments and
+    decodes them before safely re-quoting the path for the raw URL.
+    """
+
+    if not url:
+        return url
+
+    if "raw.githubusercontent.com" in url:
+        return url
+
+    parsed = urlparse(url)
+    netloc = parsed.netloc or ""
+    if "github.com" not in netloc:
+        return url
+
+    path = (parsed.path or "").lstrip('/')
+    parts = path.split('/')
+    if len(parts) < 5:
+        return url
+
+    owner, repo, marker = parts[0], parts[1], parts[2]
+    if marker not in ("blob", "tree"):
+        return url
+
+    branch = parts[3]
+    file_parts = parts[4:]
+    try:
+        decoded_path = '/'.join(unquote(p) for p in file_parts)
+        safe_path = quote(decoded_path, safe="/")
+    except Exception:
+        safe_path = '/'.join(file_parts)
+
+    raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{safe_path}"
+    return raw_url
 
 
 def add_port_to_url(url: str, port: int) -> str:
