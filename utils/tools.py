@@ -750,8 +750,11 @@ def get_name_uri_from_dir(path: str) -> dict:
     name_urls = defaultdict(list)
     if os.path.exists(real_path):
         for file in os.listdir(real_path):
-            filename = file.rsplit(".", 1)[0]
-            name_urls[filename].append(f"{real_path}/{file}")
+            file_path = os.path.join(real_path, file)
+            if not os.path.isfile(file_path):
+                continue
+            filename = os.path.splitext(file)[0]
+            name_urls[filename].append(os.path.normpath(os.path.abspath(file_path)))
     return name_urls
 
 
