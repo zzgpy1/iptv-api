@@ -16,7 +16,9 @@ from utils.tools import (
     merge_objects,
     get_pbar_remaining,
     get_name_value,
-    get_logger, join_url, github_blob_to_raw
+    get_logger, join_url,
+    github_blob_to_raw,
+    save_url_content
 )
 
 
@@ -52,7 +54,7 @@ async def get_channels_by_subscribe_urls(
     mode_name = t("name.subscribe")
     if callback:
         callback(
-            f"{t("pbar.getting_name").format(name=mode_name)}",
+            t("pbar.getting_name").format(name=mode_name),
             0,
         )
     logger = get_logger(constants.nomatch_log_path, level=INFO, init=True)
@@ -79,6 +81,10 @@ async def get_channels_by_subscribe_urls(
             if response:
                 response.encoding = "utf-8"
                 content = response.text
+                try:
+                    save_url_content('subscribe', subscribe_url, content)
+                except Exception:
+                    pass
                 m3u_type = True if "#EXTM3U" in content else False
                 data = get_name_value(
                     content,
@@ -120,7 +126,7 @@ async def get_channels_by_subscribe_urls(
             pbar.update()
             if callback:
                 callback(
-                    t("msg.progress_desc").format(name=f"{t("pbar.get")}{mode_name}",
+                    t("msg.progress_desc").format(name=f"{t('pbar.get')}{mode_name}",
                                                   remaining_total=subscribe_urls_len - pbar.n,
                                                   item_name=mode_name,
                                                   remaining_time=get_pbar_remaining(n=pbar.n, total=pbar.total,

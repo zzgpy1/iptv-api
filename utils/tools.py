@@ -1,5 +1,6 @@
 import copy
 import datetime
+import hashlib
 import json
 import logging
 import os
@@ -1029,3 +1030,50 @@ def count_files_by_ext(
         count += 1
 
     return count
+
+
+def sanitize_filename_from_url(url: str, max_len: int = 200) -> str:
+    """
+    Create a filesystem-safe filename from a URL. Limits length and falls back to a hash when needed.
+    """
+    try:
+        if not url:
+            raise ValueError("empty url")
+        safe = unquote(url)
+        safe = re.sub(r'[<>:"/\\|?*]', '_', safe)
+        safe = re.sub(r'\s+', '_', safe)
+        safe = re.sub(r'_+', '_', safe)
+        safe = safe.strip('._')
+        if not safe:
+            raise ValueError("sanitized empty")
+        if len(safe) > max_len:
+            h = hashlib.sha256(url.encode('utf-8')).hexdigest()
+            keep = max_len - (1 + len(h))
+            safe = safe[:keep] + '_' + h
+        return safe
+    except Exception:
+        return hashlib.sha256((url or '').encode('utf-8')).hexdigest()
+
+
+def save_url_content(category: str, url: str, content: str) -> None:
+    """
+    Save the raw content fetched from `url` into output/log/<category>/<sanitized_url>.txt.
+    Overwrites existing files when called multiple times for the same url.
+    """
+    try:
+        if not category:
+            category = "misc"
+        dir_path = os.path.join(constants.output_dir, "log", category)
+        os.makedirs(dir_path, exist_ok=True)
+        filename = sanitize_filename_from_url(url)
+        file_path = os.path.join(dir_path, f"{filename}.txt")
+        with open(file_path, "w", encoding="utf-8") as f:
+            if isinstance(content, bytes):
+                try:
+                    f.write(content.decode('utf-8'))
+                except Exception:
+                    f.write(content.decode('latin-1', errors='ignore'))
+            else:
+                f.write(str(content))
+    except Exception as e:
+        print(f"Failed to save content for {url} into {category}: {e}")
