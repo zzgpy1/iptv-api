@@ -628,7 +628,8 @@ async def test_speed(data, ipv6=False, callback=None, on_task_complete=None):
                 origin = merged.get('origin')
                 origin_name = t(f"name.{origin}") if origin else origin
                 result_logger.info(
-                    f"{t('name.name')}: {name}, {t('pbar.url')}: {merged.get('url')}, {t('name.from')}: {origin_name}, "
+                    f"ID: {merged.get('id')}, {t('name.name')}: {name}, "
+                    f"{t('pbar.url')}: {merged.get('url')}, {t('name.from')}: {origin_name}, "
                     f"{t('name.ipv_type')}: {merged.get('ipv_type')}, {t('name.location')}: {merged.get('location')}, "
                     f"{t('name.isp')}: {merged.get('isp')}, "
                     f"{t('name.delay')}: {merged.get('delay') or -1} ms, {t('name.speed')}: {(merged.get('speed') or 0):.2f} M/s, "
