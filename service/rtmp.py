@@ -10,6 +10,7 @@ from functools import lru_cache
 
 import utils.constants as constants
 from utils.config import config
+from utils.db import ensure_result_data_schema
 from utils.db import get_db_connection, return_db_connection
 from utils.ffmpeg import probe_url
 from utils.i18n import t
@@ -43,6 +44,7 @@ def _save_probe_metadata_to_db(channel_id: str, url: str, headers: dict | None, 
     if not meta:
         return
     try:
+        ensure_result_data_schema(constants.rtmp_data_path)
         conn = get_db_connection(constants.rtmp_data_path)
     except Exception as e:
         print(t("msg.write_error").format(info=f"open rtmp db error: {e}"))
@@ -436,22 +438,24 @@ def hls_idle_monitor():
 
 
 def get_channel_data(channel_id):
+    ensure_result_data_schema(constants.rtmp_data_path)
     conn = get_db_connection(constants.rtmp_data_path)
     channel_data = {}
     try:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT url, headers, video_codec, audio_codec, resolution, fps FROM result_data WHERE id=?",
-            (channel_id,))
+            (channel_id,)
+        )
         data = cursor.fetchone()
         if data:
             channel_data = {
                 'url': data[0],
                 'headers': json.loads(data[1]) if data[1] else None,
-                'video_codec': data[2],
-                'audio_codec': data[3],
-                'resolution': data[4],
-                'fps': data[5]
+                'video_codec': data[2] if len(data) > 2 else None,
+                'audio_codec': data[3] if len(data) > 3 else None,
+                'resolution': data[4] if len(data) > 4 else None,
+                'fps': data[5] if len(data) > 5 else None,
             }
     except Exception as e:
         print(t("msg.error_get_channel_data_from_database").format(info=e))
