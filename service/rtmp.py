@@ -315,6 +315,16 @@ def start_hls_to_rtmp(host, channel_id, client_user_agent: str | None = None):
             if ok:
                 return p
 
+    if config.rtmp_transcode_mode == 'copy':
+        p, ok = _start_copy_trial(copy_audio=True)
+        if ok:
+            return p
+        p, ok = _start_copy_trial(copy_audio=False)
+        if ok:
+            return p
+        print(t("msg.rtmp_all_encoders_failed"))
+        return None
+
     candidates = _get_video_encoder_candidates()
     process = None
     chosen_encoder = None
