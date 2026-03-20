@@ -1158,6 +1158,73 @@ def get_subscribe_entries(path: str = "config/subscribe.txt") -> tuple[list, lis
     return inside, outside
 
 
+def count_disabled_urls(path: str) -> int:
+    """
+    Count disabled url lines in the config file.
+    """
+    real_path = get_real_path(resource_path(path))
+    if not os.path.exists(real_path):
+        return 0
+
+    disabled_count = 0
+    with open(real_path, "r", encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line.startswith("#"):
+                continue
+            commented = line.lstrip("#").strip()
+            if commented and constants.url_pattern.match(commented):
+                disabled_count += 1
+    return disabled_count
+
+
+def disable_urls_in_file(path: str, urls: Iterable[str]) -> int:
+    """
+    Comment out matching url lines in the config file and return how many were changed.
+    """
+    target_urls = {url.strip() for url in urls if url and str(url).strip()}
+    if not target_urls:
+        return 0
+
+    real_path = get_real_path(resource_path(path))
+    if not os.path.exists(real_path):
+        return 0
+
+    try:
+        with open(real_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        updated = False
+        disabled_count = 0
+        new_lines = []
+
+        for raw in lines:
+            line = raw.rstrip("\r\n")
+            line_end = raw[len(line):]
+            stripped = line.lstrip()
+            if not stripped or stripped.startswith("#"):
+                new_lines.append(raw)
+                continue
+
+            match = constants.url_pattern.search(stripped)
+            if match and match.group("url").strip() in target_urls:
+                indent = line[: len(line) - len(stripped)]
+                new_lines.append(f"{indent}# {stripped}{line_end}")
+                disabled_count += 1
+                updated = True
+            else:
+                new_lines.append(raw)
+
+        if updated:
+            with open(real_path, "w", encoding="utf-8") as f:
+                f.writelines(new_lines)
+
+        return disabled_count
+    except Exception as e:
+        print(f"Failed to auto-disable urls in {real_path}: {e}")
+        return 0
+
+
 def close_logger_handlers(logger) -> None:
     for h in logger.handlers[:]:
         try:
