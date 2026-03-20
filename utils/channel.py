@@ -1,6 +1,6 @@
 import asyncio
-import hashlib
 import gzip
+import hashlib
 import json
 import math
 import os
@@ -193,7 +193,7 @@ def get_channel_data_from_file(channels, file, whitelist_maps, blacklist,
     for line in file:
         line = line.strip()
         if "#genre#" in line:
-            current_category = line.partition(",")[0]
+            current_category = re.split(r"[，,]", line, maxsplit=1)[0]
         else:
             name_value = get_name_value(
                 line, pattern=constants.demo_txt_pattern, check_value=False
@@ -1032,12 +1032,12 @@ def process_write_content(
             (urls[0] for channel_obj in data.values()
              for info_list in channel_obj.values()
              if (urls := _get_total_urls_cached(
-                 info_list,
-                 ipv_type_prefer,
-                 origin_type_prefer,
-                 rtmp_type,
-                 apply_limit=True,
-             ))),
+                info_list,
+                ipv_type_prefer,
+                origin_type_prefer,
+                rtmp_type,
+                apply_limit=True,
+            ))),
             {"id": "id", "url": "url"}
         )
         now = get_datetime_now()
