@@ -379,7 +379,7 @@ class ConfigManager:
 
     @property
     def open_unmatch_category(self):
-        return self.config.getboolean("Settings", "open_unmatch_category", fallback=True)
+        return self.config.getboolean("Settings", "open_unmatch_category", fallback=False)
 
     def load(self):
         """
