@@ -129,16 +129,8 @@ jobs:
             $notesLines.Add("- $message")
           }
 
-          if ($notesLines.Count -eq 0) {
-            $notesLines.Add('- 暂无可用的提交消息。')
-          }
-
           $notesPath = Join-Path $PWD 'release-notes.md'
           $content = New-Object System.Collections.Generic.List[string]
-          $content.Add("# v$($env:version)")
-          $content.Add('')
-          $content.Add('自上一个版本更新提交以来的提交：')
-          $content.Add('')
           $content.AddRange($notesLines)
           $content | Set-Content -Path $notesPath -Encoding utf8
 
