@@ -1,3 +1,4 @@
+import gzip
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -26,13 +27,35 @@ from utils.tools import (
 )
 
 
+def _normalize_epg_content(content, request_url=None, response=None):
+    if not content:
+        return None
+
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, bytearray):
+        content = bytes(content)
+
+    if isinstance(content, bytes) and content.startswith(b"\x1f\x8b"):
+        content = gzip.decompress(content)
+
+    if isinstance(content, bytes):
+        return content.decode("utf-8", errors="replace")
+    return content
+
+
 def parse_epg(epg_content):
     try:
         parser = ET.XMLParser(encoding='UTF-8')
         root = ET.fromstring(epg_content, parser=parser)
     except ET.ParseError as e:
         print(f"Error parsing XML: {e}")
-        print(f"Problematic content: {epg_content[:500]}")
+        if isinstance(epg_content, (bytes, bytearray)):
+            preview = bytes(epg_content[:500]).decode("utf-8", errors="replace")
+        else:
+            preview = epg_content[:500]
+        print(f"Problematic content: {preview}")
         return {}, defaultdict(list)
 
     channels = {}
@@ -134,8 +157,7 @@ async def get_epg(names=None, callback=None):
                 print(t("msg.request_timeout").format(name=request_url))
                 disable_reason = t("msg.auto_disable_request_failed")
             if response:
-                response.encoding = "utf-8"
-                content = response.text
+                content = _normalize_epg_content(response.content, request_url=request_url, response=response)
                 if content:
                     channels, programmes = parse_epg(content)
                     entry_matched = False
