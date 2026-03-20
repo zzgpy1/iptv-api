@@ -1105,9 +1105,11 @@ def get_subscribe_entries(path: str = "config/subscribe.txt") -> tuple[list, lis
     if not os.path.exists(real_path):
         return inside, outside
 
-    header_re = re.compile(r"^\[.*\]$")
+    header_re = re.compile(r"^\[.*]$")
     in_section = False
     kv_re = re.compile(r"(?P<k>\w+)=((?P<q>\".*?\"|'.*?')|(?P<v>\S+))")
+    seen_inside = set()
+    seen_outside = set()
 
     with open(real_path, "r", encoding="utf-8") as f:
         for raw in f:
@@ -1124,27 +1126,33 @@ def get_subscribe_entries(path: str = "config/subscribe.txt") -> tuple[list, lis
             match = constants.url_pattern.search(s)
             if not match:
                 continue
+
             url = match.group().strip()
             remainder = s[match.end():].strip()
             headers = {}
             for m in kv_re.finditer(remainder):
-                key = m.group('k')
-                val = m.group('q') or m.group('v')
+                key = m.group("k")
+                val = m.group("q") or m.group("v")
                 if not val:
                     continue
                 val = val.strip()
                 if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
                     val = val[1:-1]
-                if key.lower() == 'ua' or key.lower() == 'useragent' or key.lower() == 'user-agent':
-                    headers['User-Agent'] = val
+                if key.lower() in ("ua", "useragent", "user-agent"):
+                    headers["User-Agent"] = val
                 else:
                     headers[key] = val
 
-            entry = {'url': url}
+            entry = {"url": url}
             if headers:
-                entry['headers'] = headers
+                entry["headers"] = headers
 
             target = inside if in_section else outside
+            seen = seen_inside if in_section else seen_outside
+            dedupe_key = (url, tuple(sorted(headers.items())))
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
             target.append(entry)
 
     return inside, outside
