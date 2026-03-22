@@ -1178,18 +1178,19 @@ def count_disabled_urls(path: str) -> int:
     return disabled_count
 
 
-def disable_urls_in_file(path: str, urls: Iterable[str]) -> int:
+def disable_urls_in_file(path: str, urls: Iterable[str]) -> dict[str, int]:
     """
-    Comment out matching url lines in the config file and return how many were changed.
+    Comment out matching url lines in the config file and return counts.
+    Returns: {"disabled": <disabled_count>, "active": <active_count>}
     Disabled urls are moved after active urls within the same section, separated by one blank line.
     """
     target_urls = {url.strip() for url in urls if url and str(url).strip()}
     if not target_urls:
-        return 0
+        return {"disabled": 0, "active": 0}
 
     real_path = get_real_path(resource_path(path))
     if not os.path.exists(real_path):
-        return 0
+        return {"disabled": 0, "active": 0}
 
     header_re = re.compile(r"^\s*\[.*]\s*$")
 
@@ -1204,6 +1205,7 @@ def disable_urls_in_file(path: str, urls: Iterable[str]) -> int:
 
         sections = [new_section()]
         disabled_count = 0
+        active_count = 0
 
         for raw in lines:
             stripped = raw.strip()
@@ -1240,6 +1242,7 @@ def disable_urls_in_file(path: str, urls: Iterable[str]) -> int:
                     disabled_count += 1
                 else:
                     current["active"].append(raw.rstrip("\r\n"))
+                    active_count += 1
             else:
                 current["misc"].append(raw.rstrip("\r\n"))
 
@@ -1283,10 +1286,10 @@ def disable_urls_in_file(path: str, urls: Iterable[str]) -> int:
             with open(real_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
-        return disabled_count
+        return {"disabled": disabled_count, "active": active_count}
     except Exception as e:
         print(f"Failed to auto-disable urls in {real_path}: {e}")
-        return 0
+        return {"disabled": 0, "active": 0}
 
 
 def close_logger_handlers(logger) -> None:
