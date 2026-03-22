@@ -653,8 +653,8 @@ def get_name_value(content, pattern, open_headers=False, check_value=True):
         if not name or (check_value and not value):
             continue
         data = {"name": name, "value": value}
-        attributes = {**get_headers_key_value(group_dict.get("attributes", "")),
-                      **get_headers_key_value(group_dict.get("options", ""))}
+        attributes = {**get_headers_key_value(group_dict.get("options", "")),
+                      **get_headers_key_value(group_dict.get("attributes", ""))}
         headers = {
             "User-Agent": attributes.get("useragent", ""),
             "Referer": attributes.get("referer", ""),
