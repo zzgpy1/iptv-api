@@ -89,6 +89,9 @@
 > The following configuration items are located in `config/config.ini` and can be modified via the configuration file or
 > environment variables. Save changes and restart to apply.
 
+<details>
+<summary>Click to expand configuration parameters</summary>
+
 | Configuration Item       | Description                                                                                                                                                                                                                                                                                                                                 | Default Value                            |
 |:-------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------|
 | open_update              | Enable updates, used to control whether to update interfaces. If disabled, all working modes (getting interfaces and speed tests) stop.                                                                                                                                                                                                     | True                                     |
@@ -149,6 +152,8 @@
 | rtmp_idle_timeout        | RTMP channel idle stop-streaming timeout in seconds. When no one watches for longer than this duration, streaming is stopped, helping reduce server resource usage.                                                                                                                                                                         | 300                                      |
 | rtmp_max_streams         | Maximum number of concurrent RTMP push streams. Controls how many channels can be pushed at the same time. Larger values increase server load; tune to optimize resource usage.                                                                                                                                                             | 10                                       |
 | rtmp_transcode_mode      | Push streaming transcoding mode. `copy` means no transcoding — output is copied to save CPU consumption as much as possible. `auto` means adaptive transcoding to match players; this increases CPU usage but can improve compatibility.                                                                                                    | copy                                     |
+
+</details>
 
 ## Quick Start
 
