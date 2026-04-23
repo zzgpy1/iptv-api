@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<tv date="20260423020851 +0800">
+<tv date="20260423090056 +0800">
 	<channel id="CCTV-1">
 		<display-name lang="zh">CCTV-1</display-name>
 	</channel>
@@ -14912,6 +14912,87 @@
 	<programme channel="东方财经" start="20260425013000 +0800" stop="20260425015500 +0800">
 		<title lang="zh">创时代</title>
 	</programme>
+	<programme channel="东方财经" start="20260425015500 +0800" stop="20260425060100 +0800">
+		<title lang="zh">祝您晚安</title>
+	</programme>
+	<programme channel="东方财经" start="20260425060100 +0800" stop="20260425062600 +0800">
+		<title lang="zh">创赢未来</title>
+	</programme>
+	<programme channel="东方财经" start="20260425062600 +0800" stop="20260425065100 +0800">
+		<title lang="zh">创赢未来</title>
+	</programme>
+	<programme channel="东方财经" start="20260425065100 +0800" stop="20260425070000 +0800">
+		<title lang="zh">直击引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425070000 +0800" stop="20260425073000 +0800">
+		<title lang="zh">创时代</title>
+	</programme>
+	<programme channel="东方财经" start="20260425073000 +0800" stop="20260425075500 +0800">
+		<title lang="zh">中国经营者</title>
+	</programme>
+	<programme channel="东方财经" start="20260425075500 +0800" stop="20260425080000 +0800">
+		<title lang="zh">直击引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425080000 +0800" stop="20260425082600 +0800">
+		<title lang="zh">对话引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425082600 +0800" stop="20260425083000 +0800">
+		<title lang="zh">科创之光文明同行</title>
+	</programme>
+	<programme channel="东方财经" start="20260425083000 +0800" stop="20260425090000 +0800">
+		<title lang="zh">几何书房</title>
+	</programme>
+	<programme channel="东方财经" start="20260425090000 +0800" stop="20260425091500 +0800">
+		<title lang="zh">文化访谈录</title>
+	</programme>
+	<programme channel="东方财经" start="20260425091500 +0800" stop="20260425093000 +0800">
+		<title lang="zh">文化访谈录</title>
+	</programme>
+	<programme channel="东方财经" start="20260425093000 +0800" stop="20260425093400 +0800">
+		<title lang="zh">直击引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425093400 +0800" stop="20260425093800 +0800">
+		<title lang="zh">直击引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425093800 +0800" stop="20260425094200 +0800">
+		<title lang="zh">直击引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425094200 +0800" stop="20260425094600 +0800">
+		<title lang="zh">直击引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425094600 +0800" stop="20260425095400 +0800">
+		<title lang="zh">直击引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425095400 +0800" stop="20260425100000 +0800">
+		<title lang="zh">潮玩浦东</title>
+	</programme>
+	<programme channel="东方财经" start="20260425100000 +0800" stop="20260425103000 +0800">
+		<title lang="zh">浦东新脸谱</title>
+	</programme>
+	<programme channel="东方财经" start="20260425103000 +0800" stop="20260425110000 +0800">
+		<title lang="zh">中国经济论坛</title>
+	</programme>
+	<programme channel="东方财经" start="20260425110000 +0800" stop="20260425111500 +0800">
+		<title lang="zh">望江驿·遇见</title>
+	</programme>
+	<programme channel="东方财经" start="20260425111500 +0800" stop="20260425113000 +0800">
+		<title lang="zh">文化访谈录</title>
+	</programme>
+	<programme channel="东方财经" start="20260425113000 +0800" stop="20260425120000 +0800">
+		<title lang="zh">创时代</title>
+	</programme>
+	<programme channel="东方财经" start="20260425120000 +0800" stop="20260425122500 +0800">
+		<title lang="zh">创赢未来</title>
+	</programme>
+	<programme channel="东方财经" start="20260425122500 +0800" stop="20260425125500 +0800">
+		<title lang="zh">创赢未来</title>
+	</programme>
+	<programme channel="东方财经" start="20260425125500 +0800" stop="20260425130000 +0800">
+		<title lang="zh">直击引领区</title>
+	</programme>
+	<programme channel="东方财经" start="20260425130000 +0800" stop="20260425135000 +0800">
+		<title lang="zh">中国未来时</title>
+	</programme>
 	<channel id="安多卫视">
 		<display-name lang="zh">安多卫视</display-name>
 	</channel>
@@ -15338,29 +15419,8 @@
 	<programme channel="安多卫视" start="20260422230500 +0800" stop="20260422235300 +0800">
 		<title lang="zh">剧场</title>
 	</programme>
-	<programme channel="安多卫视" start="20260422235300 +0800" stop="20260423001300 +0800">
+	<programme channel="安多卫视" start="20260422235300 +0800" stop="20260423000000 +0800">
 		<title lang="zh">青海新闻联播</title>
-	</programme>
-	<programme channel="安多卫视" start="20260423001300 +0800" stop="20260423010000 +0800">
-		<title lang="zh">剧场</title>
-	</programme>
-	<programme channel="安多卫视" start="20260423010000 +0800" stop="20260423062000 +0800">
-		<title lang="zh">节目结束</title>
-	</programme>
-	<programme channel="安多卫视" start="20260423062000 +0800" stop="20260423070100 +0800">
-		<title lang="zh">节目结束</title>
-	</programme>
-	<programme channel="安多卫视" start="20260423070100 +0800" stop="20260423073100 +0800">
-		<title lang="zh">重播中央台新闻联播</title>
-	</programme>
-	<programme channel="安多卫视" start="20260423073100 +0800" stop="20260423080500 +0800">
-		<title lang="zh">名家讲坛</title>
-	</programme>
-	<programme channel="安多卫视" start="20260423080500 +0800" stop="20260423085200 +0800">
-		<title lang="zh">剧场</title>
-	</programme>
-	<programme channel="安多卫视" start="20260423085200 +0800" stop="20260423093900 +0800">
-		<title lang="zh">剧场</title>
 	</programme>
 	<programme channel="安多卫视" start="20260423093900 +0800" stop="20260423102600 +0800">
 		<title lang="zh">剧场</title>
@@ -15428,8 +15488,101 @@
 	<programme channel="安多卫视" start="20260423223000 +0800" stop="20260423230500 +0800">
 		<title lang="zh">重播中央台新闻联播</title>
 	</programme>
-	<programme channel="安多卫视" start="20260423230500 +0800" stop="20260424000000 +0800">
+	<programme channel="安多卫视" start="20260423230500 +0800" stop="20260424001300 +0800">
 		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424001300 +0800" stop="20260424010000 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424010000 +0800" stop="20260424062000 +0800">
+		<title lang="zh">节目结束</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424062000 +0800" stop="20260424070100 +0800">
+		<title lang="zh">节目结束</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424070100 +0800" stop="20260424073100 +0800">
+		<title lang="zh">重播中央台新闻联播</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424073100 +0800" stop="20260424080500 +0800">
+		<title lang="zh">时事访谈</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424080500 +0800" stop="20260424085200 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424085200 +0800" stop="20260424093900 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424093900 +0800" stop="20260424102600 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424102600 +0800" stop="20260424111300 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424111300 +0800" stop="20260424120000 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424120000 +0800" stop="20260424122100 +0800">
+		<title lang="zh">青海新闻联播</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424122100 +0800" stop="20260424125100 +0800">
+		<title lang="zh">放眼看世界</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424125100 +0800" stop="20260424133400 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424133400 +0800" stop="20260424141800 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424141800 +0800" stop="20260424150200 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424150200 +0800" stop="20260424154600 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424154600 +0800" stop="20260424163000 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424163000 +0800" stop="20260424170100 +0800">
+		<title lang="zh">聊天</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424170100 +0800" stop="20260424172500 +0800">
+		<title lang="zh">动画片</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424172500 +0800" stop="20260424175700 +0800">
+		<title lang="zh">江河浪花</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424175700 +0800" stop="20260424184300 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424184300 +0800" stop="20260424193000 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424193000 +0800" stop="20260424195500 +0800">
+		<title lang="zh">青海新闻联播</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424195500 +0800" stop="20260424195800 +0800">
+		<title lang="zh">天气预报</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424195800 +0800" stop="20260424203000 +0800">
+		<title lang="zh">译苑</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424203000 +0800" stop="20260424205000 +0800">
+		<title lang="zh">与法同行</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424205000 +0800" stop="20260424214000 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424214000 +0800" stop="20260424223000 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424223000 +0800" stop="20260424230500 +0800">
+		<title lang="zh">重播中央台新闻联播</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424230500 +0800" stop="20260424235300 +0800">
+		<title lang="zh">剧场</title>
+	</programme>
+	<programme channel="安多卫视" start="20260424235300 +0800" stop="20260425000000 +0800">
+		<title lang="zh">青海新闻联播</title>
 	</programme>
 	<channel id="金鹰纪实">
 		<display-name lang="zh">金鹰纪实</display-name>
