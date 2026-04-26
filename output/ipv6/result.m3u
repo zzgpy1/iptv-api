@@ -1,5 +1,5 @@
 #EXTM3U x-tvg-url="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/zzgpy1/iptv-api/refs/heads/master/output/epg/epg.gz"
-#EXTINF:-1 tvg-id="CCTV-1" tvg-name="CCTV-1" tvg-logo="https://www.xn--rgv465a.top/tvlogo/CCTV-1.png" group-title="🕘️更新时间",2026-04-27 00:57:47
+#EXTINF:-1 tvg-id="CCTV-1" tvg-name="CCTV-1" tvg-logo="https://www.xn--rgv465a.top/tvlogo/CCTV-1.png" group-title="🕘️更新时间",2026-04-27 07:18:59
 http://iptv.huuc.edu.cn/hls/cctv1hd.m3u8
 #EXTINF:-1 tvg-id="CCTV-1" tvg-name="CCTV-1" tvg-logo="https://www.xn--rgv465a.top/tvlogo/CCTV-1.png" group-title="📺央视频道",CCTV-1
 http://iptv.huuc.edu.cn/hls/cctv1hd.m3u8
@@ -1163,20 +1163,6 @@ http://gslbmgsplive.miguvideo.com/migu/kailu/zjxwzh/50/20251127/index.m3u8?msisd
 https://mgtv.ottiptv.cc/mg/639731783.m3u8?userid=5559462299&sign=2bbe927902506a59b45a25bde37e57cb5929518aefa469ec96c17da64d5d508df7e26da5faebc680f9770fdd223f6f4af97ec097a695709afe102cc19c90ef7c549214a01cf55c06dca4c52c279799c425&auth_token=1b99577efa5a3442ca4c7820d6e0b4e8
 #EXTINF:-1 tvg-id="靖江新闻综合" tvg-name="靖江新闻综合" tvg-logo="https://www.xn--rgv465a.top/tvlogo/靖江新闻综合.png" group-title="☘️江苏频道",靖江新闻综合
 http://ls.qingting.fm/live/23797.m3u8
-#EXTINF:-1 tvg-id="辽宁北方" tvg-name="辽宁北方" tvg-logo="https://www.xn--rgv465a.top/tvlogo/辽宁北方.png" group-title="☘️辽宁频道",辽宁北方
-https://stream1.freetv.fun/liao-zhu-bei-fang-3.m3u8
-#EXTINF:-1 tvg-id="辽宁影视剧" tvg-name="辽宁影视剧" tvg-logo="https://www.xn--rgv465a.top/tvlogo/辽宁影视剧.png" group-title="☘️辽宁频道",辽宁影视剧
-https://stream1.freetv.fun/liao-zhu-ying-shi-ju-1.m3u8
-#EXTINF:-1 tvg-id="辽宁影视剧" tvg-name="辽宁影视剧" tvg-logo="https://www.xn--rgv465a.top/tvlogo/辽宁影视剧.png" group-title="☘️辽宁频道",辽宁影视剧
-https://stream1.freetv.fun/liao-zhu-ying-shi-ju-3.m3u8
-#EXTINF:-1 tvg-id="辽宁影视剧" tvg-name="辽宁影视剧" tvg-logo="https://www.xn--rgv465a.top/tvlogo/辽宁影视剧.png" group-title="☘️辽宁频道",辽宁影视剧
-https://stream1.freetv.fun/liao-zhu-ying-shi-ju-2.m3u8
-#EXTINF:-1 tvg-id="辽宁教育青少" tvg-name="辽宁教育青少" tvg-logo="https://www.xn--rgv465a.top/tvlogo/辽宁教育青少.png" group-title="☘️辽宁频道",辽宁教育青少
-https://stream1.freetv.fun/liao-zhu-jiao-yu-qing-shao-1.m3u8
-#EXTINF:-1 tvg-id="辽宁生活" tvg-name="辽宁生活" tvg-logo="https://www.xn--rgv465a.top/tvlogo/辽宁生活.png" group-title="☘️辽宁频道",辽宁生活
-https://stream1.freetv.fun/liao-zhu-sheng-huo-1.m3u8
-#EXTINF:-1 tvg-id="辽宁经济" tvg-name="辽宁经济" tvg-logo="https://www.xn--rgv465a.top/tvlogo/辽宁经济.png" group-title="☘️辽宁频道",辽宁经济
-https://stream1.freetv.fun/liao-zhu-jing-ji-2.m3u8
 #EXTINF:-1 tvg-id="辽宁都市" tvg-name="辽宁都市" tvg-logo="https://www.xn--rgv465a.top/tvlogo/辽宁都市.png" group-title="☘️辽宁频道",辽宁都市
 https://ls.qingting.fm/live/1099/64k.m3u8
 #EXTINF:-1 tvg-id="湖南都市" tvg-name="湖南都市" tvg-logo="https://www.xn--rgv465a.top/tvlogo/湖南都市.png" group-title="☘️湖南频道",湖南都市
