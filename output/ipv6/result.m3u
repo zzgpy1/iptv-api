@@ -1,5 +1,5 @@
 #EXTM3U x-tvg-url="https://gh-proxy.19860519.xyz/https://raw.githubusercontent.com/zzgpy1/iptv-api/refs/heads/master/output/epg/epg.gz"
-#EXTINF:-1 tvg-id="CCTV-1" tvg-name="CCTV-1" tvg-logo="https://www.xn--rgv465a.top/tvlogo/CCTV-1.png" group-title="🕘️更新时间",2026-05-12 08:32:55
+#EXTINF:-1 tvg-id="CCTV-1" tvg-name="CCTV-1" tvg-logo="https://www.xn--rgv465a.top/tvlogo/CCTV-1.png" group-title="🕘️更新时间",2026-05-14 10:47:04
 http://iptv.huuc.edu.cn/hls/cctv1hd.m3u8
 #EXTINF:-1 tvg-id="CCTV-1" tvg-name="CCTV-1" tvg-logo="https://www.xn--rgv465a.top/tvlogo/CCTV-1.png" group-title="📺央视频道",CCTV-1
 http://iptv.huuc.edu.cn/hls/cctv1hd.m3u8
@@ -1559,6 +1559,8 @@ https://liveout.xntv.tv/a65jur/96iln2.m3u8?zqinghd
 https://liveout.xntv.tv/a65jur/90p2i1.m3u8?zqinghd#https://liveout.xntv.tv/a65jur/90p2i1.m3u8#http://dtrmlive.qhdtrm.cn/xnds/sd/live.m3u8
 #EXTINF:-1 tvg-id="西宁新闻综合" tvg-name="西宁新闻综合" tvg-logo="https://www.xn--rgv465a.top/tvlogo/西宁新闻综合.png" group-title="☘️青海频道",西宁新闻综合
 https://liveout.xntv.tv/a65jur/96iln2.m3u8
+#EXTINF:-1 tvg-id="西宁生活服务" tvg-name="西宁生活服务" tvg-logo="https://www.xn--rgv465a.top/tvlogo/西宁生活服务.png" group-title="☘️青海频道",西宁生活服务
+https://liveout.xntv.tv/a65jur/90p2i1.m3u8?zqinghd
 #EXTINF:-1 tvg-id="青海都市" tvg-name="青海都市" tvg-logo="https://www.xn--rgv465a.top/tvlogo/青海都市.png" group-title="☘️青海频道",青海都市
 http://[2409:8087:1e01:20::3]/PLTV/11/224/3221225749/index.m3u8
 #EXTINF:-1 tvg-id="青海都市" tvg-name="青海都市" tvg-logo="https://www.xn--rgv465a.top/tvlogo/青海都市.png" group-title="☘️青海频道",青海都市
