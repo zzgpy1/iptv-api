@@ -35,6 +35,8 @@ ipv6_result_path = os.path.join(output_dir, "ipv6/result.txt")
 
 rtmp_data_path = os.path.join(output_dir, "data/rtmp.db")
 
+channel_results_path = os.path.join(output_dir, "data/channel_results.db")
+
 hls_result_path = os.path.join(output_dir, "hls.txt")
 
 hls_ipv4_result_path = os.path.join(output_dir, "ipv4/hls.txt")

@@ -18,6 +18,7 @@ from updates.epg.tools import write_to_xml, compress_to_gz
 from updates.subscribe import get_channels_by_subscribe_urls
 from utils.aggregator import ResultAggregator
 from utils.channel import get_channel_items, append_total_data, test_speed
+from utils.channel_repository import finish_run, start_run
 from utils.config import config
 from utils.i18n import t
 from utils.speed import clear_cache
@@ -331,6 +332,9 @@ class UpdateSource:
     # main flow
     # ----------------------------
     async def main(self):
+        run_id = start_run(constants.channel_results_path)
+        run_status = "failed"
+        run_error = None
         try:
             main_start_time = time()
             performance = config.performance_settings
@@ -352,6 +356,7 @@ class UpdateSource:
             if not self.channel_names:
                 print(t("msg.no_channel_names").format(file=config.source_file), flush=True)
                 self._notify_ui_finished(main_start_time)
+                run_status = "success"
                 return
 
             await self.visit_page(self.channel_names)
@@ -391,9 +396,16 @@ class UpdateSource:
                 flush=True,
             )
             self._notify_ui_finished(main_start_time)
+            run_status = "success"
 
         except asyncio.exceptions.CancelledError:
+            run_status = "cancelled"
             print(t("msg.update_cancelled"), flush=True)
+        except Exception as exc:
+            run_error = str(exc)
+            raise
+        finally:
+            finish_run(constants.channel_results_path, run_id, run_status, run_error)
 
     # ----------------------------
     # lifecycle control

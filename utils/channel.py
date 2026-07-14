@@ -18,6 +18,7 @@ from utils.db import sync_result_data
 from utils.ffmpeg import check_ffmpeg_installed_status
 from utils.frozen import is_url_frozen, mark_url_bad, mark_url_good
 from utils.i18n import t
+from utils.identity import stable_result_id
 from utils.ip_checker import IPChecker
 from utils.speed import (
     create_speed_test_session,
@@ -157,7 +158,7 @@ def format_channel_data(url: str, origin: OriginType) -> ChannelData:
         origin = "whitelist"
         info = info[1:]
     return {
-        "id": hash(url),
+        "id": stable_result_id(url),
         "url": url,
         "host": get_url_host(url),
         "origin": cast(OriginType, origin),
@@ -470,7 +471,6 @@ def append_data_to_info_data(
 
     for item in data:
         try:
-            channel_id = item.get("id") or hash(item["url"])
             raw_url = item.get("url")
             host = item.get("host") or (get_url_host(raw_url) if raw_url else None)
             date = item.get("date")
@@ -498,6 +498,8 @@ def append_data_to_info_data(
                     continue
                 if blacklist and check_url_by_keywords(normalized_url, blacklist):
                     continue
+
+            channel_id = stable_result_id(normalized_url, headers)
 
             if url_origin != "whitelist" and whitelist_maps and is_url_whitelisted(whitelist_maps, normalized_url,
                                                                                    name):

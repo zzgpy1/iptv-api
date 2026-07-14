@@ -1,0 +1,374 @@
+import hashlib
+import json
+import math
+import sqlite3
+import threading
+import time
+import uuid
+from typing import Any
+
+from utils.config import config
+from utils.db import get_db_connection, return_db_connection
+from utils.identity import stable_channel_id, stable_result_id
+
+
+_LOCK = threading.Lock()
+
+
+def ensure_channel_repository(db_path: str) -> None:
+    with _LOCK:
+        conn = get_db_connection(db_path)
+        try:
+            conn.executescript(
+                """
+                PRAGMA journal_mode=WAL;
+                CREATE TABLE IF NOT EXISTS runs (
+                    run_id TEXT PRIMARY KEY,
+                    started_at REAL NOT NULL,
+                    finished_at REAL,
+                    status TEXT NOT NULL,
+                    config_hash TEXT,
+                    error TEXT
+                );
+                CREATE TABLE IF NOT EXISTS channels (
+                    channel_key TEXT PRIMARY KEY,
+                    category TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    total_results INTEGER NOT NULL DEFAULT 0,
+                    valid_results INTEGER NOT NULL DEFAULT 0,
+                    selected_results INTEGER NOT NULL DEFAULT 0,
+                    best_speed REAL,
+                    min_delay REAL,
+                    max_resolution TEXT,
+                    health TEXT NOT NULL DEFAULT 'unknown',
+                    updated_at REAL NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_channels_category ON channels(category, name);
+                CREATE TABLE IF NOT EXISTS channel_results (
+                    channel_key TEXT NOT NULL,
+                    result_key TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    host TEXT,
+                    headers TEXT,
+                    origin TEXT,
+                    ipv_type TEXT,
+                    location TEXT,
+                    isp TEXT,
+                    speed REAL,
+                    delay REAL,
+                    resolution TEXT,
+                    fps REAL,
+                    video_codec TEXT,
+                    audio_codec TEXT,
+                    supply INTEGER NOT NULL DEFAULT 0,
+                    valid INTEGER NOT NULL DEFAULT 0,
+                    selected_rank INTEGER,
+                    tested_at REAL,
+                    last_seen_at REAL NOT NULL,
+                    extra_data TEXT,
+                    PRIMARY KEY(channel_key, result_key),
+                    FOREIGN KEY(channel_key) REFERENCES channels(channel_key) ON DELETE CASCADE
+                );
+                CREATE INDEX IF NOT EXISTS idx_results_channel_rank ON channel_results(channel_key, selected_rank);
+                CREATE INDEX IF NOT EXISTS idx_results_result_key ON channel_results(result_key);
+                CREATE TABLE IF NOT EXISTS stream_samples (
+                    sampled_at REAL NOT NULL,
+                    result_key TEXT NOT NULL,
+                    clients INTEGER NOT NULL DEFAULT 0,
+                    bw_in REAL NOT NULL DEFAULT 0,
+                    bw_out REAL NOT NULL DEFAULT 0,
+                    bytes_in INTEGER NOT NULL DEFAULT 0,
+                    bytes_out INTEGER NOT NULL DEFAULT 0,
+                    active INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(sampled_at, result_key)
+                );
+                CREATE INDEX IF NOT EXISTS idx_stream_samples_time ON stream_samples(sampled_at);
+                CREATE TABLE IF NOT EXISTS operation_history (
+                    operation_id TEXT PRIMARY KEY,
+                    operation TEXT NOT NULL,
+                    target_type TEXT NOT NULL,
+                    target_key TEXT,
+                    started_at REAL NOT NULL,
+                    finished_at REAL,
+                    status TEXT NOT NULL,
+                    message TEXT
+                );
+                PRAGMA user_version=1;
+                """
+            )
+            conn.commit()
+        finally:
+            return_db_connection(db_path, conn)
+
+
+def _config_hash() -> str:
+    values = {
+        section: dict(config.config.items(section))
+        for section in config.config.sections()
+    }
+    payload = json.dumps(values, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def start_run(db_path: str) -> str:
+    ensure_channel_repository(db_path)
+    run_id = uuid.uuid4().hex
+    conn = get_db_connection(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO runs(run_id, started_at, status, config_hash) VALUES (?, ?, ?, ?)",
+            (run_id, time.time(), "running", _config_hash()),
+        )
+        conn.commit()
+    finally:
+        return_db_connection(db_path, conn)
+    return run_id
+
+
+def finish_run(db_path: str, run_id: str | None, status: str, error: str | None = None) -> None:
+    if not run_id:
+        return
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    try:
+        conn.execute(
+            "UPDATE runs SET finished_at=?, status=?, error=? WHERE run_id=?",
+            (time.time(), status, error, run_id),
+        )
+        conn.commit()
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def _resolution_value(value: str | None) -> int:
+    try:
+        width, height = str(value).lower().replace("*", "x").split("x", 1)
+        return int(width) * int(height)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _is_valid(item: dict) -> bool:
+    if item.get("origin") in {"whitelist", "hls"}:
+        return True
+    speed = item.get("speed")
+    delay = item.get("delay")
+    return isinstance(speed, (int, float)) and speed > 0 and not math.isinf(speed) and delay != -1
+
+
+def _merge_channel_items(base_items: list, tested_items: list, selected_items: list) -> list[dict]:
+    merged: dict[str, dict] = {}
+    tested_keys = set()
+    selected_ranks = {}
+    for item in base_items or []:
+        if not isinstance(item, dict) or not item.get("url"):
+            continue
+        key = stable_result_id(item["url"], item.get("headers"))
+        merged[key] = {**item, "id": key}
+    for item in tested_items or []:
+        if not isinstance(item, dict) or not item.get("url"):
+            continue
+        key = stable_result_id(item["url"], item.get("headers"))
+        merged[key] = {**merged.get(key, {}), **item, "id": key}
+        tested_keys.add(key)
+    for rank, item in enumerate(selected_items or [], start=1):
+        if not isinstance(item, dict) or not item.get("url"):
+            continue
+        key = stable_result_id(item["url"], item.get("headers"))
+        merged[key] = {**merged.get(key, {}), **item, "id": key}
+        selected_ranks[key] = rank
+    now = time.time()
+    return [
+        {
+            **item,
+            "result_key": key,
+            "selected_rank": selected_ranks.get(key),
+            "tested_at": now if key in tested_keys else None,
+        }
+        for key, item in merged.items()
+    ]
+
+
+def sync_channel_snapshot(
+        db_path: str,
+        base_data: dict,
+        tested_data: dict | None = None,
+        selected_data: dict | None = None,
+) -> None:
+    ensure_channel_repository(db_path)
+    tested_data = tested_data or {}
+    selected_data = selected_data or {}
+    now = time.time()
+    channel_rows = []
+    result_rows = []
+    channel_keys = set()
+
+    for category, channel_map in (base_data or {}).items():
+        for name, base_items in (channel_map or {}).items():
+            channel_key = stable_channel_id(category, name)
+            channel_keys.add(channel_key)
+            items = _merge_channel_items(
+                base_items,
+                tested_data.get(category, {}).get(name, []),
+                selected_data.get(category, {}).get(name, []),
+            )
+            valid_items = [item for item in items if _is_valid(item)]
+            selected_items = [item for item in items if item.get("selected_rank") is not None]
+            speeds = [float(item["speed"]) for item in valid_items if isinstance(item.get("speed"), (int, float)) and not math.isinf(item["speed"])]
+            delays = [float(item["delay"]) for item in valid_items if isinstance(item.get("delay"), (int, float)) and item["delay"] >= 0]
+            resolutions = [item.get("resolution") for item in valid_items if item.get("resolution")]
+            health = "healthy" if len(valid_items) >= 2 else "warning" if valid_items else "offline"
+            if not tested_data.get(category, {}).get(name) and not selected_items:
+                health = "unknown"
+            channel_rows.append((
+                channel_key,
+                category,
+                name,
+                len(items),
+                len(valid_items),
+                len(selected_items),
+                max(speeds, default=None),
+                min(delays, default=None),
+                max(resolutions, key=_resolution_value, default=None),
+                health,
+                now,
+            ))
+            for item in items:
+                extra_data = {
+                    "date": item.get("date"),
+                    "catchup": item.get("catchup"),
+                    "tvg_logo": item.get("tvg_logo"),
+                    "extra_info": item.get("extra_info"),
+                }
+                result_rows.append((
+                    channel_key,
+                    item["result_key"],
+                    item.get("url"),
+                    item.get("host"),
+                    json.dumps(item.get("headers"), ensure_ascii=False, sort_keys=True) if item.get("headers") else None,
+                    item.get("origin"),
+                    item.get("ipv_type"),
+                    item.get("location"),
+                    item.get("isp"),
+                    item.get("speed"),
+                    item.get("delay"),
+                    item.get("resolution"),
+                    item.get("fps"),
+                    item.get("video_codec"),
+                    item.get("audio_codec"),
+                    int(bool(item.get("supply"))),
+                    int(_is_valid(item)),
+                    item.get("selected_rank"),
+                    item.get("tested_at"),
+                    now,
+                    json.dumps(extra_data, ensure_ascii=False, sort_keys=True),
+                ))
+
+    with _LOCK:
+        conn = get_db_connection(db_path)
+        try:
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute("BEGIN IMMEDIATE")
+            conn.executemany(
+                """
+                INSERT INTO channels(
+                    channel_key, category, name, total_results, valid_results, selected_results,
+                    best_speed, min_delay, max_resolution, health, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(channel_key) DO UPDATE SET
+                    category=excluded.category, name=excluded.name, total_results=excluded.total_results,
+                    valid_results=excluded.valid_results, selected_results=excluded.selected_results,
+                    best_speed=excluded.best_speed, min_delay=excluded.min_delay,
+                    max_resolution=excluded.max_resolution, health=excluded.health,
+                    updated_at=excluded.updated_at
+                """,
+                channel_rows,
+            )
+            conn.execute("DELETE FROM channel_results")
+            conn.executemany(
+                """
+                INSERT INTO channel_results(
+                    channel_key, result_key, url, host, headers, origin, ipv_type, location, isp,
+                    speed, delay, resolution, fps, video_codec, audio_codec, supply, valid,
+                    selected_rank, tested_at, last_seen_at, extra_data
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                result_rows,
+            )
+            if channel_keys:
+                placeholders = ",".join("?" for _ in channel_keys)
+                conn.execute(f"DELETE FROM channels WHERE channel_key NOT IN ({placeholders})", tuple(channel_keys))
+            else:
+                conn.execute("DELETE FROM channels")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            return_db_connection(db_path, conn)
+
+
+def list_categories(db_path: str) -> list[dict[str, Any]]:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            """
+            SELECT category, COUNT(*) AS channel_count,
+                   SUM(CASE WHEN health='healthy' THEN 1 ELSE 0 END) AS healthy_count,
+                   SUM(CASE WHEN health='warning' THEN 1 ELSE 0 END) AS warning_count,
+                   SUM(CASE WHEN health='offline' THEN 1 ELSE 0 END) AS offline_count,
+                   SUM(valid_results) AS valid_results
+            FROM channels GROUP BY category ORDER BY category
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def list_channels(db_path: str, category: str | None = None, search: str = "") -> list[dict[str, Any]]:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        clauses = []
+        params = []
+        if category:
+            clauses.append("category=?")
+            params.append(category)
+        if search:
+            clauses.append("(name LIKE ? OR category LIKE ?)")
+            params.extend([f"%{search}%", f"%{search}%"])
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        rows = conn.execute(
+            f"SELECT * FROM channels {where} ORDER BY category, name",
+            params,
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def list_channel_results(db_path: str, channel_key: str) -> list[dict[str, Any]]:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            """
+            SELECT * FROM channel_results WHERE channel_key=?
+            ORDER BY selected_rank IS NULL, selected_rank, valid DESC, speed DESC, delay ASC
+            """,
+            (channel_key,),
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["headers"] = json.loads(item["headers"]) if item.get("headers") else None
+            item["extra_data"] = json.loads(item["extra_data"]) if item.get("extra_data") else {}
+            result.append(item)
+        return result
+    finally:
+        return_db_connection(db_path, conn)

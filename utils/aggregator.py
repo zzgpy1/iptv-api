@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Set, Tuple
 
 import utils.constants as constants
 from utils.channel import sort_channel_result, generate_channel_statistic, write_channel_to_file, retain_origin
+from utils.channel_repository import sync_channel_snapshot
 from utils.config import config
 from utils.tools import get_logger, close_logger_handlers
 
@@ -181,6 +182,17 @@ class ResultAggregator:
         )
 
         self.result = merged
+        snapshot_tests = copy.deepcopy(self.test_results)
+        snapshot_base = copy.deepcopy(self.base_data)
+        snapshot_selected = copy.deepcopy(self.result)
+        await loop.run_in_executor(
+            None,
+            sync_channel_snapshot,
+            constants.channel_results_path,
+            snapshot_base,
+            snapshot_tests,
+            snapshot_selected,
+        )
 
     async def flush_once(self, force: bool = False) -> None:
         """
