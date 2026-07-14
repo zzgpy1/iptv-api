@@ -1,11 +1,61 @@
 import os
+import re
 from typing import Callable
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PySide6.QtGui import QColor
 
-from utils.config import config
-from utils.i18n import t
+from utils.config import config, resource_path
+from utils.i18n import get_language, t
+
+
+CONFIG_OPTIONS = {
+    "update_time_position": ["top", "bottom"],
+    "language": ["zh_CN", "en"],
+    "update_mode": ["interval", "time"],
+    "public_scheme": ["http", "https"],
+    "performance_mode": ["auto", "powersave", "balance", "fast"],
+    "ipv_type": ["ipv4", "ipv6", "all"],
+    "ipv_type_prefer": ["ipv4", "ipv6", "auto"],
+    "logo_type": ["png", "jpg", "jpeg"],
+    "rtmp_transcode_mode": ["copy", "auto"],
+}
+
+
+def _config_descriptions() -> dict[str, str]:
+    path = resource_path("config/config.ini")
+    descriptions = {}
+    pending = ""
+    english = get_language().startswith("en")
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            for raw in file:
+                line = raw.strip()
+                if line.startswith("#"):
+                    text = line[1:].strip()
+                    parts = text.split(" | ", 1)
+                    pending = parts[1] if english and len(parts) > 1 else parts[0]
+                elif line.startswith(";"):
+                    pending = ""
+                elif "=" in line and not line.startswith("["):
+                    key = line.split("=", 1)[0].strip()
+                    descriptions[key] = pending
+                    pending = ""
+    except OSError:
+        return {}
+    return descriptions
+
+
+def _config_kind(key: str, value: str) -> str:
+    if value.strip().lower() in {"true", "false"}:
+        return "bool"
+    if key in CONFIG_OPTIONS:
+        return "options"
+    if re.fullmatch(r"-?\d+", value.strip()):
+        return "int"
+    if re.fullmatch(r"-?\d+\.\d+", value.strip()):
+        return "float"
+    return "text"
 
 
 class MappingTableModel(QAbstractTableModel):
@@ -68,6 +118,9 @@ class MappingTableModel(QAbstractTableModel):
 
 
 class ConfigTableModel(QAbstractTableModel):
+    KindRole = Qt.ItemDataRole.UserRole + 1
+    OptionsRole = Qt.ItemDataRole.UserRole + 2
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.all_rows = []
@@ -77,17 +130,32 @@ class ConfigTableModel(QAbstractTableModel):
     def reload(self):
         self.beginResetModel()
         self.all_rows = []
+        descriptions = _config_descriptions()
         for key, value in config.config.items("Settings"):
             env_names = (key, key.upper(), f"Settings_{key}", f"SETTINGS_{key.upper()}")
             env_name = next((name for name in env_names if os.getenv(name) is not None), None)
-            self.all_rows.append({"key": key, "value": value, "source": env_name or t("desktop.config_file")})
+            description = descriptions.get(key, "")
+            if env_name:
+                description = f"{description} · {t('desktop.environment_override')}: {env_name}"
+            self.all_rows.append({
+                "key": key,
+                "value": value,
+                "description": description,
+                "env_name": env_name,
+                "kind": _config_kind(key, value),
+                "options": CONFIG_OPTIONS.get(key, []),
+            })
         self.rows = list(self.all_rows)
         self.endResetModel()
 
     def filter(self, text: str):
         term = text.strip().lower()
         self.beginResetModel()
-        self.rows = [row for row in self.all_rows if not term or term in row["key"].lower() or term in str(row["value"]).lower()]
+        self.rows = [
+            row for row in self.all_rows
+            if not term or term in row["key"].lower() or term in str(row["value"]).lower()
+            or term in row["description"].lower()
+        ]
         self.endResetModel()
 
     def rowCount(self, parent=QModelIndex()):
@@ -100,36 +168,46 @@ class ConfigTableModel(QAbstractTableModel):
         if not index.isValid():
             return None
         row = self.rows[index.row()]
-        key = ("key", "value", "source")[index.column()]
+        key = ("key", "value", "description")[index.column()]
+        if role == Qt.ItemDataRole.DisplayRole and index.column() == 1 and not row["env_name"]:
+            return ""
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             return row[key]
-        if role == Qt.ItemDataRole.ToolTipRole and index.column() == 2 and row["source"] != t("desktop.config_file"):
-            return t("desktop.environment_override")
+        if role == self.KindRole:
+            return row["kind"]
+        if role == self.OptionsRole:
+            return row["options"]
+        if role == Qt.ItemDataRole.ToolTipRole and index.column() == 2:
+            return row["description"]
         return None
 
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
         if role != Qt.ItemDataRole.EditRole or index.column() != 1 or not index.isValid():
             return False
         row = self.rows[index.row()]
-        if row["source"] != t("desktop.config_file"):
+        if row["env_name"]:
             return False
-        row["value"] = str(value)
-        self.dataChanged.emit(index, index, [role])
+        if row["kind"] == "bool":
+            enabled = value if isinstance(value, bool) else str(value).lower() == "true"
+            row["value"] = "True" if enabled else "False"
+        else:
+            row["value"] = str(value)
+        self.dataChanged.emit(index, index, [role, Qt.ItemDataRole.DisplayRole])
         return True
 
     def flags(self, index):
         flags = super().flags(index)
-        if index.isValid() and index.column() == 1 and self.rows[index.row()]["source"] == t("desktop.config_file"):
+        if index.isValid() and index.column() == 1 and not self.rows[index.row()]["env_name"]:
             flags |= Qt.ItemFlag.ItemIsEditable
         return flags
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return (t("desktop.config_key"), t("desktop.config_value"), t("desktop.config_source"))[section]
+            return (t("desktop.config_key"), t("desktop.config_value"), t("desktop.config_description"))[section]
         return super().headerData(section, orientation, role)
 
     def save(self):
         for row in self.all_rows:
-            if row["source"] == t("desktop.config_file"):
+            if not row["env_name"]:
                 config.set("Settings", row["key"], row["value"])
         config.save()

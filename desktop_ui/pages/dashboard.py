@@ -4,7 +4,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, PrimaryPushButton, ProgressBar, PushButton, SubtitleLabel
+from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, PrimaryPushButton, ProgressBar, PushButton, SubtitleLabel
 
 import utils.constants as constants
 from utils.channel_repository import list_categories, list_channels
@@ -27,7 +27,6 @@ class DashboardPage(QWidget):
         self.service_card = MetricCard(t("desktop.service"), t("desktop.unknown"), get_public_url())
 
         self.title = SubtitleLabel(t("desktop.dashboard"), self)
-        self.description = BodyLabel(t("desktop.dashboard_desc"), self)
         self.progress_card = CardWidget(self)
         progress_layout = QVBoxLayout(self.progress_card)
         progress_layout.setContentsMargins(18, 16, 18, 16)
@@ -35,11 +34,11 @@ class DashboardPage(QWidget):
         self.progress = ProgressBar(self.progress_card)
         self.progress.setValue(0)
         actions = QHBoxLayout()
-        self.run_button = PrimaryPushButton(t("desktop.run_once"), self.progress_card)
-        self.cancel_button = PushButton(t("desktop.cancel"), self.progress_card)
+        self.run_button = PrimaryPushButton(FluentIcon.PLAY_SOLID, t("desktop.run_once"), self.progress_card)
+        self.cancel_button = PushButton(FluentIcon.CANCEL, t("desktop.cancel"), self.progress_card)
         self.cancel_button.setEnabled(False)
-        self.output_button = PushButton(t("desktop.open_output"), self.progress_card)
-        self.service_button = PushButton(t("desktop.open_service"), self.progress_card)
+        self.output_button = PushButton(FluentIcon.FOLDER, t("desktop.open_output"), self.progress_card)
+        self.service_button = PushButton(FluentIcon.GLOBE, t("desktop.open_service"), self.progress_card)
         actions.addWidget(self.run_button)
         actions.addWidget(self.cancel_button)
         actions.addStretch(1)
@@ -53,7 +52,6 @@ class DashboardPage(QWidget):
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(16)
         layout.addWidget(self.title)
-        layout.addWidget(self.description)
         layout.addWidget(metric_row([self.status_card, self.channel_card, self.valid_card, self.service_card]))
         layout.addWidget(self.progress_card)
         layout.addStretch(1)

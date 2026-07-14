@@ -1,7 +1,8 @@
 import os
 import sys
 
-from PySide6.QtCore import QCoreApplication, QStandardPaths, Qt
+from PySide6.QtCore import QCoreApplication, QSettings, QStandardPaths, Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 from qfluentwidgets import Theme, setTheme, setThemeColor
 
@@ -34,8 +35,11 @@ def main():
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+    from utils.config import resource_path
+    app.setWindowIcon(QIcon(resource_path("favicon.ico")))
     from desktop_ui.main_window import MainWindow
-    setTheme(Theme.AUTO)
+    theme = str(QSettings().value("appearance/theme", "system"))
+    setTheme({"dark": Theme.DARK, "light": Theme.LIGHT}.get(theme, Theme.AUTO))
     setThemeColor("#0F766E")
     window = MainWindow()
     window.show()

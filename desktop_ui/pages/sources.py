@@ -2,7 +2,7 @@ import os
 
 from PySide6.QtCore import QSaveFile, QIODevice
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, ComboBox, InfoBar, InfoBarPosition, PlainTextEdit, PrimaryPushButton, PushButton, SubtitleLabel
+from qfluentwidgets import ComboBox, FluentIcon, InfoBar, InfoBarPosition, PlainTextEdit, PrimaryPushButton, PushButton, SubtitleLabel
 
 import utils.constants as constants
 from utils.config import config, resource_path
@@ -26,8 +26,8 @@ class SourcesPage(QWidget):
         self.selector.addItems([item[0] for item in self.paths])
         self.editor = PlainTextEdit(self)
         self.editor.setLineWrapMode(PlainTextEdit.LineWrapMode.NoWrap)
-        self.save_button = PrimaryPushButton(t("desktop.save"), self)
-        self.reload_button = PushButton(t("desktop.reload"), self)
+        self.save_button = PrimaryPushButton(FluentIcon.SAVE, t("desktop.save"), self)
+        self.reload_button = PushButton(FluentIcon.SYNC, t("desktop.reload"), self)
         actions = QHBoxLayout()
         actions.addWidget(self.selector)
         actions.addStretch(1)
@@ -37,7 +37,6 @@ class SourcesPage(QWidget):
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
         layout.addWidget(SubtitleLabel(t("desktop.sources"), self))
-        layout.addWidget(BodyLabel(t("desktop.sources_desc"), self))
         layout.addLayout(actions)
         layout.addWidget(self.editor, 1)
         self.selector.currentIndexChanged.connect(self.load)

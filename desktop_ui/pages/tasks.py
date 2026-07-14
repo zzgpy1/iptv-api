@@ -2,8 +2,8 @@ from datetime import datetime
 
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, InfoBar, InfoBarPosition, PrimaryPushButton, PushButton, SubtitleLabel, TableView
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QSplitter, QVBoxLayout, QWidget
+from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PrimaryPushButton, PushButton, SubtitleLabel, TableView
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
@@ -48,10 +48,10 @@ class TasksPage(QWidget):
         splitter.addWidget(self.operation_table)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
-        self.refresh_button = PushButton(t("desktop.refresh"), self)
-        self.export_button = PrimaryPushButton(t("desktop.export_diagnostics"), self)
+        self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
+        self.export_button = PrimaryPushButton(FluentIcon.IMAGE_EXPORT, t("desktop.export_diagnostics"), self)
         actions = QHBoxLayout()
-        actions.addWidget(BodyLabel(t("desktop.task_history_desc"), self), 1)
+        actions.addStretch(1)
         actions.addWidget(self.refresh_button)
         actions.addWidget(self.export_button)
         layout = QVBoxLayout(self)
@@ -75,6 +75,8 @@ class TasksPage(QWidget):
         table.verticalHeader().setVisible(False)
         table.setBorderVisible(True)
         table.setBorderRadius(8)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        table.horizontalHeader().setSectionResizeMode(model.columnCount() - 1, QHeaderView.ResizeMode.Stretch)
         return table
 
     def refresh(self):

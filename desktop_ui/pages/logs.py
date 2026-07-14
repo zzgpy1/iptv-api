@@ -2,7 +2,7 @@ import os
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, ComboBox, LineEdit, PlainTextEdit, PushButton, SubtitleLabel, SwitchButton
+from qfluentwidgets import ComboBox, FluentIcon, LineEdit, PlainTextEdit, PushButton, SubtitleLabel, SwitchButton
 
 import utils.constants as constants
 from utils.i18n import t
@@ -25,8 +25,8 @@ class LogsPage(QWidget):
         self.search.setPlaceholderText(t("desktop.search_logs"))
         self.autoscroll = SwitchButton(t("desktop.auto_scroll"), self)
         self.autoscroll.setChecked(True)
-        self.refresh_button = PushButton(t("desktop.refresh"), self)
-        self.clear_button = PushButton(t("desktop.clear_view"), self)
+        self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
+        self.clear_button = PushButton(FluentIcon.BROOM, t("desktop.clear_view"), self)
         self.viewer = PlainTextEdit(self)
         self.viewer.setReadOnly(True)
         self.viewer.setLineWrapMode(PlainTextEdit.LineWrapMode.NoWrap)
@@ -40,7 +40,6 @@ class LogsPage(QWidget):
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
         layout.addWidget(SubtitleLabel(t("desktop.logs"), self))
-        layout.addWidget(BodyLabel(t("desktop.logs_desc"), self))
         layout.addLayout(actions)
         layout.addWidget(self.viewer, 1)
         self.timer = QTimer(self)

@@ -313,7 +313,7 @@ pipenv run service
 
 ## GUI Software
 
-The new desktop app uses PySide6 and QFluentWidgets and supports Windows and macOS. The dashboard starts or cancels a full update and shows stage progress. Channel Center displays category, channel, and result metrics and supports category/channel/result retests, copy/play actions, whitelist and blacklist updates, and stream start. RTMP Monitor shows bandwidth, clients, and media details. Tasks keeps update and operation history and exports a redacted diagnostic bundle.
+The new desktop app uses PySide6 and QFluentWidgets and supports Windows and macOS. The dashboard starts or cancels a full update and shows stage progress. Channel Center displays category, channel, and result metrics and supports category/channel/result retests, copy/play actions, whitelist and blacklist updates, and stream start. RTMP Monitor provides a light/dark adaptive bandwidth chart plus client and media details. Settings uses switches, choices, and numeric controls based on each value type. More Information checks and downloads new builds for the current platform. Tasks keeps update and operation history and exports a redacted diagnostic bundle.
 
 Install dependencies and start it from the project directory:
 
@@ -328,7 +328,7 @@ Build the desktop application for the current platform:
 pipenv run desktop_build
 ```
 
-Settings are saved to `config/user_config.ini`; generated results, channel snapshots, task history, and logs are stored under `output/`. A packaged application places these directories in the operating system's application data directory on first launch. Install FFmpeg before enabling resolution probing. The Windows package can include nginx-rtmp; macOS requires a separately installed and running nginx-rtmp service for statistics and stream controls.
+Settings are saved to `config/user_config.ini`; generated results, channel snapshots, task history, and logs are stored under `output/`. A packaged application places these directories in the operating system's application data directory on first launch. Install FFmpeg before enabling resolution probing. The Windows package can include nginx-rtmp. On macOS, install an nginx build with the RTMP module; the app generates and starts an isolated configuration automatically, while `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can override discovery.
 
 The legacy Tkinter interface remains available with `pipenv run ui`.
 

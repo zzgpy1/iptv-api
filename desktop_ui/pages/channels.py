@@ -1,7 +1,7 @@
 from PySide6.QtCore import QItemSelection, Signal, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QGuiApplication
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QListWidget, QListWidgetItem, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, InfoBar, InfoBarPosition, PrimaryPushButton, ProgressBar, PushButton, SearchLineEdit, SubtitleLabel, TableView
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QListWidgetItem, QSplitter, QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, ListWidget, PrimaryPushButton, ProgressBar, PushButton, SearchLineEdit, SubtitleLabel, TableView
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
@@ -36,20 +36,20 @@ class ChannelCenterPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("channelCenterPage")
-        self.category_list = QListWidget(self)
+        self.category_list = ListWidget(self)
         self.category_list.setMinimumWidth(190)
         self.category_list.setMaximumWidth(260)
         self.search = SearchLineEdit(self)
         self.search.setPlaceholderText(t("desktop.search_channels"))
-        self.refresh_button = PushButton(t("desktop.refresh"), self)
-        self.retest_channel_button = PrimaryPushButton(t("desktop.retest_channel"), self)
-        self.retest_category_button = PushButton(t("desktop.retest_category"), self)
-        self.retest_result_button = PushButton(t("desktop.retest_result"), self)
-        self.open_button = PushButton(t("desktop.open_player"), self)
-        self.copy_button = PushButton(t("desktop.copy_url"), self)
-        self.start_stream_button = PushButton(t("desktop.start_stream"), self)
-        self.whitelist_button = PushButton(t("desktop.add_whitelist"), self)
-        self.blacklist_button = PushButton(t("desktop.add_blacklist"), self)
+        self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
+        self.retest_channel_button = PrimaryPushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_channel"), self)
+        self.retest_category_button = PushButton(FluentIcon.LIBRARY, t("desktop.retest_category"), self)
+        self.retest_result_button = PushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_result"), self)
+        self.open_button = PushButton(FluentIcon.PLAY, t("desktop.open_player"), self)
+        self.copy_button = PushButton(FluentIcon.COPY, t("desktop.copy_url"), self)
+        self.start_stream_button = PushButton(FluentIcon.PLAY_SOLID, t("desktop.start_stream"), self)
+        self.whitelist_button = PushButton(FluentIcon.ADD_TO, t("desktop.add_whitelist"), self)
+        self.blacklist_button = PushButton(FluentIcon.REMOVE_FROM, t("desktop.add_blacklist"), self)
         self.task_label = BodyLabel(t("desktop.no_pending_tasks"), self)
         self.task_progress = ProgressBar(self)
         self.task_progress.setValue(0)
@@ -78,7 +78,7 @@ class ChannelCenterPage(QWidget):
         ], self)
         self.channel_table = self._table(self.channel_model)
         self.result_table = self._table(self.result_model)
-        self.channel_table.setMinimumWidth(580)
+        self.channel_table.setMinimumWidth(340)
 
         left = QWidget(self)
         left_layout = QVBoxLayout(left)
@@ -92,24 +92,36 @@ class ChannelCenterPage(QWidget):
         center_actions = QHBoxLayout()
         center_actions.addWidget(self.search, 1)
         center_actions.addWidget(self.refresh_button)
-        center_actions.addWidget(self.retest_category_button)
-        center_actions.addWidget(self.retest_channel_button)
         center_layout.addLayout(center_actions)
+        channel_action_widget = QWidget(center)
+        channel_actions = FlowLayout(channel_action_widget, isTight=True)
+        channel_actions.setContentsMargins(0, 0, 0, 0)
+        channel_actions.setHorizontalSpacing(8)
+        channel_actions.setVerticalSpacing(8)
+        channel_actions.addWidget(self.retest_category_button)
+        channel_actions.addWidget(self.retest_channel_button)
+        center_layout.addWidget(channel_action_widget)
         center_layout.addWidget(self.channel_table)
 
         right = QWidget(self)
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
-        result_actions = QHBoxLayout()
-        result_actions.addWidget(BodyLabel(t("desktop.results"), right))
-        result_actions.addStretch(1)
-        result_actions.addWidget(self.retest_result_button)
-        result_actions.addWidget(self.copy_button)
-        result_actions.addWidget(self.whitelist_button)
-        result_actions.addWidget(self.blacklist_button)
-        result_actions.addWidget(self.start_stream_button)
-        result_actions.addWidget(self.open_button)
-        right_layout.addLayout(result_actions)
+        right_layout.addWidget(BodyLabel(t("desktop.results"), right))
+        result_action_widget = QWidget(right)
+        result_actions = FlowLayout(result_action_widget, isTight=True)
+        result_actions.setContentsMargins(0, 0, 0, 0)
+        result_actions.setHorizontalSpacing(8)
+        result_actions.setVerticalSpacing(8)
+        for button in (
+            self.retest_result_button,
+            self.copy_button,
+            self.whitelist_button,
+            self.blacklist_button,
+            self.start_stream_button,
+            self.open_button,
+        ):
+            result_actions.addWidget(button)
+        right_layout.addWidget(result_action_widget)
         right_layout.addWidget(self.result_table)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
@@ -119,12 +131,15 @@ class ChannelCenterPage(QWidget):
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 2)
         splitter.setStretchFactor(2, 2)
+        splitter.setCollapsible(0, False)
+        splitter.setCollapsible(1, False)
+        splitter.setCollapsible(2, False)
+        splitter.setSizes([180, 470, 470])
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
         layout.addWidget(SubtitleLabel(t("desktop.channel_center"), self))
-        layout.addWidget(BodyLabel(t("desktop.channel_center_desc"), self))
         task_row = QHBoxLayout()
         task_row.addWidget(self.task_label, 1)
         task_row.addWidget(self.task_progress, 1)

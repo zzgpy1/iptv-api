@@ -237,7 +237,7 @@ pipenv run service
 
 ### GUI 软件
 
-基于 PySide6 与 QFluentWidgets 的桌面端支持 Windows 和 macOS，可直接修改配置、查看实时进度与日志，并提供频道分类/频道/结果三级管理、单频道或单结果重新测速、RTMP 监控与任务历史。
+基于 PySide6 与 QFluentWidgets 的桌面端支持 Windows 和 macOS，可直接修改配置、切换深浅色主题、查看实时进度与日志，并提供频道分类/频道/结果三级管理、单频道或单结果重新测速、RTMP 监控、任务历史与在线版本检查。
 
 安装依赖并启动桌面端：
 
@@ -252,7 +252,7 @@ pipenv run desktop_ui
 pipenv run desktop_build
 ```
 
-旧版 Tkinter 界面仍可通过 `pipenv run ui` 启动。分辨率检测需要系统安装 FFmpeg。Windows 可使用随包提供的 nginx-rtmp；macOS 的推流统计与控制需要连接自行安装的 nginx-rtmp 服务。
+旧版 Tkinter 界面仍可通过 `pipenv run ui` 启动。分辨率检测需要系统安装 FFmpeg。Windows 可使用随包提供的 nginx-rtmp；macOS 会自动检测系统中带 RTMP 模块的 nginx，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定可执行文件与动态模块。
 
 ### Docker
 

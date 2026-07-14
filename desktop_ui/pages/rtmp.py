@@ -3,9 +3,9 @@ from datetime import datetime
 
 from PySide6.QtCharts import QChart, QChartView, QDateTimeAxis, QLineSeries, QValueAxis
 from PySide6.QtCore import QDateTime, Signal, Qt
-from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, PushButton, SubtitleLabel, TableView
+from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QPen
+from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QHBoxLayout, QSizePolicy, QSplitter, QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, FluentIcon, PushButton, ScrollArea, SubtitleLabel, TableView, isDarkTheme, qconfig
 
 from desktop_ui.models import MappingTableModel
 from desktop_ui.widgets import MetricCard, metric_row
@@ -32,9 +32,9 @@ class RtmpPage(QWidget):
         self.stream_card = MetricCard(t("desktop.active_streams"), "0")
         self.client_card = MetricCard(t("desktop.clients"), "0")
         self.bandwidth_card = MetricCard(t("desktop.output_bandwidth"), "0 Kbit/s")
-        self.refresh_button = PushButton(t("desktop.refresh"), self)
-        self.stop_button = PushButton(t("desktop.stop_stream"), self)
-        self.restart_button = PushButton(t("desktop.restart_stream"), self)
+        self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
+        self.stop_button = PushButton(FluentIcon.PAUSE_BOLD, t("desktop.stop_stream"), self)
+        self.restart_button = PushButton(FluentIcon.ROTATE, t("desktop.restart_stream"), self)
         self.stream_model = MappingTableModel([
             ("state", t("desktop.status"), _stream_state),
             ("channel_name", t("name.channel"), None),
@@ -59,31 +59,44 @@ class RtmpPage(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.setBorderVisible(True)
         self.table.setBorderRadius(8)
+        self.table.setMinimumHeight(70)
+        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.client_table = TableView(self)
         self.client_table.setModel(self.client_model)
         self.client_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.client_table.verticalHeader().setVisible(False)
         self.client_table.setBorderVisible(True)
         self.client_table.setBorderRadius(8)
+        self.client_table.setMinimumHeight(60)
+        self.client_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        self.client_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.client_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
 
         self.series = QLineSeries(self)
-        chart = QChart()
-        chart.addSeries(self.series)
-        chart.legend().hide()
-        chart.setTitle(t("desktop.bandwidth_trend"))
+        self.chart = QChart()
+        self.chart.addSeries(self.series)
+        self.chart.legend().hide()
+        self.chart.setTitle(t("desktop.bandwidth_trend"))
         self.time_axis = QDateTimeAxis()
         self.time_axis.setFormat("HH:mm:ss")
         self.time_axis.setTickCount(6)
         self.value_axis = QValueAxis()
         self.value_axis.setLabelFormat("%.0f")
         self.value_axis.setTitleText("Kbit/s")
-        chart.addAxis(self.time_axis, Qt.AlignmentFlag.AlignBottom)
-        chart.addAxis(self.value_axis, Qt.AlignmentFlag.AlignLeft)
+        self.chart.addAxis(self.time_axis, Qt.AlignmentFlag.AlignBottom)
+        self.chart.addAxis(self.value_axis, Qt.AlignmentFlag.AlignLeft)
         self.series.attachAxis(self.time_axis)
         self.series.attachAxis(self.value_axis)
-        self.chart_view = QChartView(chart, self)
+        self.chart_view = QChartView(self.chart, self)
         self.chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.chart_view.setMinimumHeight(220)
+        self.chart_view.setMinimumHeight(180)
+        self.chart_view.setMaximumHeight(240)
+        self.chart_view.setStyleSheet("background: transparent; border: none;")
+        self.error_label = BodyLabel("", self)
+        self.error_label.setWordWrap(True)
+        self.error_label.hide()
 
         actions = QHBoxLayout()
         actions.addStretch(1)
@@ -97,40 +110,92 @@ class RtmpPage(QWidget):
         client_layout.setContentsMargins(0, 0, 0, 0)
         client_layout.addWidget(BodyLabel(t("desktop.client_details"), client_container))
         client_layout.addWidget(self.client_table)
+        client_container.setMinimumHeight(90)
         tables.addWidget(client_container)
         tables.setStretchFactor(0, 2)
         tables.setStretchFactor(1, 1)
-        layout = QVBoxLayout(self)
+        tables.setMinimumHeight(170)
+        self.content = QWidget(self)
+        self.content.setObjectName("rtmpContent")
+        self.content.setMinimumHeight(680)
+        layout = QVBoxLayout(self.content)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
         layout.addWidget(SubtitleLabel(t("desktop.rtmp_monitor"), self))
-        layout.addWidget(BodyLabel(t("desktop.rtmp_monitor_desc"), self))
+        layout.addWidget(self.error_label)
         layout.addWidget(metric_row([self.status_card, self.stream_card, self.client_card, self.bandwidth_card]))
-        layout.addWidget(self.chart_view)
         layout.addLayout(actions)
+        layout.addWidget(self.chart_view)
         layout.addWidget(tables, 1)
+        self.scroll = ScrollArea(self)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll.setWidget(self.content)
+        self.scroll.setStyleSheet("QScrollArea { border: none; }")
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.addWidget(self.scroll)
         self.refresh_button.clicked.connect(self.refresh_requested)
         self.stop_button.clicked.connect(lambda: self._request_control("stop"))
         self.restart_button.clicked.connect(lambda: self._request_control("restart"))
         self.table.selectionModel().selectionChanged.connect(self._stream_changed)
+        qconfig.themeChanged.connect(self._apply_chart_theme)
+        qconfig.themeChangedFinished.connect(self._apply_chart_theme)
+        self._apply_chart_theme()
 
     def set_snapshot(self, snapshot: dict):
         streams = snapshot.get("streams", [])
         clients = sum(int(stream.get("clients") or 0) for stream in streams)
         bw_out = float(snapshot.get("bw_out") or sum(float(stream.get("bw_out") or 0) for stream in streams))
-        self.status_card.set_value(t("desktop.running") if snapshot.get("available") else t("desktop.unavailable"))
+        available = bool(snapshot.get("available"))
+        self.status_card.set_value(t("desktop.running") if available else t("desktop.unavailable"))
+        if available:
+            self.error_label.hide()
+        else:
+            error_code = snapshot.get("error_code")
+            message = t(f"desktop.rtmp_error_{error_code}", snapshot.get("error") or t("desktop.rtmp_unavailable_hint"))
+            self.error_label.setText(message)
+            self.error_label.show()
         self.stream_card.set_value(len(streams))
         self.client_card.set_value(clients)
         self.bandwidth_card.set_value(f"{bw_out / 1000:.1f} Kbit/s")
         self.stream_model.set_rows(streams)
-        now = datetime.now().timestamp() * 1000
-        self.samples.append((now, bw_out / 1000))
+        if available:
+            now = datetime.now().timestamp() * 1000
+            self.samples.append((now, bw_out / 1000))
         self.series.clear()
         for timestamp, value in self.samples:
             self.series.append(timestamp, value)
         if self.samples:
             self.time_axis.setRange(QDateTime.fromMSecsSinceEpoch(int(self.samples[0][0])), QDateTime.fromMSecsSinceEpoch(int(self.samples[-1][0] + 1000)))
         self.value_axis.setRange(0, max(10, max((value for _, value in self.samples), default=0) * 1.15))
+
+    def _apply_chart_theme(self):
+        dark = isDarkTheme()
+        background = QColor("#202124" if dark else "#FFFFFF")
+        page_background = QColor("#202124" if dark else "#F3F3F3")
+        text = QColor("#F8FAFC" if dark else "#1E293B")
+        grid = QColor("#475569" if dark else "#D7DEE8")
+        line = QColor("#2DD4BF" if dark else "#0F766E")
+        self.chart.setBackgroundBrush(QBrush(background))
+        self.chart.setPlotAreaBackgroundBrush(QBrush(background))
+        self.chart.setPlotAreaBackgroundVisible(True)
+        self.chart.setTitleBrush(QBrush(text))
+        self.chart_view.setBackgroundBrush(QBrush(page_background))
+        self.chart_view.setStyleSheet("border: none;")
+        for widget in (self, self.content, self.scroll.viewport(), self.chart_view.viewport()):
+            palette = widget.palette()
+            palette.setColor(QPalette.ColorRole.Window, page_background)
+            palette.setColor(QPalette.ColorRole.Base, page_background)
+            widget.setPalette(palette)
+            widget.setAutoFillBackground(True)
+        self.series.setPen(QPen(line, 2.2))
+        for axis in (self.time_axis, self.value_axis):
+            axis.setLabelsBrush(QBrush(text))
+            axis.setTitleBrush(QBrush(text))
+            axis.setGridLinePen(QPen(grid, 1))
+            axis.setLinePen(QPen(grid, 1))
+        self.chart_view.viewport().update()
 
     def _stream_changed(self, selected, _):
         indexes = selected.indexes()
