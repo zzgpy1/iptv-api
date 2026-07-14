@@ -463,12 +463,7 @@ class ConfigManager:
         """
         Save config with write
         """
-        user_config_file = "config/" + (
-            "user_config.ini"
-            if os.path.exists(resource_path("user_config.ini"))
-            else "config.ini"
-        )
-        user_config_path = resource_path(user_config_file, persistent=True)
+        user_config_path = resource_path("config/user_config.ini", persistent=True)
         if not os.path.exists(user_config_path):
             os.makedirs(os.path.dirname(user_config_path), exist_ok=True)
         with open(user_config_path, "w", encoding="utf-8") as configfile:

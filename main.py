@@ -410,6 +410,24 @@ class UpdateSource:
     # ----------------------------
     # lifecycle control
     # ----------------------------
+    async def run_once(self, callback=None):
+        def default_callback(*args, **kwargs):
+            pass
+
+        self.update_progress = callback or default_callback
+        self.run_ui = bool(callback)
+
+        if not config.open_update:
+            if self.run_ui:
+                self.update_progress(t("msg.update_disabled"), 0, finished=True)
+            return
+
+        if self.run_ui:
+            self.update_progress(t("msg.check_ipv6_support"), 0)
+
+        self.ipv6_support = config.ipv6_support or check_ipv6_support()
+        await self.main()
+
     async def start(self, callback=None):
         def default_callback(*args, **kwargs):
             pass
