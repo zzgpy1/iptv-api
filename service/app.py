@@ -1,6 +1,8 @@
 import os
 import sys
 import time
+import ipaddress
+import threading
 
 sys.path.append(os.path.dirname(sys.path[0]))
 from flask import Flask, send_from_directory, make_response, request, jsonify, Response
@@ -9,7 +11,7 @@ from utils.config import config
 import utils.constants as constants
 import atexit
 from service.rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hls_temp_path, STREAMS_LOCK, \
-    hls_running_streams, start_hls_to_rtmp, hls_last_access, HLS_WAIT_TIMEOUT, HLS_WAIT_INTERVAL
+    hls_running_streams, start_hls_to_rtmp, hls_last_access, HLS_WAIT_TIMEOUT, HLS_WAIT_INTERVAL, stop_stream
 import logging
 from utils.i18n import t
 from werkzeug.utils import secure_filename
@@ -286,6 +288,29 @@ def on_done():
 
     print(t("msg.rtmp_on_done").format(channel_id=channel_id))
     return ''
+
+
+def _local_request():
+    remote = request.remote_addr or ""
+    forwarded = request.headers.get("X-Real-IP") if remote in {"127.0.0.1", "::1"} else None
+    try:
+        return ipaddress.ip_address(forwarded or remote).is_loopback
+    except ValueError:
+        return False
+
+
+@app.post('/api/rtmp/streams/<channel_id>/<action>')
+def control_rtmp_stream(channel_id, action):
+    if not _local_request():
+        return jsonify({t("name.error"): t("msg.api_local_only")}), 403
+    if action not in {"start", "stop", "restart"}:
+        return jsonify({t("name.error"): t("msg.invalid_stream_action")}), 400
+    if action in {"stop", "restart"}:
+        stop_stream(channel_id)
+    if action in {"start", "restart"}:
+        host = f"{app_rtmp_url}/hls"
+        threading.Thread(target=start_hls_to_rtmp, args=(host, channel_id), daemon=True).start()
+    return jsonify({"channel_id": channel_id, "action": action, "accepted": True}), 202
 
 
 def run_service():

@@ -565,3 +565,25 @@ def append_stream_samples(db_path: str, sampled_at: float, streams: list[dict]) 
         conn.commit()
     finally:
         return_db_connection(db_path, conn)
+
+
+def result_metadata_map(db_path: str, result_keys: list[str]) -> dict[str, dict[str, Any]]:
+    keys = [str(key) for key in result_keys if key]
+    if not keys:
+        return {}
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        placeholders = ",".join("?" for _ in keys)
+        rows = conn.execute(
+            f"""
+            SELECT r.result_key, r.url, r.selected_rank, c.channel_key, c.category, c.name
+            FROM channel_results r JOIN channels c ON c.channel_key=r.channel_key
+            WHERE r.result_key IN ({placeholders})
+            """,
+            keys,
+        ).fetchall()
+        return {row["result_key"]: dict(row) for row in rows}
+    finally:
+        return_db_connection(db_path, conn)

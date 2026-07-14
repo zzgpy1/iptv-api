@@ -87,6 +87,15 @@ class DashboardPage(QWidget):
             self.set_running(False)
             self.refresh_metrics()
 
+    def set_service_status(self, status: str):
+        label = {
+            "running": t("desktop.running"),
+            "external": t("desktop.external_service"),
+            "stopped": t("desktop.stopped"),
+            "failed": t("desktop.unavailable"),
+        }.get(status, t("desktop.unknown"))
+        self.service_card.set_value(label, get_public_url())
+
     def open_output(self):
         path = os.path.abspath(constants.output_dir)
         QDesktopServices.openUrl(QUrl.fromLocalFile(path))

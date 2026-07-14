@@ -29,6 +29,7 @@ def _delay(value, _):
 class ChannelCenterPage(QWidget):
     retest_channel_requested = Signal(dict)
     retest_result_requested = Signal(dict)
+    stream_control_requested = Signal(str, dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,6 +44,7 @@ class ChannelCenterPage(QWidget):
         self.retest_result_button = PushButton(t("desktop.retest_result"), self)
         self.open_button = PushButton(t("desktop.open_player"), self)
         self.copy_button = PushButton(t("desktop.copy_url"), self)
+        self.start_stream_button = PushButton(t("desktop.start_stream"), self)
         self.task_label = BodyLabel(t("desktop.no_pending_tasks"), self)
         self.task_progress = ProgressBar(self)
         self.task_progress.setValue(0)
@@ -97,6 +99,7 @@ class ChannelCenterPage(QWidget):
         result_actions.addStretch(1)
         result_actions.addWidget(self.retest_result_button)
         result_actions.addWidget(self.copy_button)
+        result_actions.addWidget(self.start_stream_button)
         result_actions.addWidget(self.open_button)
         right_layout.addLayout(result_actions)
         right_layout.addWidget(self.result_table)
@@ -128,6 +131,7 @@ class ChannelCenterPage(QWidget):
         self.retest_result_button.clicked.connect(self._request_result_retest)
         self.copy_button.clicked.connect(self._copy_result)
         self.open_button.clicked.connect(self._open_result)
+        self.start_stream_button.clicked.connect(self._start_stream)
         self.reload()
 
     def _table(self, model):
@@ -210,6 +214,13 @@ class ChannelCenterPage(QWidget):
         row = self.selected_result()
         if row:
             QDesktopServices.openUrl(QUrl(row["url"]))
+
+    def _start_stream(self):
+        row = self.selected_result()
+        if row and row.get("selected_rank") is not None:
+            self.stream_control_requested.emit("start", row)
+        elif row:
+            InfoBar.warning(t("desktop.not_selected_result"), t("desktop.select_result_hint"), parent=self, position=InfoBarPosition.TOP)
 
     def set_task_started(self, operation: str):
         self.task_label.setText(t(f"desktop.{operation}", operation))

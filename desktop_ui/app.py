@@ -8,6 +8,10 @@ from desktop_ui.main_window import MainWindow
 
 
 def main():
+    if "--service" in sys.argv:
+        from service.app import run_service
+        run_service()
+        return 0
     QCoreApplication.setOrganizationName("IPTV-API")
     QCoreApplication.setApplicationName("IPTV-API Desktop")
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
