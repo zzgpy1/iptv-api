@@ -8,6 +8,7 @@ from utils.channel_repository import (
     finish_operation,
     get_channel,
     list_channel_results,
+    list_channels,
     load_selected_snapshot,
     set_channel_selection,
     update_result_measurement,
@@ -109,6 +110,25 @@ class ChannelOperations:
             if tasks:
                 results = await asyncio.gather(*tasks)
             self._resort_and_publish(channel_key)
+            finish_operation(self.db_path, operation_id, "success")
+            return results
+        except asyncio.CancelledError:
+            finish_operation(self.db_path, operation_id, "cancelled")
+            raise
+        except Exception as exc:
+            finish_operation(self.db_path, operation_id, "failed", str(exc))
+            raise
+
+    async def retest_category(self, category: str, progress=None) -> list[dict]:
+        operation_id = begin_operation(self.db_path, "retest_category", "category", category)
+        try:
+            channels = list_channels(self.db_path, category=category)
+            results = []
+            total = len(channels)
+            for index, channel in enumerate(channels):
+                results.extend(await self.retest_channel(channel["channel_key"]))
+                if progress:
+                    progress(index + 1, total, channel["name"])
             finish_operation(self.db_path, operation_id, "success")
             return results
         except asyncio.CancelledError:

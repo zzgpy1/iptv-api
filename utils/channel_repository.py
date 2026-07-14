@@ -587,3 +587,17 @@ def result_metadata_map(db_path: str, result_keys: list[str]) -> dict[str, dict[
         return {row["result_key"]: dict(row) for row in rows}
     finally:
         return_db_connection(db_path, conn)
+
+
+def list_runs(db_path: str, limit: int = 100) -> list[dict[str, Any]]:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            "SELECT * FROM runs ORDER BY started_at DESC LIMIT ?",
+            (max(1, int(limit)),),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        return_db_connection(db_path, conn)

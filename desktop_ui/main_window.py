@@ -10,6 +10,7 @@ from desktop_ui.pages.logs import LogsPage
 from desktop_ui.pages.rtmp import RtmpPage
 from desktop_ui.pages.settings import SettingsPage
 from desktop_ui.pages.sources import SourcesPage
+from desktop_ui.pages.tasks import TasksPage
 from utils.config import resource_path
 from utils.config import config
 from utils.i18n import t
@@ -29,12 +30,14 @@ class MainWindow(FluentWindow):
         self.rtmp = RtmpPage(self)
         self.sources = SourcesPage(self)
         self.logs = LogsPage(self)
+        self.tasks = TasksPage(self)
         self.settings = SettingsPage(self)
         self.addSubInterface(self.dashboard, FluentIcon.HOME, t("desktop.dashboard"))
         self.addSubInterface(self.channels, FluentIcon.LIBRARY, t("desktop.channel_center"))
         self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.rtmp_monitor"))
         self.addSubInterface(self.sources, FluentIcon.DOCUMENT, t("desktop.sources"))
         self.addSubInterface(self.logs, FluentIcon.DEVELOPER_TOOLS, t("desktop.logs"))
+        self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
         self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)
         self.controller = UpdateController(self)
         self.operation_controller = ChannelOperationController(self)
@@ -54,6 +57,9 @@ class MainWindow(FluentWindow):
                 "retest_result",
                 {"channel_key": row["channel_key"], "result_key": row["result_key"]},
             )
+        )
+        self.channels.retest_category_requested.connect(
+            lambda category: self.operation_controller.enqueue("retest_category", {"category": category})
         )
         self.operation_controller.task_started.connect(self.channels.set_task_started)
         self.operation_controller.task_progress.connect(self.channels.set_task_progress)

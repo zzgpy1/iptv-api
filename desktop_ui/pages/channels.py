@@ -7,6 +7,7 @@ import utils.constants as constants
 from desktop_ui.models import MappingTableModel
 from utils.channel_repository import list_categories, list_channel_results, list_channels
 from utils.i18n import t
+from utils.user_actions import add_to_blacklist, add_to_whitelist
 
 
 def _health(value, _):
@@ -29,6 +30,7 @@ def _delay(value, _):
 class ChannelCenterPage(QWidget):
     retest_channel_requested = Signal(dict)
     retest_result_requested = Signal(dict)
+    retest_category_requested = Signal(str)
     stream_control_requested = Signal(str, dict)
 
     def __init__(self, parent=None):
@@ -41,10 +43,13 @@ class ChannelCenterPage(QWidget):
         self.search.setPlaceholderText(t("desktop.search_channels"))
         self.refresh_button = PushButton(t("desktop.refresh"), self)
         self.retest_channel_button = PrimaryPushButton(t("desktop.retest_channel"), self)
+        self.retest_category_button = PushButton(t("desktop.retest_category"), self)
         self.retest_result_button = PushButton(t("desktop.retest_result"), self)
         self.open_button = PushButton(t("desktop.open_player"), self)
         self.copy_button = PushButton(t("desktop.copy_url"), self)
         self.start_stream_button = PushButton(t("desktop.start_stream"), self)
+        self.whitelist_button = PushButton(t("desktop.add_whitelist"), self)
+        self.blacklist_button = PushButton(t("desktop.add_blacklist"), self)
         self.task_label = BodyLabel(t("desktop.no_pending_tasks"), self)
         self.task_progress = ProgressBar(self)
         self.task_progress.setValue(0)
@@ -87,6 +92,7 @@ class ChannelCenterPage(QWidget):
         center_actions = QHBoxLayout()
         center_actions.addWidget(self.search, 1)
         center_actions.addWidget(self.refresh_button)
+        center_actions.addWidget(self.retest_category_button)
         center_actions.addWidget(self.retest_channel_button)
         center_layout.addLayout(center_actions)
         center_layout.addWidget(self.channel_table)
@@ -99,6 +105,8 @@ class ChannelCenterPage(QWidget):
         result_actions.addStretch(1)
         result_actions.addWidget(self.retest_result_button)
         result_actions.addWidget(self.copy_button)
+        result_actions.addWidget(self.whitelist_button)
+        result_actions.addWidget(self.blacklist_button)
         result_actions.addWidget(self.start_stream_button)
         result_actions.addWidget(self.open_button)
         right_layout.addLayout(result_actions)
@@ -128,10 +136,13 @@ class ChannelCenterPage(QWidget):
         self.search.textChanged.connect(self._search_changed)
         self.channel_table.selectionModel().selectionChanged.connect(self._channel_changed)
         self.retest_channel_button.clicked.connect(self._request_channel_retest)
+        self.retest_category_button.clicked.connect(self._request_category_retest)
         self.retest_result_button.clicked.connect(self._request_result_retest)
         self.copy_button.clicked.connect(self._copy_result)
         self.open_button.clicked.connect(self._open_result)
         self.start_stream_button.clicked.connect(self._start_stream)
+        self.whitelist_button.clicked.connect(self._add_whitelist)
+        self.blacklist_button.clicked.connect(self._add_blacklist)
         self.reload()
 
     def _table(self, model):
@@ -204,6 +215,12 @@ class ChannelCenterPage(QWidget):
         if row:
             self.retest_result_requested.emit(row)
 
+    def _request_category_retest(self):
+        item = self.category_list.currentItem()
+        category = item.data(Qt.ItemDataRole.UserRole) if item else None
+        if category:
+            self.retest_category_requested.emit(category)
+
     def _copy_result(self):
         row = self.selected_result()
         if row:
@@ -221,6 +238,19 @@ class ChannelCenterPage(QWidget):
             self.stream_control_requested.emit("start", row)
         elif row:
             InfoBar.warning(t("desktop.not_selected_result"), t("desktop.select_result_hint"), parent=self, position=InfoBarPosition.TOP)
+
+    def _add_whitelist(self):
+        channel = self.selected_channel()
+        result = self.selected_result()
+        if channel and result:
+            changed = add_to_whitelist(channel["name"], result["url"])
+            InfoBar.success(t("desktop.whitelist_updated"), t("desktop.next_update_effect" if changed else "desktop.already_exists"), parent=self, position=InfoBarPosition.TOP)
+
+    def _add_blacklist(self):
+        result = self.selected_result()
+        if result:
+            changed = add_to_blacklist(result["url"])
+            InfoBar.success(t("desktop.blacklist_updated"), t("desktop.next_update_effect" if changed else "desktop.already_exists"), parent=self, position=InfoBarPosition.TOP)
 
     def set_task_started(self, operation: str):
         self.task_label.setText(t(f"desktop.{operation}", operation))
