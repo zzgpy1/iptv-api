@@ -26,8 +26,10 @@ class ResultAggregator:
             flush_debounce: Optional[float] = None,
             stat_logger=None,
             result: Optional[Dict[str, Dict[str, list]]] = None,
+            channel_catalog: Optional[Dict[str, Dict[str, list]]] = None,
     ):
         self.base_data = base_data
+        self.channel_catalog = channel_catalog or {}
         self.result = sort_channel_result(
             base_data,
             result=result,
@@ -183,7 +185,11 @@ class ResultAggregator:
 
         self.result = merged
         snapshot_tests = copy.deepcopy(self.test_results)
-        snapshot_base = copy.deepcopy(self.base_data)
+        snapshot_base = copy.deepcopy(self.channel_catalog)
+        for category, channel_map in self.base_data.items():
+            target = snapshot_base.setdefault(category, {})
+            for name, items in channel_map.items():
+                target[name] = copy.deepcopy(items)
         snapshot_selected = copy.deepcopy(self.result)
         await loop.run_in_executor(
             None,

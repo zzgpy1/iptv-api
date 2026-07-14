@@ -195,7 +195,11 @@ class ChannelCenterPage(QWidget):
     def _channel_changed(self, selected: QItemSelection, _):
         indexes = selected.indexes()
         row = self.channel_model.row(indexes[0]) if indexes else None
-        self.result_model.set_rows(list_channel_results(constants.channel_results_path, row["channel_key"]) if row else [])
+        try:
+            results = list_channel_results(constants.channel_results_path, row["channel_key"]) if row else []
+        except Exception:
+            results = []
+        self.result_model.set_rows(results)
 
     def selected_channel(self):
         indexes = self.channel_table.selectionModel().selectedRows()

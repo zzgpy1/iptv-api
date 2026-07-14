@@ -227,6 +227,7 @@ class UpdateSource:
             flush_debounce=2.0,
             min_items_before_flush=max(25, config.urls_limit),
             result=cache,
+            channel_catalog=self.channel_items,
         )
         await self.aggregator.start()
 

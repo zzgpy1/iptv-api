@@ -222,6 +222,8 @@
   "desktop.client_playing": "Viewer",
   "msg.api_local_only": "This operation is only available locally",
   "msg.invalid_stream_action": "Invalid stream action",
+  "msg.channel_not_found": "Channel not found",
+  "msg.channel_result_not_found": "Channel result not found",
   "desktop.retest_category": "Retest category",
   "desktop.add_whitelist": "Add to whitelist",
   "desktop.add_blacklist": "Add to blacklist",

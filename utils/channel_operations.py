@@ -14,6 +14,7 @@ from utils.channel_repository import (
     update_result_measurement,
 )
 from utils.config import config
+from utils.i18n import t
 from utils.speed import get_speed, invalidate_speed_cache
 
 
@@ -53,7 +54,7 @@ class ChannelOperations:
             rows = list_channel_results(self.db_path, channel_key)
             row = next((item for item in rows if item["result_key"] == result_key), None)
             if not channel or not row:
-                raise ValueError("Channel result not found")
+                raise ValueError(t("msg.channel_result_not_found"))
             item = _as_channel_item(row)
             invalidate_speed_cache(item)
             if progress:
@@ -84,7 +85,7 @@ class ChannelOperations:
             channel = get_channel(self.db_path, channel_key)
             rows = list_channel_results(self.db_path, channel_key)
             if not channel:
-                raise ValueError("Channel not found")
+                raise ValueError(t("msg.channel_not_found"))
             results = []
             total = len(rows)
             concurrency = max(1, min(config.performance_settings.speed_test_concurrency, total or 1))

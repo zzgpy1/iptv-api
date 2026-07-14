@@ -65,3 +65,5 @@ class SourcesPage(QWidget):
             target.write(self.editor.toPlainText().encode("utf-8"))
             if target.commit():
                 InfoBar.success(t("desktop.saved"), path, parent=self, position=InfoBarPosition.TOP)
+                return
+        InfoBar.error(t("name.error"), target.errorString(), parent=self, position=InfoBarPosition.TOP)

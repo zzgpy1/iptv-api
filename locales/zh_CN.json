@@ -221,6 +221,8 @@
   "desktop.client_playing": "播放端",
   "msg.api_local_only": "该操作仅允许在本机执行",
   "msg.invalid_stream_action": "无效的推流操作",
+  "msg.channel_not_found": "未找到频道",
+  "msg.channel_result_not_found": "未找到频道结果",
   "desktop.add_whitelist": "加入白名单",
   "desktop.add_blacklist": "加入黑名单",
   "desktop.whitelist_updated": "白名单已更新",
