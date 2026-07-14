@@ -15,8 +15,18 @@ def _prepare_runtime():
         os.chdir(data_dir)
 
 
+def _copy_runtime_resources():
+    if not getattr(sys, "frozen", False):
+        return
+    from utils.config import config
+    config.copy("config")
+    if sys.platform == "win32":
+        config.copy(os.path.join("utils", "nginx-rtmp-win32"))
+
+
 def main():
     _prepare_runtime()
+    _copy_runtime_resources()
     if "--service" in sys.argv:
         from service.app import run_service
         run_service()
@@ -24,9 +34,6 @@ def main():
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    if getattr(sys, "frozen", False):
-        from utils.config import config
-        config.copy("config")
     from desktop_ui.main_window import MainWindow
     setTheme(Theme.AUTO)
     setThemeColor("#0F766E")
