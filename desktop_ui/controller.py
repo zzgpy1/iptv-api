@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import redirect_stderr, redirect_stdout
 import os
 import socket
 import sys
@@ -11,6 +12,7 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequ
 
 from main import UpdateSource
 import utils.constants as constants
+from desktop_ui.logging_bridge import SignalLogStream
 from utils.channel_operations import ChannelOperations
 from utils.channel_repository import append_stream_samples
 from utils.config import config
@@ -19,6 +21,7 @@ from utils.rtmp_stats import fetch_rtmp_snapshot
 
 class UpdateWorker(QObject):
     progress = Signal(str, int, bool, object, object)
+    output = Signal(str)
     finished = Signal()
     failed = Signal(str)
 
@@ -33,13 +36,16 @@ class UpdateWorker(QObject):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.task = self.loop.create_task(self.source.run_once(self._progress))
+        stream = SignalLogStream(constants.log_path, self.output.emit, sys.stdout)
         try:
-            self.loop.run_until_complete(self.task)
+            with redirect_stdout(stream), redirect_stderr(stream):
+                self.loop.run_until_complete(self.task)
         except asyncio.CancelledError:
             pass
         except Exception:
             self.failed.emit(traceback.format_exc())
         finally:
+            stream.flush()
             self.task = None
             self.loop.close()
             self.loop = None
@@ -55,6 +61,7 @@ class UpdateWorker(QObject):
 
 class UpdateController(QObject):
     progress = Signal(str, int, bool, object, object)
+    output = Signal(str)
     started = Signal()
     finished = Signal()
     failed = Signal(str)
@@ -72,6 +79,7 @@ class UpdateController(QObject):
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.progress.connect(self.progress)
+        self.worker.output.connect(self.output)
         self.worker.failed.connect(self.failed)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
@@ -83,6 +91,12 @@ class UpdateController(QObject):
     def cancel(self):
         if self.worker:
             self.worker.cancel()
+
+    def shutdown(self):
+        self.cancel()
+        if self.thread:
+            self.thread.quit()
+            self.thread.wait(5000)
 
     def _finished(self):
         self.finished.emit()
@@ -167,6 +181,13 @@ class ChannelOperationController(QObject):
     def cancel_current(self):
         if self.worker:
             self.worker.cancel()
+
+    def shutdown(self):
+        self.queue.clear()
+        self.cancel_current()
+        if self.thread:
+            self.thread.quit()
+            self.thread.wait(5000)
 
     def _start_next(self):
         if not self.queue or self.suspended:

@@ -47,6 +47,7 @@ class MainWindow(FluentWindow):
         self.dashboard.cancel_requested.connect(self.controller.cancel)
         self.controller.started.connect(self._update_started)
         self.controller.progress.connect(self.dashboard.set_progress)
+        self.controller.output.connect(self.logs.append_runtime)
         self.controller.finished.connect(self._update_finished)
         self.controller.failed.connect(self._update_failed)
         self.channels.retest_channel_requested.connect(
@@ -73,6 +74,7 @@ class MainWindow(FluentWindow):
         )
         self.rtmp_controller.control_finished.connect(self._stream_control_finished)
         self.service_controller.status_changed.connect(self.dashboard.set_service_status)
+        self.service_controller.output.connect(self.logs.append_runtime)
         if config.open_service:
             self.service_controller.start()
         self.rtmp_controller.start()
@@ -91,6 +93,8 @@ class MainWindow(FluentWindow):
             self.tray.setContextMenu(menu)
             self.tray.activated.connect(lambda reason: self.show_and_raise() if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
             self.tray.show()
+        else:
+            QApplication.instance().setQuitOnLastWindowClosed(True)
 
     def show_and_raise(self):
         self.show()
@@ -134,8 +138,8 @@ class MainWindow(FluentWindow):
     def shutdown(self):
         self.rtmp_controller.shutdown()
         self.service_controller.stop()
-        self.operation_controller.cancel_current()
-        self.controller.cancel()
+        self.operation_controller.shutdown()
+        self.controller.shutdown()
 
     def closeEvent(self, event):
         if self.tray and self.tray.isVisible():

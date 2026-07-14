@@ -68,3 +68,13 @@ class LogsPage(QWidget):
             self.viewer.setPlainText(content)
             if self.autoscroll.isChecked():
                 self.viewer.verticalScrollBar().setValue(self.viewer.verticalScrollBar().maximum())
+
+    def append_runtime(self, content: str):
+        if self.selector.currentIndex() != 0 or self.search.text().strip():
+            return
+        text = content.rstrip()
+        if not text:
+            return
+        self.viewer.appendPlainText(text)
+        if self.autoscroll.isChecked():
+            self.viewer.verticalScrollBar().setValue(self.viewer.verticalScrollBar().maximum())

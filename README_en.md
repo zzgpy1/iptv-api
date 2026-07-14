@@ -242,16 +242,22 @@ pipenv run service
 
 ### GUI Software
 
-1. Download the [IPTV-API Update Software](https://github.com/Guovin/iptv-api/releases), open the software, and click
-   Start to perform the update
+The PySide6 and QFluentWidgets desktop app supports Windows and macOS. It edits configuration, displays live progress and logs, manages categories/channels/results, retests a channel or result, monitors RTMP, and keeps task history.
 
-2. Or run the following command in the project directory to open the GUI software:
+Install dependencies and start the desktop app:
 
 ```shell
-pipenv run ui
+pipenv install --dev
+pipenv run desktop_ui
 ```
 
-<img src="./docs/images/ui.png" alt="IPTV-API update software" title="IPTV-API update software" style="height:600px" />
+Build a package for the current platform:
+
+```shell
+pipenv run desktop_build
+```
+
+The legacy Tkinter interface remains available with `pipenv run ui`. Resolution probing requires FFmpeg. Windows can use the bundled nginx-rtmp runtime; RTMP statistics and controls on macOS require a separately installed nginx-rtmp service.
 
 ### Docker
 

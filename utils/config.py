@@ -432,8 +432,12 @@ class ConfigManager:
         Load the config
         """
         self.config = configparser.ConfigParser()
-        user_config_path = resource_path("config/user_config.ini")
-        default_config_path = resource_path("config/config.ini")
+        user_config_path = resource_path("config/user_config.ini", persistent=True)
+        default_config_path = (
+            os.path.join(sys._MEIPASS, "config/config.ini")
+            if getattr(sys, "frozen", False)
+            else resource_path("config/config.ini")
+        )
 
         # user config overwrites default config
         config_files = [default_config_path, user_config_path]
@@ -475,7 +479,11 @@ class ConfigManager:
         """
         dest_folder = os.path.join(os.getcwd(), path)
         try:
-            src_dir = resource_path(path)
+            src_dir = (
+                os.path.join(sys._MEIPASS, path)
+                if getattr(sys, "frozen", False)
+                else resource_path(path)
+            )
             if os.path.exists(src_dir):
                 if not os.path.exists(dest_folder):
                     os.makedirs(dest_folder, exist_ok=True)
