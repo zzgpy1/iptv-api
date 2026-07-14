@@ -28,8 +28,8 @@ jobs:
         run: pipenv --python 3.13 && pipenv install --dev
         shell: pwsh
 
-      - name: Build the application
-        run: pipenv run pyinstaller --clean --noconfirm --distpath dist tkinter_ui/tkinter_ui.spec
+      - name: Build the Fluent desktop application
+        run: pipenv run desktop_build
         shell: pwsh
 
       - name: Check dist exists
@@ -194,4 +194,3 @@ jobs:
         run: |
           Write-Host "Uploaded ${{ steps.package.outputs.zip_name }} to the latest release."
         shell: pwsh
-

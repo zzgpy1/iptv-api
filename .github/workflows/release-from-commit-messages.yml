@@ -33,9 +33,9 @@ jobs:
           pipenv --python 3.13
           pipenv install --dev
 
-      - name: Build the application
+      - name: Build the Fluent desktop application
         shell: pwsh
-        run: pipenv run pyinstaller --clean --noconfirm tkinter_ui/tkinter_ui.spec
+        run: pipenv run desktop_build
 
       - name: Read version info
         id: version
@@ -198,6 +198,5 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Released version $env:version with asset ${{ steps.package.outputs.zip_name }}."
-
 
 
