@@ -16,13 +16,21 @@ from utils.db import ensure_result_data_schema
 from utils.db import get_db_connection, return_db_connection
 from utils.ffmpeg import probe_url_sync
 from utils.i18n import t
+from utils.rtmp_runtime import rtmp_runtime_status
 from utils.tools import join_url, resource_path, render_nginx_conf
 
-nginx_dir = resource_path(os.path.join('utils', 'nginx-rtmp-win32'))
-nginx_conf_template = resource_path(os.path.join(nginx_dir, 'conf', 'nginx.conf.template'))
-nginx_conf = resource_path(os.path.join(nginx_dir, 'conf', 'nginx.conf'))
-nginx_path = resource_path(os.path.join(nginx_dir, 'nginx.exe'))
-stop_path = resource_path(os.path.join(nginx_dir, 'stop.bat'))
+if sys.platform == "win32":
+    nginx_dir = resource_path(os.path.join('utils', 'nginx-rtmp-win32'))
+    nginx_conf_template = resource_path(os.path.join(nginx_dir, 'conf', 'nginx.conf.template'))
+    nginx_conf = resource_path(os.path.join(nginx_dir, 'conf', 'nginx.conf'))
+    nginx_path = resource_path(os.path.join(nginx_dir, 'nginx.exe'))
+    stop_path = resource_path(os.path.join(nginx_dir, 'stop.bat'))
+else:
+    nginx_dir = resource_path(os.path.join(constants.output_dir, "runtime", "nginx"), persistent=True)
+    nginx_conf_template = resource_path(os.path.join("service", "nginx.conf.template"))
+    nginx_conf = os.path.join(nginx_dir, "conf", "nginx.conf")
+    nginx_path = rtmp_runtime_status().get("executable") or ""
+    stop_path = ""
 app_rtmp_url = f"rtmp://127.0.0.1:{config.nginx_rtmp_port}"
 
 hls_running_streams = OrderedDict()
@@ -34,12 +42,12 @@ HLS_IDLE_TIMEOUT = config.rtmp_idle_timeout
 HLS_WAIT_TIMEOUT = 30
 HLS_WAIT_INTERVAL = 0.5
 MAX_STREAMS = config.rtmp_max_streams
-nginx_dir = resource_path(os.path.join('utils', 'nginx-rtmp-win32'))
-hls_temp_path = resource_path(os.path.join(nginx_dir, 'temp', 'hls')) if sys.platform == "win32" else '/tmp/hls'
+hls_temp_path = resource_path(os.path.join(nginx_dir, 'temp', 'hls'))
 
 _hls_monitor_started_evt = threading.Event()
 _hls_monitor_lock = threading.Lock()
 _libc = ctypes.CDLL(None) if sys.platform.startswith("linux") else None
+_nginx_started_by_app = False
 
 
 def _reserve_stream(channel_id):
@@ -582,23 +590,61 @@ def stop_all_streams():
 
 
 def start_rtmp_service():
-    render_nginx_conf(nginx_conf_template, nginx_conf)
+    global _nginx_started_by_app
+    status = rtmp_runtime_status()
+    if not status.get("available"):
+        print(t(f"msg.rtmp_{status.get('error_code')}", status.get("error_code") or "RTMP unavailable"))
+        return False
+    os.makedirs(os.path.dirname(nginx_conf), exist_ok=True)
+    os.makedirs(os.path.join(nginx_dir, "logs"), exist_ok=True)
+    os.makedirs(hls_temp_path, exist_ok=True)
+    module = status.get("module")
+    directive = f'load_module "{module}";' if module else ""
+    render_nginx_conf(
+        nginx_conf_template,
+        nginx_conf,
+        {"${NGINX_RTMP_MODULE}": directive},
+    )
     original_dir = os.getcwd()
     try:
         os.chdir(nginx_dir)
-        subprocess.Popen([nginx_path], shell=True)
+        if sys.platform == "win32":
+            subprocess.Popen([nginx_path], shell=True)
+        else:
+            args = [nginx_path, "-p", f"{nginx_dir}{os.sep}", "-c", "conf/nginx.conf"]
+            check = subprocess.run(args + ["-t"], capture_output=True, text=True, timeout=10)
+            if check.returncode != 0:
+                raise RuntimeError((check.stderr or check.stdout).strip())
+            subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        _nginx_started_by_app = True
+        return True
     except Exception as e:
         print(t("msg.error_rtmp_service_start_failed").format(info=e))
+        return False
     finally:
         os.chdir(original_dir)
 
 
 def stop_rtmp_service():
+    global _nginx_started_by_app
+    if not _nginx_started_by_app:
+        return
+    original_dir = os.getcwd()
     try:
         os.chdir(nginx_dir)
-        subprocess.Popen([stop_path], shell=True)
+        if sys.platform == "win32":
+            subprocess.Popen([stop_path], shell=True)
+        elif nginx_path and os.path.exists(nginx_conf):
+            subprocess.run(
+                [nginx_path, "-p", f"{nginx_dir}{os.sep}", "-c", "conf/nginx.conf", "-s", "stop"],
+                capture_output=True,
+                timeout=10,
+            )
+        _nginx_started_by_app = False
     except Exception as e:
         print(t("msg.error_rtmp_service_stop_failed").format(info=e))
+    finally:
+        os.chdir(original_dir)
 
 
 atexit.register(stop_all_streams)

@@ -3,10 +3,12 @@ import time
 import xml.etree.ElementTree as ET
 
 import requests
+import sys
 
 import utils.constants as constants
 from utils.channel_repository import result_metadata_map
 from utils.config import config
+from utils.rtmp_runtime import rtmp_runtime_status
 
 
 def _number(element, path: str, default=0):
@@ -106,4 +108,11 @@ def fetch_rtmp_snapshot(timeout: float = 1.5) -> dict:
         response.raise_for_status()
         return parse_rtmp_stats(response.content)
     except Exception as exc:
-        return {"available": False, "sampled_at": time.time(), "streams": [], "error": str(exc)}
+        status = rtmp_runtime_status() if sys.platform == "darwin" else {}
+        return {
+            "available": False,
+            "sampled_at": time.time(),
+            "streams": [],
+            "error": str(exc),
+            "error_code": status.get("error_code") or "connection",
+        }

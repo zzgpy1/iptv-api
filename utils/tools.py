@@ -1075,7 +1075,7 @@ def get_urls_len(data) -> int:
     return len(urls)
 
 
-def render_nginx_conf(nginx_conf_template, nginx_conf):
+def render_nginx_conf(nginx_conf_template, nginx_conf, replacements=None):
     """
     Render the nginx conf file
     """
@@ -1086,6 +1086,8 @@ def render_nginx_conf(nginx_conf_template, nginx_conf):
     content = content.replace('${APP_PORT}', str(config.app_port))
     content = content.replace('${NGINX_HTTP_PORT}', str(config.nginx_http_port))
     content = content.replace('${NGINX_RTMP_PORT}', str(config.nginx_rtmp_port))
+    for key, value in (replacements or {}).items():
+        content = content.replace(key, str(value))
 
     with open(nginx_conf, 'w', encoding='utf-8') as f:
         f.write(content)

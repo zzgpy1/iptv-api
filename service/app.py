@@ -316,8 +316,9 @@ def control_rtmp_stream(channel_id, action):
 def run_service():
     try:
         if not os.getenv("GITHUB_ACTIONS"):
-            if config.open_rtmp and sys.platform == "win32":
+            if config.open_rtmp and sys.platform in {"win32", "darwin"}:
                 start_rtmp_service()
+                atexit.register(stop_rtmp_service)
             public_url = get_public_url()
             mode = [t("name.direct_connection")]
             if config.open_rtmp:
@@ -333,6 +334,4 @@ def run_service():
 
 
 if __name__ == "__main__":
-    if config.open_rtmp and sys.platform == "win32":
-        atexit.register(stop_rtmp_service)
     run_service()

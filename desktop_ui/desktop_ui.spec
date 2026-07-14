@@ -25,6 +25,7 @@ datas.extend([
     ("utils/ip_checker/data/qqwry.ipdb", "utils/ip_checker/data"),
     ("favicon.ico", "."),
     ("version.json", "."),
+    ("service/nginx.conf.template", "service"),
 ])
 if sys.platform == "win32":
     datas.append(("utils/nginx-rtmp-win32", "utils/nginx-rtmp-win32"))
@@ -74,7 +75,7 @@ if sys.platform == "darwin":
     app = BUNDLE(
         collection,
         name=f"{name}.app",
-        icon=None,
+        icon="favicon.ico",
         bundle_identifier="com.iptv-api.desktop",
         info_plist={"NSHighResolutionCapable": True},
     )
