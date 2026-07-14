@@ -372,3 +372,196 @@ def list_channel_results(db_path: str, channel_key: str) -> list[dict[str, Any]]
         return result
     finally:
         return_db_connection(db_path, conn)
+
+
+def get_channel(db_path: str, channel_key: str) -> dict[str, Any] | None:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute("SELECT * FROM channels WHERE channel_key=?", (channel_key,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def update_result_measurement(db_path: str, channel_key: str, result_key: str, measurement: dict) -> None:
+    ensure_channel_repository(db_path)
+    values = (
+        measurement.get("speed"),
+        measurement.get("delay"),
+        measurement.get("resolution"),
+        measurement.get("fps"),
+        measurement.get("video_codec"),
+        measurement.get("audio_codec"),
+        int(_is_valid(measurement)),
+        time.time(),
+        channel_key,
+        result_key,
+    )
+    with _LOCK:
+        conn = get_db_connection(db_path)
+        try:
+            conn.execute(
+                """
+                UPDATE channel_results SET
+                    speed=?, delay=?, resolution=?, fps=?, video_codec=?, audio_codec=?,
+                    valid=?, tested_at=? WHERE channel_key=? AND result_key=?
+                """,
+                values,
+            )
+            conn.commit()
+        finally:
+            return_db_connection(db_path, conn)
+
+
+def set_channel_selection(db_path: str, channel_key: str, selected: list[dict]) -> None:
+    ensure_channel_repository(db_path)
+    selected_ranks = {
+        stable_result_id(item.get("url", ""), item.get("headers")): rank
+        for rank, item in enumerate(selected, start=1)
+        if item.get("url")
+    }
+    with _LOCK:
+        conn = get_db_connection(db_path)
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute("UPDATE channel_results SET selected_rank=NULL WHERE channel_key=?", (channel_key,))
+            conn.executemany(
+                "UPDATE channel_results SET selected_rank=? WHERE channel_key=? AND result_key=?",
+                [(rank, channel_key, result_key) for result_key, rank in selected_ranks.items()],
+            )
+            rows = conn.execute(
+                "SELECT speed, delay, resolution, valid FROM channel_results WHERE channel_key=?",
+                (channel_key,),
+            ).fetchall()
+            valid_rows = [row for row in rows if row[3]]
+            speeds = [row[0] for row in valid_rows if isinstance(row[0], (int, float)) and not math.isinf(row[0])]
+            delays = [row[1] for row in valid_rows if isinstance(row[1], (int, float)) and row[1] >= 0]
+            resolutions = [row[2] for row in valid_rows if row[2]]
+            health = "healthy" if len(valid_rows) >= 2 else "warning" if valid_rows else "offline"
+            conn.execute(
+                """
+                UPDATE channels SET valid_results=?, selected_results=?, best_speed=?, min_delay=?,
+                    max_resolution=?, health=?, updated_at=? WHERE channel_key=?
+                """,
+                (
+                    len(valid_rows),
+                    len(selected_ranks),
+                    max(speeds, default=None),
+                    min(delays, default=None),
+                    max(resolutions, key=_resolution_value, default=None),
+                    health,
+                    time.time(),
+                    channel_key,
+                ),
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            return_db_connection(db_path, conn)
+
+
+def load_selected_snapshot(db_path: str) -> dict:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        result = {}
+        channels = conn.execute("SELECT category, name FROM channels ORDER BY category, name").fetchall()
+        for channel in channels:
+            result.setdefault(channel["category"], {}).setdefault(channel["name"], [])
+        rows = conn.execute(
+            """
+            SELECT c.category, c.name, r.* FROM channel_results r
+            JOIN channels c ON c.channel_key=r.channel_key
+            WHERE r.selected_rank IS NOT NULL
+            ORDER BY c.category, c.name, r.selected_rank
+            """
+        ).fetchall()
+        for raw in rows:
+            row = dict(raw)
+            row["id"] = row["result_key"]
+            row["headers"] = json.loads(row["headers"]) if row.get("headers") else None
+            row.update(json.loads(row["extra_data"]) if row.get("extra_data") else {})
+            result.setdefault(row["category"], {}).setdefault(row["name"], []).append(row)
+        return result
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def begin_operation(db_path: str, operation: str, target_type: str, target_key: str | None) -> str:
+    ensure_channel_repository(db_path)
+    operation_id = uuid.uuid4().hex
+    conn = get_db_connection(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO operation_history(operation_id, operation, target_type, target_key, started_at, status)
+            VALUES (?, ?, ?, ?, ?, 'running')
+            """,
+            (operation_id, operation, target_type, target_key, time.time()),
+        )
+        conn.commit()
+    finally:
+        return_db_connection(db_path, conn)
+    return operation_id
+
+
+def finish_operation(db_path: str, operation_id: str, status: str, message: str = "") -> None:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    try:
+        conn.execute(
+            "UPDATE operation_history SET finished_at=?, status=?, message=? WHERE operation_id=?",
+            (time.time(), status, message, operation_id),
+        )
+        conn.commit()
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def list_operations(db_path: str, limit: int = 200) -> list[dict[str, Any]]:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            "SELECT * FROM operation_history ORDER BY started_at DESC LIMIT ?",
+            (max(1, int(limit)),),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def append_stream_samples(db_path: str, sampled_at: float, streams: list[dict]) -> None:
+    if not streams:
+        return
+    ensure_channel_repository(db_path)
+    rows = [(
+        sampled_at,
+        str(stream.get("result_key") or stream.get("name") or ""),
+        int(stream.get("clients") or 0),
+        float(stream.get("bw_in") or 0),
+        float(stream.get("bw_out") or 0),
+        int(stream.get("bytes_in") or 0),
+        int(stream.get("bytes_out") or 0),
+        int(bool(stream.get("active"))),
+    ) for stream in streams if stream.get("result_key") or stream.get("name")]
+    conn = get_db_connection(db_path)
+    try:
+        conn.executemany(
+            """
+            INSERT OR REPLACE INTO stream_samples(
+                sampled_at, result_key, clients, bw_in, bw_out, bytes_in, bytes_out, active
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+        conn.execute("DELETE FROM stream_samples WHERE sampled_at < ?", (sampled_at - 7 * 86400,))
+        conn.commit()
+    finally:
+        return_db_connection(db_path, conn)

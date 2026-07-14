@@ -561,6 +561,12 @@ def get_speed_result(key: str) -> TestResult:
         return {'speed': 0, 'delay': -1, 'resolution': None}
 
 
+def invalidate_speed_cache(data: dict) -> None:
+    for key in {data.get("url"), data.get("host")}:
+        if key:
+            cache.pop(key, None)
+
+
 async def get_speed(data, headers=None, ipv6_proxy=None, filter_resolution=open_filter_resolution,
                     timeout=speed_test_timeout, logger=None, callback=None, session: Any = None,
                     http_semaphore=None, probe_semaphore=None) -> TestResult:

@@ -3,7 +3,7 @@ from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 from qfluentwidgets import FluentIcon, FluentWindow, InfoBar, InfoBarPosition, NavigationItemPosition
 
-from desktop_ui.controller import UpdateController
+from desktop_ui.controller import ChannelOperationController, UpdateController
 from desktop_ui.pages.channels import ChannelCenterPage
 from desktop_ui.pages.dashboard import DashboardPage
 from desktop_ui.pages.logs import LogsPage
@@ -36,12 +36,26 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.logs, FluentIcon.DEVELOPER_TOOLS, t("desktop.logs"))
         self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)
         self.controller = UpdateController(self)
-        self.dashboard.run_requested.connect(self.controller.start)
+        self.operation_controller = ChannelOperationController(self)
+        self.dashboard.run_requested.connect(self._start_update)
         self.dashboard.cancel_requested.connect(self.controller.cancel)
-        self.controller.started.connect(lambda: self.dashboard.set_running(True))
+        self.controller.started.connect(self._update_started)
         self.controller.progress.connect(self.dashboard.set_progress)
         self.controller.finished.connect(self._update_finished)
         self.controller.failed.connect(self._update_failed)
+        self.channels.retest_channel_requested.connect(
+            lambda row: self.operation_controller.enqueue("retest_channel", {"channel_key": row["channel_key"]})
+        )
+        self.channels.retest_result_requested.connect(
+            lambda row: self.operation_controller.enqueue(
+                "retest_result",
+                {"channel_key": row["channel_key"], "result_key": row["result_key"]},
+            )
+        )
+        self.operation_controller.task_started.connect(self.channels.set_task_started)
+        self.operation_controller.task_progress.connect(self.channels.set_task_progress)
+        self.operation_controller.task_succeeded.connect(self._operation_succeeded)
+        self.operation_controller.task_failed.connect(self._operation_failed)
         self.tray = None
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray = QSystemTrayIcon(self.windowIcon(), self)
@@ -66,9 +80,29 @@ class MainWindow(FluentWindow):
         self.dashboard.set_running(False)
         self.dashboard.refresh_metrics()
         self.channels.reload()
+        self.operation_controller.resume()
+
+    def _start_update(self):
+        if self.operation_controller.is_busy:
+            InfoBar.warning(t("desktop.task_running"), t("desktop.wait_for_task"), parent=self, position=InfoBarPosition.TOP)
+            return
+        self.controller.start()
+
+    def _update_started(self):
+        self.operation_controller.suspend()
+        self.dashboard.set_running(True)
 
     def _update_failed(self, message: str):
         InfoBar.error(t("desktop.update_failed"), message.splitlines()[-1] if message else t("name.error"), parent=self, position=InfoBarPosition.TOP, duration=8000)
+
+    def _operation_succeeded(self, operation: str, _):
+        self.channels.set_task_finished()
+        self.dashboard.refresh_metrics()
+        InfoBar.success(t("desktop.task_completed"), t(f"desktop.{operation}", operation), parent=self, position=InfoBarPosition.TOP)
+
+    def _operation_failed(self, operation: str, message: str):
+        self.channels.set_task_finished()
+        InfoBar.error(t("desktop.task_failed"), message.splitlines()[-1] if message else operation, parent=self, position=InfoBarPosition.TOP, duration=8000)
 
     def closeEvent(self, event):
         if self.tray and self.tray.isVisible():

@@ -1,7 +1,7 @@
 from PySide6.QtCore import QItemSelection, Signal, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QListWidget, QListWidgetItem, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, InfoBar, InfoBarPosition, PrimaryPushButton, PushButton, SearchLineEdit, SubtitleLabel, TableView
+from qfluentwidgets import BodyLabel, InfoBar, InfoBarPosition, PrimaryPushButton, ProgressBar, PushButton, SearchLineEdit, SubtitleLabel, TableView
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
@@ -43,6 +43,10 @@ class ChannelCenterPage(QWidget):
         self.retest_result_button = PushButton(t("desktop.retest_result"), self)
         self.open_button = PushButton(t("desktop.open_player"), self)
         self.copy_button = PushButton(t("desktop.copy_url"), self)
+        self.task_label = BodyLabel(t("desktop.no_pending_tasks"), self)
+        self.task_progress = ProgressBar(self)
+        self.task_progress.setValue(0)
+        self.task_progress.hide()
 
         self.channel_model = MappingTableModel([
             ("name", t("name.channel"), None),
@@ -110,6 +114,10 @@ class ChannelCenterPage(QWidget):
         layout.setSpacing(12)
         layout.addWidget(SubtitleLabel(t("desktop.channel_center"), self))
         layout.addWidget(BodyLabel(t("desktop.channel_center_desc"), self))
+        task_row = QHBoxLayout()
+        task_row.addWidget(self.task_label, 1)
+        task_row.addWidget(self.task_progress, 1)
+        layout.addLayout(task_row)
         layout.addWidget(splitter, 1)
 
         self.refresh_button.clicked.connect(self.reload)
@@ -202,3 +210,17 @@ class ChannelCenterPage(QWidget):
         row = self.selected_result()
         if row:
             QDesktopServices.openUrl(QUrl(row["url"]))
+
+    def set_task_started(self, operation: str):
+        self.task_label.setText(t(f"desktop.{operation}", operation))
+        self.task_progress.setValue(0)
+        self.task_progress.show()
+
+    def set_task_progress(self, name: str, value: int):
+        self.task_label.setText(t("desktop.testing_channel").format(name=name))
+        self.task_progress.setValue(value)
+
+    def set_task_finished(self):
+        self.task_label.setText(t("desktop.no_pending_tasks"))
+        self.task_progress.hide()
+        self.reload()
