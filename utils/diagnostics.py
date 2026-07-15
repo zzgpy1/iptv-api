@@ -8,10 +8,32 @@ import utils.constants as constants
 from utils.config import config, resource_path
 
 
-def export_diagnostics() -> str:
+def _archive_path(prefix: str) -> str:
     target_dir = os.path.join(constants.output_dir, "diagnostics")
     os.makedirs(target_dir, exist_ok=True)
-    path = os.path.join(target_dir, time.strftime("iptv-api-diagnostics-%Y%m%d-%H%M%S.zip"))
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    path = os.path.join(target_dir, f"{prefix}-{timestamp}.zip")
+    suffix = 2
+    while os.path.exists(path):
+        path = os.path.join(target_dir, f"{prefix}-{timestamp}-{suffix}.zip")
+        suffix += 1
+    return path
+
+
+def export_logs() -> str:
+    path = _archive_path("iptv-api-logs")
+    log_dir = os.path.join(constants.output_dir, "log")
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        if os.path.isdir(log_dir):
+            for root, _, files in os.walk(log_dir):
+                for filename in sorted(files):
+                    source = os.path.join(root, filename)
+                    archive.write(source, os.path.relpath(source, constants.output_dir))
+    return os.path.abspath(path)
+
+
+def export_diagnostics() -> str:
+    path = _archive_path("iptv-api-diagnostics")
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for source, name in [
             (resource_path("version.json"), "version.json"),

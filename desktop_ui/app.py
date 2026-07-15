@@ -40,7 +40,7 @@ def main():
     from desktop_ui.main_window import MainWindow
     theme = str(QSettings().value("appearance/theme", "system"))
     setTheme({"dark": Theme.DARK, "light": Theme.LIGHT}.get(theme, Theme.AUTO))
-    setThemeColor("#0F766E")
+    setThemeColor("#0E5CAD")
     window = MainWindow()
     window.show()
     return app.exec()
