@@ -590,11 +590,12 @@ def stop_all_streams():
 
 
 def start_rtmp_service():
-    global _nginx_started_by_app
+    global _nginx_started_by_app, nginx_path
     status = rtmp_runtime_status()
     if not status.get("available"):
         print(t(f"msg.rtmp_{status.get('error_code')}", status.get("error_code") or "RTMP unavailable"))
         return False
+    nginx_path = status.get("executable") or nginx_path
     os.makedirs(os.path.dirname(nginx_conf), exist_ok=True)
     os.makedirs(os.path.join(nginx_dir, "logs"), exist_ok=True)
     os.makedirs(hls_temp_path, exist_ok=True)

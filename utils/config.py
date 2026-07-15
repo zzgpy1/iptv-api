@@ -1,11 +1,68 @@
 import configparser
+import ipaddress
 import os
 import re
 import shutil
 import socket
+import subprocess
 import sys
 
 from utils.performance import PERFORMANCE_MODES, get_performance_settings
+
+
+def _is_usable_ipv4(address: str | None) -> bool:
+    try:
+        ip = ipaddress.ip_address(address or "")
+        return ip.version == 4 and not (ip.is_loopback or ip.is_link_local or ip.is_unspecified)
+    except ValueError:
+        return False
+
+
+def _get_command_output(args: list[str]) -> str:
+    try:
+        return subprocess.run(
+            args,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return ""
+
+
+def _get_primary_ipv4() -> str | None:
+    if sys.platform == "win32":
+        command = (
+            "$routes = Get-NetRoute -DestinationPrefix '0.0.0.0/0' | "
+            "Sort-Object RouteMetric, InterfaceMetric; "
+            "$route = @($routes | Where-Object { $_.InterfaceAlias -notmatch "
+            "'Loopback|vEthernet|WSL|Docker|VMware|VirtualBox|TAP|TUN' })[0]; "
+            "if (-not $route) { $route = @($routes)[0] }; "
+            "if ($route) { Get-NetIPAddress -InterfaceIndex $route.InterfaceIndex "
+            "-AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '169.254.*' } | "
+            "Select-Object -First 1 -ExpandProperty IPAddress }"
+        )
+        address = _get_command_output(["powershell", "-NoProfile", "-Command", command])
+        return address if _is_usable_ipv4(address) else None
+    if sys.platform == "darwin":
+        route = _get_command_output(["route", "-n", "get", "default"])
+        interface = next(
+            (
+                line.split(":", 1)[1].strip()
+                for line in route.splitlines()
+                if line.strip().startswith("interface:")
+            ),
+            None,
+        )
+        address = _get_command_output(["ipconfig", "getifaddr", interface]) if interface else ""
+        return address if _is_usable_ipv4(address) else None
+    if sys.platform.startswith("linux"):
+        route = _get_command_output(["ip", "route", "get", "1.1.1.1"])
+        match = re.search(r"\bsrc\s+(\S+)", route)
+        address = match.group(1) if match else ""
+        return address if _is_usable_ipv4(address) else None
+    return None
 
 
 def resource_path(relative_path, persistent=False):
@@ -263,6 +320,15 @@ class ConfigManager:
         return not os.getenv("GITHUB_ACTIONS") and self.config.getboolean("Settings", "open_rtmp", fallback=True)
 
     @property
+    def rtmp_available(self):
+        if not self.open_rtmp:
+            return False
+        if sys.platform != "darwin":
+            return True
+        from utils.rtmp_runtime import rtmp_runtime_status
+        return rtmp_runtime_status().get("available", False)
+
+    @property
     def open_headers(self):
         return self.config.getboolean("Settings", "open_headers", fallback=True)
 
@@ -366,6 +432,8 @@ class ConfigManager:
         cfg = self.config.get("Settings", "public_domain", fallback="127.0.0.1")
         if cfg and cfg != "127.0.0.1":
             return cfg
+        if address := _get_primary_ipv4():
+            return address
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             try:
@@ -387,7 +455,7 @@ class ConfigManager:
                 return int(env)
             except ValueError:
                 return env
-        return self.nginx_http_port if self.open_rtmp else self.app_port
+        return self.nginx_http_port if self.rtmp_available else self.app_port
 
     @property
     def language(self):

@@ -14,6 +14,7 @@ from service.rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hl
     hls_running_streams, start_hls_to_rtmp, hls_last_access, HLS_WAIT_TIMEOUT, HLS_WAIT_INTERVAL, stop_stream
 import logging
 from utils.i18n import t
+from utils.rtmp_runtime import install_rtmp_runtime, rtmp_runtime_status
 from werkzeug.utils import secure_filename
 import mimetypes
 
@@ -313,15 +314,41 @@ def control_rtmp_stream(channel_id, action):
     return jsonify({"channel_id": channel_id, "action": action, "accepted": True}), 202
 
 
-def run_service():
+def _prompt_rtmp_install():
+    status = rtmp_runtime_status()
+    if sys.platform != "darwin" or not config.open_rtmp or status.get("available") or not sys.stdin.isatty():
+        return
+    try:
+        answer = input(t("msg.rtmp_install_prompt")).strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        answer = ""
+    if answer not in {"y", "yes"}:
+        print(t("msg.rtmp_install_cancelled"))
+        return
+    print(t("msg.rtmp_installing"))
+    result = install_rtmp_runtime(lambda content: print(content, end="", flush=True))
+    if result.get("available"):
+        print(t("msg.rtmp_install_success"))
+    else:
+        print(t("msg.rtmp_install_failed").format(
+            info=result.get("output") or t(f"msg.rtmp_{result.get('error_code')}", result.get("error_code"))
+        ))
+
+
+def run_service(prompt_for_install=True):
     try:
         if not os.getenv("GITHUB_ACTIONS"):
-            if config.open_rtmp and sys.platform in {"win32", "darwin"}:
-                start_rtmp_service()
+            if prompt_for_install:
+                _prompt_rtmp_install()
+            rtmp_started = False
+            if config.rtmp_available and sys.platform in {"win32", "darwin"}:
+                rtmp_started = start_rtmp_service()
                 atexit.register(stop_rtmp_service)
-            public_url = get_public_url()
+            public_url = get_public_url(
+                config.nginx_http_port if rtmp_started else config.app_port
+            )
             mode = [t("name.direct_connection")]
-            if config.open_rtmp:
+            if rtmp_started:
                 mode.append(t("name.push_streaming"))
             for m in mode:
                 if m == t("name.push_streaming"):

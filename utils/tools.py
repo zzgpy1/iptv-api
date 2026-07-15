@@ -405,7 +405,8 @@ def merge_objects(*objects, match_key=None):
     return merged_dict
 
 
-def get_public_url(port: int = config.public_port) -> str:
+def get_public_url(port: int | None = None) -> str:
+    port = config.public_port if port is None else port
     host = config.public_domain
     scheme = config.public_scheme
     default_port = 80 if scheme == 'http' else 443

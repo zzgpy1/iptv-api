@@ -1,8 +1,10 @@
+import os
 import sys
+import threading
 
 from PySide6.QtCore import QRect, QSettings, Signal, Qt
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter
-from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, FluentWindow, InfoBar, InfoBarPosition, NavigationItemPosition, Theme, isDarkTheme, setTheme
 
 from desktop_ui.controller import ChannelOperationController, RtmpMonitorController, ServiceProcessController, UpdateController
@@ -14,8 +16,10 @@ from desktop_ui.pages.rtmp import RtmpPage
 from desktop_ui.pages.settings import SettingsPage
 from desktop_ui.pages.sources import SourcesPage
 from desktop_ui.pages.tasks import TasksPage
+import utils.constants as constants
 from utils.config import config, resource_path
 from utils.i18n import t
+from utils.rtmp_runtime import install_rtmp_runtime
 from utils.tools import get_version_info
 
 
@@ -52,6 +56,9 @@ class NavigationResizeHandle(QWidget):
 
 
 class MainWindow(FluentWindow):
+    rtmp_install_finished = Signal(dict)
+    rtmp_install_output = Signal(str)
+
     def __init__(self):
         super().__init__()
         info = get_version_info()
@@ -131,14 +138,17 @@ class MainWindow(FluentWindow):
         self.rtmp_controller.snapshot.connect(self.rtmp.set_snapshot)
         self.rtmp.stream_control_requested.connect(self.rtmp_controller.control)
         self.rtmp.refresh_requested.connect(self.rtmp_controller.refresh)
+        self.rtmp.install_requested.connect(self._install_rtmp_from_ui)
         self.channels.stream_control_requested.connect(
             lambda action, row: self.rtmp_controller.control(action, row["result_key"])
         )
         self.rtmp_controller.control_finished.connect(self._stream_control_finished)
         self.service_controller.status_changed.connect(self.dashboard.set_service_status)
         self.service_controller.output.connect(self.logs.append_runtime)
+        self.rtmp_install_finished.connect(self._finish_rtmp_install)
+        self.rtmp_install_output.connect(self._append_runtime_log)
         if config.open_service:
-            self.service_controller.start()
+            self._start_service()
         self.rtmp_controller.start()
         QApplication.instance().aboutToQuit.connect(self.shutdown)
         self.tray = None
@@ -218,6 +228,88 @@ class MainWindow(FluentWindow):
         self.dashboard.refresh_metrics()
         self.channels.reload()
         self.operation_controller.resume()
+
+    def _start_service(self):
+        if config.open_rtmp and not config.rtmp_available:
+            if self._install_rtmp_from_ui(start_service=True):
+                return
+            InfoBar.warning(
+                t("name.error"),
+                t("msg.rtmp_unavailable_fallback"),
+                parent=self,
+                position=InfoBarPosition.TOP,
+                duration=-1,
+            )
+        self.service_controller.start()
+
+    def _install_rtmp_from_ui(self, start_service=False):
+        dialog = QDialog(self)
+        dialog.setWindowTitle(t("name.error"))
+        dialog.setWindowIcon(self.windowIcon())
+        layout = QVBoxLayout(dialog)
+        logo = QLabel(dialog)
+        logo.setPixmap(self.windowIcon().pixmap(64, 64))
+        logo.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        message = QLabel(t("msg.rtmp_install_confirm"), dialog)
+        message.setWordWrap(True)
+        message.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Yes | QDialogButtonBox.StandardButton.No,
+            parent=dialog,
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(logo)
+        layout.addWidget(message)
+        layout.addWidget(buttons)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return False
+        self._start_service_after_rtmp_install = start_service
+        self.rtmp.set_installing(True)
+        self._append_runtime_log(f"{t('msg.rtmp_installing')}\n")
+        threading.Thread(
+            target=lambda: self.rtmp_install_finished.emit(
+                install_rtmp_runtime(self.rtmp_install_output.emit)
+            ),
+            daemon=True,
+        ).start()
+        return True
+
+    def _finish_rtmp_install(self, result: dict):
+        self.rtmp.set_installing(False)
+        if result.get("available"):
+            self._append_runtime_log(f"{t('msg.rtmp_install_success')}\n")
+            InfoBar.success(
+                t("desktop.rtmp_service"),
+                t("msg.rtmp_install_success"),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+        else:
+            info = result.get("output") or t(
+                f"msg.rtmp_{result.get('error_code')}", result.get("error_code")
+            ) or t("desktop.unknown")
+            self._append_runtime_log(f"{t('msg.rtmp_install_failed').format(info=info[-1000:])}\n")
+            InfoBar.error(
+                t("name.error"),
+                t("msg.rtmp_install_failed").format(info=info[-1000:]),
+                parent=self,
+                position=InfoBarPosition.TOP,
+                duration=-1,
+            )
+        self.rtmp_controller.refresh()
+        if getattr(self, "_start_service_after_rtmp_install", False):
+            self._start_service_after_rtmp_install = False
+            self.service_controller.start()
+        elif result.get("available") and self.service_controller.owns_process:
+            self.service_controller.stop()
+            self.service_controller.start()
+
+    def _append_runtime_log(self, content: str):
+        self.logs.append_runtime(content)
+        os.makedirs(os.path.dirname(constants.log_path), exist_ok=True)
+        with open(constants.log_path, "a", encoding="utf-8") as file:
+            file.write(content)
 
     def _start_update(self):
         if self.operation_controller.is_busy:

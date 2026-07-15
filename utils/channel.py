@@ -64,7 +64,7 @@ min_resolution_value = config.min_resolution_value
 resolution_speed_map = config.resolution_speed_map
 open_history = config.open_history
 open_local = config.open_local
-open_rtmp = config.open_rtmp
+open_rtmp = config.rtmp_available
 retain_origin = ["whitelist", "hls"]
 
 _TOTAL_URLS_CACHE_MAX_SIZE = 2048
@@ -313,7 +313,7 @@ def get_channel_items(whitelist_maps, blacklist) -> CategoryChannelData:
     user_source_file = resource_path(config.source_file)
     channels = defaultdict(lambda: defaultdict(list))
     hls_data = None
-    if config.open_rtmp:
+    if config.rtmp_available:
         hls_data = get_name_uri_from_dir(constants.hls_path)
     local_paths = build_path_list(constants.local_dir_path)
     local_data = get_name_urls_from_file([get_real_path(constants.local_path)] + local_paths)
@@ -1149,7 +1149,7 @@ def write_channel_to_file(data, ipv6=False, first_channel_name=None, skip_print=
             {"path": constants.ipv4_result_path, "ipv_type_prefer": ["ipv4"]},
             {"path": constants.ipv6_result_path, "ipv_type_prefer": ["ipv6"]}
         ]
-        if config.open_rtmp and not os.getenv("GITHUB_ACTIONS"):
+        if config.rtmp_available and not os.getenv("GITHUB_ACTIONS"):
             file_list += [
                 {"path": constants.hls_result_path, "hls_url": hls_url},
                 {

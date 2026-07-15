@@ -5,7 +5,7 @@ from PySide6.QtCharts import QChart, QChartView, QDateTimeAxis, QLineSeries, QVa
 from PySide6.QtCore import QDateTime, Signal, Qt
 from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QPen
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QHBoxLayout, QSizePolicy, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, FluentIcon, PushButton, ScrollArea, SubtitleLabel, TableView, isDarkTheme, qconfig
+from qfluentwidgets import BodyLabel, FluentIcon, PrimaryPushButton, PushButton, ScrollArea, SubtitleLabel, TableView, isDarkTheme, qconfig
 
 from desktop_ui.models import MappingTableModel
 from desktop_ui.widgets import MetricCard, metric_row
@@ -23,6 +23,7 @@ def _client_state(value, _):
 class RtmpPage(QWidget):
     refresh_requested = Signal()
     stream_control_requested = Signal(str, str)
+    install_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -33,6 +34,8 @@ class RtmpPage(QWidget):
         self.client_card = MetricCard(t("desktop.clients"), "0")
         self.bandwidth_card = MetricCard(t("desktop.output_bandwidth"), "0 Kbit/s")
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
+        self.install_button = PrimaryPushButton(FluentIcon.DOWNLOAD, t("desktop.install_nginx_rtmp"), self)
+        self.install_button.hide()
         self.stop_button = PushButton(FluentIcon.PAUSE_BOLD, t("desktop.stop_stream"), self)
         self.restart_button = PushButton(FluentIcon.ROTATE, t("desktop.restart_stream"), self)
         self.stream_model = MappingTableModel([
@@ -100,6 +103,7 @@ class RtmpPage(QWidget):
 
         actions = QHBoxLayout()
         actions.addStretch(1)
+        actions.addWidget(self.install_button)
         actions.addWidget(self.refresh_button)
         actions.addWidget(self.restart_button)
         actions.addWidget(self.stop_button)
@@ -136,6 +140,7 @@ class RtmpPage(QWidget):
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.addWidget(self.scroll)
         self.refresh_button.clicked.connect(self.refresh_requested)
+        self.install_button.clicked.connect(self.install_requested)
         self.stop_button.clicked.connect(lambda: self._request_control("stop"))
         self.restart_button.clicked.connect(lambda: self._request_control("restart"))
         self.table.selectionModel().selectionChanged.connect(self._stream_changed)
@@ -151,11 +156,13 @@ class RtmpPage(QWidget):
         self.status_card.set_value(t("desktop.running") if available else t("desktop.unavailable"))
         if available:
             self.error_label.hide()
+            self.install_button.hide()
         else:
             error_code = snapshot.get("error_code")
             message = t(f"desktop.rtmp_error_{error_code}", snapshot.get("error") or t("desktop.rtmp_unavailable_hint"))
             self.error_label.setText(message)
             self.error_label.show()
+            self.install_button.setVisible(error_code in {"nginx_missing", "rtmp_module_missing"})
         self.stream_card.set_value(len(streams))
         self.client_card.set_value(clients)
         self.bandwidth_card.set_value(f"{bw_out / 1000:.1f} Kbit/s")
@@ -169,6 +176,12 @@ class RtmpPage(QWidget):
         if self.samples:
             self.time_axis.setRange(QDateTime.fromMSecsSinceEpoch(int(self.samples[0][0])), QDateTime.fromMSecsSinceEpoch(int(self.samples[-1][0] + 1000)))
         self.value_axis.setRange(0, max(10, max((value for _, value in self.samples), default=0) * 1.15))
+
+    def set_installing(self, installing: bool):
+        self.install_button.setEnabled(not installing)
+        self.install_button.setText(
+            t("desktop.installing_nginx_rtmp") if installing else t("desktop.install_nginx_rtmp")
+        )
 
     def _apply_chart_theme(self):
         dark = isDarkTheme()
