@@ -19,6 +19,9 @@ class AboutPage(QWidget):
         self.release_url = REPOSITORY_URL + "/releases/latest"
         self.asset_url = ""
         self.asset_name = ""
+        self.info = info
+        self._update_state = "not_checked"
+        self._update_result = None
         self.manager = UpdateManager(str(info.get("version") or "0"), self)
 
         logo = QLabel(self)
@@ -26,8 +29,10 @@ class AboutPage(QWidget):
         logo.setPixmap(QPixmap(resource_path("favicon.ico")).scaled(88, 88))
         identity = QVBoxLayout()
         identity.addWidget(SubtitleLabel(str(info.get("name") or "IPTV-API"), self))
-        identity.addWidget(BodyLabel(t("desktop.version_value").format(version=info.get("version") or "--"), self))
-        identity.addWidget(BodyLabel(t("desktop.author_value").format(author="Guovin"), self))
+        self.version_label = BodyLabel(t("desktop.version_value").format(version=info.get("version") or "--"), self)
+        self.author_label = BodyLabel(t("desktop.author_value").format(author="Guovin"), self)
+        identity.addWidget(self.version_label)
+        identity.addWidget(self.author_label)
         identity.addStretch(1)
         hero = QHBoxLayout()
         hero.addWidget(logo)
@@ -56,14 +61,17 @@ class AboutPage(QWidget):
         card_layout.addLayout(actions)
 
         links = QHBoxLayout()
-        links.addWidget(HyperlinkButton(FluentIcon.GITHUB, REPOSITORY_URL, t("desktop.github_repository"), self))
-        links.addWidget(HyperlinkButton(FluentIcon.PEOPLE, "https://github.com/Guovin", t("desktop.author_homepage"), self))
+        self.repository_button = HyperlinkButton(FluentIcon.GITHUB, REPOSITORY_URL, t("desktop.github_repository"), self)
+        self.author_button = HyperlinkButton(FluentIcon.PEOPLE, "https://github.com/Guovin", t("desktop.author_homepage"), self)
+        links.addWidget(self.repository_button)
+        links.addWidget(self.author_button)
         links.addStretch(1)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(16)
-        layout.addWidget(SubtitleLabel(t("desktop.about"), self))
+        self.title = SubtitleLabel(t("desktop.about"), self)
+        layout.addWidget(self.title)
         layout.addLayout(hero)
         layout.addWidget(self.version_card)
         layout.addLayout(links)
@@ -78,10 +86,13 @@ class AboutPage(QWidget):
         self.manager.download_finished.connect(self._download_finished)
 
     def _checking(self):
+        self._update_state = "checking"
         self.check_button.setEnabled(False)
         self.version_status.setText(t("desktop.checking_updates"))
 
     def _checked(self, result: dict):
+        self._update_state = "available" if result["newer"] else "current"
+        self._update_result = result
         self.check_button.setEnabled(True)
         self.release_url = result["release_url"]
         self.release_button.setUrl(self.release_url)
@@ -107,6 +118,7 @@ class AboutPage(QWidget):
         self.progress.setValue(value)
 
     def _download_finished(self, path: str):
+        self._update_state = "downloaded"
         self.download_button.setEnabled(True)
         self.version_status.setText(t("desktop.update_downloaded"))
         self.version_detail.setText(path)
@@ -114,7 +126,33 @@ class AboutPage(QWidget):
         QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.dirname(path)))
 
     def _failed(self, message: str):
+        self._update_state = "failed"
         self.check_button.setEnabled(True)
         self.download_button.setEnabled(True)
         self.version_status.setText(t("desktop.update_check_failed"))
         InfoBar.error(t("desktop.update_check_failed"), message, parent=self, position=InfoBarPosition.TOP)
+
+    def retranslate(self):
+        self.title.setText(t("desktop.about"))
+        self.version_label.setText(t("desktop.version_value").format(version=self.info.get("version") or "--"))
+        self.author_label.setText(t("desktop.author_value").format(author="Guovin"))
+        self.check_button.setText(t("desktop.check_updates"))
+        self.download_button.setText(t("desktop.download_update"))
+        self.release_button.setText(t("desktop.open_release"))
+        self.repository_button.setText(t("desktop.github_repository"))
+        self.author_button.setText(t("desktop.author_homepage"))
+        if self._update_state == "not_checked":
+            self.version_status.setText(t("desktop.update_not_checked"))
+            self.version_detail.setText(t("desktop.update_check_desc"))
+        elif self._update_state == "checking":
+            self.version_status.setText(t("desktop.checking_updates"))
+        elif self._update_state == "available" and self._update_result:
+            self.version_status.setText(t("desktop.update_available").format(version=self._update_result["latest"]))
+            self.version_detail.setText(t("desktop.update_available_desc"))
+        elif self._update_state == "current" and self._update_result:
+            self.version_status.setText(t("desktop.up_to_date"))
+            self.version_detail.setText(t("desktop.current_version_latest").format(version=self._update_result["current"]))
+        elif self._update_state == "failed":
+            self.version_status.setText(t("desktop.update_check_failed"))
+        elif self._update_state == "downloaded":
+            self.version_status.setText(t("desktop.update_downloaded"))

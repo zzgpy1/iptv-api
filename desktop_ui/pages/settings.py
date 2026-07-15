@@ -39,7 +39,8 @@ class SettingsPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        layout.addWidget(SubtitleLabel(t("desktop.settings"), self))
+        self.title = SubtitleLabel(t("desktop.settings"), self)
+        layout.addWidget(self.title)
         layout.addLayout(actions)
         layout.addWidget(self.table, 1)
         self.search.textChanged.connect(self.model.filter)
@@ -47,6 +48,13 @@ class SettingsPage(QWidget):
         self.save_button.clicked.connect(self.save)
         self.model.modelReset.connect(lambda: QTimer.singleShot(0, self._open_editors))
         QTimer.singleShot(0, self._open_editors)
+
+    def retranslate(self):
+        self.title.setText(t("desktop.settings"))
+        self.search.setPlaceholderText(t("desktop.search_settings"))
+        self.save_button.setText(t("desktop.save_settings"))
+        self.reload_button.setText(t("desktop.reload"))
+        self.model.reload()
 
     def _open_editors(self):
         for row in range(self.model.rowCount()):

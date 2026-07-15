@@ -13,15 +13,16 @@ class SourcesPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("sourcesPage")
-        self.paths = [
-            (t("desktop.template"), lambda: config.source_file),
-            (t("name.local"), lambda: constants.local_path),
-            (t("name.subscribe"), lambda: constants.subscribe_path),
-            (t("name.epg"), lambda: constants.epg_path),
-            (t("name.whitelist"), lambda: constants.whitelist_path),
-            (t("desktop.blacklist"), lambda: constants.blacklist_path),
-            (t("desktop.alias"), lambda: constants.alias_path),
+        self.path_specs = [
+            ("desktop.template", lambda: config.source_file),
+            ("name.local", lambda: constants.local_path),
+            ("name.subscribe", lambda: constants.subscribe_path),
+            ("name.epg", lambda: constants.epg_path),
+            ("name.whitelist", lambda: constants.whitelist_path),
+            ("desktop.blacklist", lambda: constants.blacklist_path),
+            ("desktop.alias", lambda: constants.alias_path),
         ]
+        self.paths = [(t(key), path) for key, path in self.path_specs]
         self.selector = ComboBox(self)
         self.selector.addItems([item[0] for item in self.paths])
         self.editor = PlainTextEdit(self)
@@ -36,7 +37,8 @@ class SourcesPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        layout.addWidget(SubtitleLabel(t("desktop.sources"), self))
+        self.title = SubtitleLabel(t("desktop.sources"), self)
+        layout.addWidget(self.title)
         layout.addLayout(actions)
         layout.addWidget(self.editor, 1)
         self.selector.currentIndexChanged.connect(self.load)
@@ -66,3 +68,15 @@ class SourcesPage(QWidget):
                 InfoBar.success(t("desktop.saved"), path, parent=self, position=InfoBarPosition.TOP)
                 return
         InfoBar.error(t("name.error"), target.errorString(), parent=self, position=InfoBarPosition.TOP)
+
+    def retranslate(self):
+        index = self.selector.currentIndex()
+        self.paths = [(t(key), path) for key, path in self.path_specs]
+        self.selector.blockSignals(True)
+        self.selector.clear()
+        self.selector.addItems([item[0] for item in self.paths])
+        self.selector.setCurrentIndex(index)
+        self.selector.blockSignals(False)
+        self.title.setText(t("desktop.sources"))
+        self.save_button.setText(t("desktop.save"))
+        self.reload_button.setText(t("desktop.reload"))

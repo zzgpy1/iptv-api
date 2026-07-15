@@ -21,6 +21,7 @@ class DashboardPage(QWidget):
         super().__init__(parent)
         self.setObjectName("dashboardPage")
         self._running = False
+        self._service_status = "unknown"
         self.status_card = MetricCard(t("desktop.run_status"), t("desktop.idle"))
         self.channel_card = MetricCard(t("desktop.channels"), "0")
         self.valid_card = MetricCard(t("desktop.valid_results"), "0")
@@ -86,6 +87,7 @@ class DashboardPage(QWidget):
             self.refresh_metrics()
 
     def set_service_status(self, status: str):
+        self._service_status = status
         label = {
             "running": t("desktop.running"),
             "external": t("desktop.external_service"),
@@ -93,6 +95,22 @@ class DashboardPage(QWidget):
             "failed": t("desktop.unavailable"),
         }.get(status, t("desktop.unknown"))
         self.service_card.set_value(label, get_public_url())
+
+    def retranslate(self):
+        self.title.setText(t("desktop.dashboard"))
+        self.status_card.title_label.setText(t("desktop.run_status"))
+        self.channel_card.title_label.setText(t("desktop.channels"))
+        self.valid_card.title_label.setText(t("desktop.valid_results"))
+        self.service_card.title_label.setText(t("desktop.service"))
+        self.run_button.setText(t("desktop.run_once"))
+        self.cancel_button.setText(t("desktop.cancel"))
+        self.output_button.setText(t("desktop.open_output"))
+        self.service_button.setText(t("desktop.open_service"))
+        if not self._running and self.progress.value() == 0:
+            self.progress_title.setText(t("desktop.ready"))
+        self.set_running(self._running)
+        self.set_service_status(self._service_status)
+        self.refresh_metrics()
 
     def open_output(self):
         path = os.path.abspath(constants.output_dir)

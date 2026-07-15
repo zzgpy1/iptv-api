@@ -11,7 +11,6 @@ from utils.i18n import get_language, t
 
 CONFIG_OPTIONS = {
     "update_time_position": ["top", "bottom"],
-    "language": ["zh_CN", "en"],
     "update_mode": ["interval", "time"],
     "public_scheme": ["http", "https"],
     "performance_mode": ["auto", "powersave", "balance", "fast"],
@@ -67,6 +66,11 @@ class MappingTableModel(QAbstractTableModel):
     def set_rows(self, rows: list[dict]):
         self.beginResetModel()
         self.rows = list(rows)
+        self.endResetModel()
+
+    def set_columns(self, columns: list[tuple[str, str, Callable | None]]):
+        self.beginResetModel()
+        self.columns = columns
         self.endResetModel()
 
     def rowCount(self, parent=QModelIndex()):
@@ -132,6 +136,8 @@ class ConfigTableModel(QAbstractTableModel):
         self.all_rows = []
         descriptions = _config_descriptions()
         for key, value in config.config.items("Settings"):
+            if key == "language":
+                continue
             env_names = (key, key.upper(), f"Settings_{key}", f"SETTINGS_{key.upper()}")
             env_name = next((name for name in env_names if os.getenv(name) is not None), None)
             description = descriptions.get(key, "")

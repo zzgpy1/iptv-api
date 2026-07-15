@@ -29,6 +29,11 @@ class RtmpPage(QWidget):
         super().__init__(parent)
         self.setObjectName("rtmpPage")
         self.samples = deque(maxlen=300)
+        self._available = False
+        self._snapshot_received = False
+        self._error_code = None
+        self._error = ""
+        self._installing = False
         self.status_card = MetricCard(t("desktop.rtmp_service"), t("desktop.unknown"))
         self.stream_card = MetricCard(t("desktop.active_streams"), "0")
         self.client_card = MetricCard(t("desktop.clients"), "0")
@@ -38,23 +43,8 @@ class RtmpPage(QWidget):
         self.install_button.hide()
         self.stop_button = PushButton(FluentIcon.PAUSE_BOLD, t("desktop.stop_stream"), self)
         self.restart_button = PushButton(FluentIcon.ROTATE, t("desktop.restart_stream"), self)
-        self.stream_model = MappingTableModel([
-            ("state", t("desktop.status"), _stream_state),
-            ("channel_name", t("name.channel"), None),
-            ("clients", t("desktop.clients"), None),
-            ("bw_out", t("desktop.output_bandwidth"), lambda value, _: f"{float(value or 0) / 1000:.1f} Kbit/s"),
-            ("resolution", t("name.resolution"), None),
-            ("video_codec", t("name.video_codec"), None),
-            ("fps", t("name.fps"), None),
-            ("uptime", t("desktop.uptime"), None),
-        ], self)
-        self.client_model = MappingTableModel([
-            ("state", t("desktop.status"), _client_state),
-            ("address", t("desktop.client_address"), None),
-            ("dropped", t("desktop.dropped_frames"), None),
-            ("av_sync", t("desktop.av_sync"), None),
-            ("uptime", t("desktop.uptime"), None),
-        ], self)
+        self.stream_model = MappingTableModel(self._stream_columns(), self)
+        self.client_model = MappingTableModel(self._client_columns(), self)
         self.table = TableView(self)
         self.table.setModel(self.stream_model)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -112,7 +102,8 @@ class RtmpPage(QWidget):
         client_container = QWidget(self)
         client_layout = QVBoxLayout(client_container)
         client_layout.setContentsMargins(0, 0, 0, 0)
-        client_layout.addWidget(BodyLabel(t("desktop.client_details"), client_container))
+        self.client_details_title = BodyLabel(t("desktop.client_details"), client_container)
+        client_layout.addWidget(self.client_details_title)
         client_layout.addWidget(self.client_table)
         client_container.setMinimumHeight(90)
         tables.addWidget(client_container)
@@ -125,7 +116,8 @@ class RtmpPage(QWidget):
         layout = QVBoxLayout(self.content)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        layout.addWidget(SubtitleLabel(t("desktop.rtmp_monitor"), self))
+        self.title = SubtitleLabel(t("desktop.rtmp_monitor"), self)
+        layout.addWidget(self.title)
         layout.addWidget(self.error_label)
         layout.addWidget(metric_row([self.status_card, self.stream_card, self.client_card, self.bandwidth_card]))
         layout.addLayout(actions)
@@ -148,11 +140,38 @@ class RtmpPage(QWidget):
         qconfig.themeChangedFinished.connect(self._apply_chart_theme)
         self._apply_chart_theme()
 
+    @staticmethod
+    def _stream_columns():
+        return [
+            ("state", t("desktop.status"), _stream_state),
+            ("channel_name", t("name.channel"), None),
+            ("clients", t("desktop.clients"), None),
+            ("bw_out", t("desktop.output_bandwidth"), lambda value, _: f"{float(value or 0) / 1000:.1f} Kbit/s"),
+            ("resolution", t("name.resolution"), None),
+            ("video_codec", t("name.video_codec"), None),
+            ("fps", t("name.fps"), None),
+            ("uptime", t("desktop.uptime"), None),
+        ]
+
+    @staticmethod
+    def _client_columns():
+        return [
+            ("state", t("desktop.status"), _client_state),
+            ("address", t("desktop.client_address"), None),
+            ("dropped", t("desktop.dropped_frames"), None),
+            ("av_sync", t("desktop.av_sync"), None),
+            ("uptime", t("desktop.uptime"), None),
+        ]
+
     def set_snapshot(self, snapshot: dict):
+        self._snapshot_received = True
         streams = snapshot.get("streams", [])
         clients = sum(int(stream.get("clients") or 0) for stream in streams)
         bw_out = float(snapshot.get("bw_out") or sum(float(stream.get("bw_out") or 0) for stream in streams))
         available = bool(snapshot.get("available"))
+        self._available = available
+        self._error_code = snapshot.get("error_code")
+        self._error = snapshot.get("error") or ""
         self.status_card.set_value(t("desktop.running") if available else t("desktop.unavailable"))
         if available:
             self.error_label.hide()
@@ -178,10 +197,33 @@ class RtmpPage(QWidget):
         self.value_axis.setRange(0, max(10, max((value for _, value in self.samples), default=0) * 1.15))
 
     def set_installing(self, installing: bool):
+        self._installing = installing
         self.install_button.setEnabled(not installing)
         self.install_button.setText(
             t("desktop.installing_nginx_rtmp") if installing else t("desktop.install_nginx_rtmp")
         )
+
+    def retranslate(self):
+        self.title.setText(t("desktop.rtmp_monitor"))
+        self.client_details_title.setText(t("desktop.client_details"))
+        self.status_card.title_label.setText(t("desktop.rtmp_service"))
+        self.stream_card.title_label.setText(t("desktop.active_streams"))
+        self.client_card.title_label.setText(t("desktop.clients"))
+        self.bandwidth_card.title_label.setText(t("desktop.output_bandwidth"))
+        self.refresh_button.setText(t("desktop.refresh"))
+        self.stop_button.setText(t("desktop.stop_stream"))
+        self.restart_button.setText(t("desktop.restart_stream"))
+        self.set_installing(self._installing)
+        self.chart.setTitle(t("desktop.bandwidth_trend"))
+        self.stream_model.set_columns(self._stream_columns())
+        self.client_model.set_columns(self._client_columns())
+        if self._snapshot_received:
+            self.status_card.set_value(t("desktop.running") if self._available else t("desktop.unavailable"))
+        if self._snapshot_received and not self._available:
+            self.error_label.setText(t(
+                f"desktop.rtmp_error_{self._error_code}",
+                self._error or t("desktop.rtmp_unavailable_hint"),
+            ))
 
     def _apply_chart_theme(self):
         dark = isDarkTheme()

@@ -54,28 +54,11 @@ class ChannelCenterPage(QWidget):
         self.task_progress = ProgressBar(self)
         self.task_progress.setValue(0)
         self.task_progress.hide()
+        self._task_operation = None
+        self._task_name = None
 
-        self.channel_model = MappingTableModel([
-            ("name", t("name.channel"), None),
-            ("health", t("desktop.health"), _health),
-            ("total_results", t("desktop.candidates"), None),
-            ("valid_results", t("name.valid"), None),
-            ("best_speed", t("name.max_speed"), _speed),
-            ("min_delay", t("name.min_delay"), _delay),
-            ("max_resolution", t("name.max_resolution"), None),
-        ], self)
-        self.result_model = MappingTableModel([
-            ("selected_rank", t("desktop.rank"), None),
-            ("valid", t("desktop.status"), lambda value, _: t("name.valid") if value else t("desktop.unavailable")),
-            ("origin", t("name.from"), None),
-            ("ipv_type", t("name.ipv_type"), None),
-            ("speed", t("name.speed"), _speed),
-            ("delay", t("name.delay"), _delay),
-            ("resolution", t("name.resolution"), None),
-            ("fps", t("name.fps"), None),
-            ("location", t("name.location"), None),
-            ("host", t("desktop.host"), None),
-        ], self)
+        self.channel_model = MappingTableModel(self._channel_columns(), self)
+        self.result_model = MappingTableModel(self._result_columns(), self)
         self.channel_table = self._table(self.channel_model)
         self.result_table = self._table(self.result_model)
         self.channel_table.setMinimumWidth(340)
@@ -83,7 +66,8 @@ class ChannelCenterPage(QWidget):
         left = QWidget(self)
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.addWidget(BodyLabel(t("desktop.categories"), left))
+        self.categories_title = BodyLabel(t("desktop.categories"), left)
+        left_layout.addWidget(self.categories_title)
         left_layout.addWidget(self.category_list)
 
         center = QWidget(self)
@@ -106,7 +90,8 @@ class ChannelCenterPage(QWidget):
         right = QWidget(self)
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.addWidget(BodyLabel(t("desktop.results"), right))
+        self.results_title = BodyLabel(t("desktop.results"), right)
+        right_layout.addWidget(self.results_title)
         result_action_widget = QWidget(right)
         result_actions = FlowLayout(result_action_widget, isTight=True)
         result_actions.setContentsMargins(0, 0, 0, 0)
@@ -139,7 +124,8 @@ class ChannelCenterPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        layout.addWidget(SubtitleLabel(t("desktop.channel_center"), self))
+        self.title = SubtitleLabel(t("desktop.channel_center"), self)
+        layout.addWidget(self.title)
         task_row = QHBoxLayout()
         task_row.addWidget(self.task_label, 1)
         task_row.addWidget(self.task_progress, 1)
@@ -159,6 +145,33 @@ class ChannelCenterPage(QWidget):
         self.whitelist_button.clicked.connect(self._add_whitelist)
         self.blacklist_button.clicked.connect(self._add_blacklist)
         self.reload()
+
+    @staticmethod
+    def _channel_columns():
+        return [
+            ("name", t("name.channel"), None),
+            ("health", t("desktop.health"), _health),
+            ("total_results", t("desktop.candidates"), None),
+            ("valid_results", t("name.valid"), None),
+            ("best_speed", t("name.max_speed"), _speed),
+            ("min_delay", t("name.min_delay"), _delay),
+            ("max_resolution", t("name.max_resolution"), None),
+        ]
+
+    @staticmethod
+    def _result_columns():
+        return [
+            ("selected_rank", t("desktop.rank"), None),
+            ("valid", t("desktop.status"), lambda value, _: t("name.valid") if value else t("desktop.unavailable")),
+            ("origin", t("name.from"), None),
+            ("ipv_type", t("name.ipv_type"), None),
+            ("speed", t("name.speed"), _speed),
+            ("delay", t("name.delay"), _delay),
+            ("resolution", t("name.resolution"), None),
+            ("fps", t("name.fps"), None),
+            ("location", t("name.location"), None),
+            ("host", t("desktop.host"), None),
+        ]
 
     def _table(self, model):
         table = TableView(self)
@@ -272,15 +285,44 @@ class ChannelCenterPage(QWidget):
             InfoBar.success(t("desktop.blacklist_updated"), t("desktop.next_update_effect" if changed else "desktop.already_exists"), parent=self, position=InfoBarPosition.TOP)
 
     def set_task_started(self, operation: str):
+        self._task_operation = operation
+        self._task_name = None
         self.task_label.setText(t(f"desktop.{operation}", operation))
         self.task_progress.setValue(0)
         self.task_progress.show()
 
     def set_task_progress(self, name: str, value: int):
+        self._task_name = name
         self.task_label.setText(t("desktop.testing_channel").format(name=name))
         self.task_progress.setValue(value)
 
     def set_task_finished(self):
+        self._task_operation = None
+        self._task_name = None
         self.task_label.setText(t("desktop.no_pending_tasks"))
         self.task_progress.hide()
+        self.reload()
+
+    def retranslate(self):
+        self.title.setText(t("desktop.channel_center"))
+        self.categories_title.setText(t("desktop.categories"))
+        self.results_title.setText(t("desktop.results"))
+        self.search.setPlaceholderText(t("desktop.search_channels"))
+        self.refresh_button.setText(t("desktop.refresh"))
+        self.retest_channel_button.setText(t("desktop.retest_channel"))
+        self.retest_category_button.setText(t("desktop.retest_category"))
+        self.retest_result_button.setText(t("desktop.retest_result"))
+        self.open_button.setText(t("desktop.open_player"))
+        self.copy_button.setText(t("desktop.copy_url"))
+        self.start_stream_button.setText(t("desktop.start_stream"))
+        self.whitelist_button.setText(t("desktop.add_whitelist"))
+        self.blacklist_button.setText(t("desktop.add_blacklist"))
+        self.channel_model.set_columns(self._channel_columns())
+        self.result_model.set_columns(self._result_columns())
+        if self._task_name:
+            self.task_label.setText(t("desktop.testing_channel").format(name=self._task_name))
+        elif self._task_operation:
+            self.task_label.setText(t(f"desktop.{self._task_operation}", self._task_operation))
+        else:
+            self.task_label.setText(t("desktop.no_pending_tasks"))
         self.reload()

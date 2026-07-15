@@ -18,7 +18,7 @@ from desktop_ui.pages.sources import SourcesPage
 from desktop_ui.pages.tasks import TasksPage
 import utils.constants as constants
 from utils.config import config, resource_path
-from utils.i18n import t
+from utils.i18n import get_language, set_language, t
 from utils.rtmp_runtime import install_rtmp_runtime
 from utils.tools import get_version_info
 
@@ -83,14 +83,23 @@ class MainWindow(FluentWindow):
         self.tasks = TasksPage(self)
         self.settings = SettingsPage(self)
         self.about = AboutPage(self)
-        self.addSubInterface(self.dashboard, FluentIcon.HOME, t("desktop.dashboard"))
-        self.addSubInterface(self.channels, FluentIcon.LIBRARY, t("desktop.channel_center"))
-        self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.rtmp_monitor"))
-        self.addSubInterface(self.sources, FluentIcon.DOCUMENT, t("desktop.sources"))
-        self.addSubInterface(self.logs, FluentIcon.DEVELOPER_TOOLS, t("desktop.logs"))
-        self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
-        self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)
-        self.addSubInterface(self.about, FluentIcon.INFO, t("desktop.about"), NavigationItemPosition.BOTTOM)
+        self.dashboard_item = self.addSubInterface(self.dashboard, FluentIcon.HOME, t("desktop.dashboard"))
+        self.channels_item = self.addSubInterface(self.channels, FluentIcon.LIBRARY, t("desktop.channel_center"))
+        self.rtmp_item = self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.rtmp_monitor"))
+        self.sources_item = self.addSubInterface(self.sources, FluentIcon.DOCUMENT, t("desktop.sources"))
+        self.logs_item = self.addSubInterface(self.logs, FluentIcon.DEVELOPER_TOOLS, t("desktop.logs"))
+        self.tasks_item = self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
+        self.settings_item = self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)
+        self.about_item = self.addSubInterface(self.about, FluentIcon.INFO, t("desktop.about"), NavigationItemPosition.BOTTOM)
+        self.language_item = self.navigationInterface.addItem(
+            "languageToggle",
+            FluentIcon.LANGUAGE,
+            "",
+            self.toggle_language,
+            selectable=False,
+            position=NavigationItemPosition.BOTTOM,
+        )
+        self.language_item.setEnabled(not self._language_environment_override())
         self.theme_item = self.navigationInterface.addItem(
             "themeToggle",
             FluentIcon.CONSTRACT,
@@ -106,6 +115,7 @@ class MainWindow(FluentWindow):
         self.navigation_resize_handle = NavigationResizeHandle(self.navigationInterface)
         self.navigation_resize_handle.width_changed.connect(self.set_navigation_width)
         panel.expandAni.valueChanged.connect(lambda _: self._position_navigation_resize_handle())
+        self._update_language_item()
         self._update_theme_item()
         self._position_navigation_resize_handle()
         self.controller = UpdateController(self)
@@ -155,13 +165,13 @@ class MainWindow(FluentWindow):
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray = QSystemTrayIcon(self.windowIcon(), self)
             menu = QMenu(self)
-            show_action = QAction(t("desktop.show_window"), self)
-            quit_action = QAction(t("desktop.quit"), self)
-            show_action.triggered.connect(self.show_and_raise)
-            quit_action.triggered.connect(QApplication.quit)
-            menu.addAction(show_action)
+            self.show_action = QAction(t("desktop.show_window"), self)
+            self.quit_action = QAction(t("desktop.quit"), self)
+            self.show_action.triggered.connect(self.show_and_raise)
+            self.quit_action.triggered.connect(QApplication.quit)
+            menu.addAction(self.show_action)
             menu.addSeparator()
-            menu.addAction(quit_action)
+            menu.addAction(self.quit_action)
             self.tray.setContextMenu(menu)
             self.tray.activated.connect(lambda reason: self.show_and_raise() if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
             self.tray.show()
@@ -183,6 +193,18 @@ class MainWindow(FluentWindow):
     def toggle_theme(self):
         self.set_dark_theme(not isDarkTheme())
 
+    @staticmethod
+    def _language_environment_override():
+        names = ("language", "LANGUAGE", "Settings_language", "SETTINGS_LANGUAGE")
+        return any(os.getenv(name) is not None for name in names)
+
+    def toggle_language(self):
+        language = "zh_CN" if get_language().startswith("en") else "en"
+        config.set("Settings", "language", language)
+        config.save()
+        set_language(language)
+        self.retranslate()
+
     def set_dark_theme(self, dark: bool):
         setTheme(Theme.DARK if dark else Theme.LIGHT)
         QSettings().setValue("appearance/theme", "dark" if dark else "light")
@@ -193,6 +215,43 @@ class MainWindow(FluentWindow):
         text = t("desktop.light_mode" if isDarkTheme() else "desktop.dark_mode")
         self.theme_item.setText(text)
         self.theme_item.setToolTip(text)
+
+    def _update_language_item(self):
+        text = t("desktop.chinese" if get_language().startswith("en") else "desktop.english")
+        self.language_item.setText(text)
+        self.language_item.setToolTip(text)
+
+    def retranslate(self, _language=None):
+        navigation_items = (
+            (self.dashboard_item, "desktop.dashboard"),
+            (self.channels_item, "desktop.channel_center"),
+            (self.rtmp_item, "desktop.rtmp_monitor"),
+            (self.sources_item, "desktop.sources"),
+            (self.logs_item, "desktop.logs"),
+            (self.tasks_item, "desktop.task_history"),
+            (self.settings_item, "desktop.settings"),
+            (self.about_item, "desktop.about"),
+        )
+        for item, key in navigation_items:
+            text = t(key)
+            item.setText(text)
+            item.setToolTip(text)
+        for page in (
+            self.dashboard,
+            self.channels,
+            self.rtmp,
+            self.sources,
+            self.logs,
+            self.tasks,
+            self.settings,
+            self.about,
+        ):
+            page.retranslate()
+        if self.tray:
+            self.show_action.setText(t("desktop.show_window"))
+            self.quit_action.setText(t("desktop.quit"))
+        self._update_language_item()
+        self._update_theme_item()
 
     def _position_navigation_resize_handle(self):
         if not hasattr(self, "navigation_resize_handle"):

@@ -237,7 +237,7 @@ pipenv run service
 
 ### GUI 软件
 
-基于 PySide6 与 QFluentWidgets 的桌面端支持 Windows 和 macOS，可直接修改配置、切换深浅色主题、查看实时进度与日志，并提供频道分类/频道/结果三级管理、单频道或单结果重新测速、RTMP 监控、任务历史与在线版本检查。
+基于 PySide6 与 QFluentWidgets 的桌面端支持 Windows 和 macOS，可从导航栏实时切换中文/English 界面、直接修改配置、切换深浅色主题、查看实时进度与日志，并提供频道分类/频道/结果三级管理、单频道或单结果重新测速、RTMP 监控、任务历史与在线版本检查。
 
 安装依赖并启动桌面端：
 

@@ -28,19 +28,8 @@ class TasksPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("tasksPage")
-        self.run_model = MappingTableModel([
-            ("started_at", t("desktop.started_at"), _time),
-            ("finished_at", t("desktop.finished_at"), _time),
-            ("status", t("desktop.status"), _status),
-            ("error", t("name.error"), None),
-        ], self)
-        self.operation_model = MappingTableModel([
-            ("started_at", t("desktop.started_at"), _time),
-            ("operation", t("desktop.operation"), lambda value, _: t(f"desktop.{value}", value or "--")),
-            ("target_type", t("desktop.target"), _target_type),
-            ("status", t("desktop.status"), _status),
-            ("message", t("desktop.details"), None),
-        ], self)
+        self.run_model = MappingTableModel(self._run_columns(), self)
+        self.operation_model = MappingTableModel(self._operation_columns(), self)
         self.run_table = self._table(self.run_model)
         self.operation_table = self._table(self.operation_model)
         splitter = QSplitter(self)
@@ -57,7 +46,8 @@ class TasksPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        layout.addWidget(SubtitleLabel(t("desktop.task_history"), self))
+        self.title = SubtitleLabel(t("desktop.task_history"), self)
+        layout.addWidget(self.title)
         layout.addLayout(actions)
         layout.addWidget(splitter, 1)
         self.refresh_button.clicked.connect(self.refresh)
@@ -67,6 +57,25 @@ class TasksPage(QWidget):
         self.timer.timeout.connect(self.refresh)
         self.timer.start()
         self.refresh()
+
+    @staticmethod
+    def _run_columns():
+        return [
+            ("started_at", t("desktop.started_at"), _time),
+            ("finished_at", t("desktop.finished_at"), _time),
+            ("status", t("desktop.status"), _status),
+            ("error", t("name.error"), None),
+        ]
+
+    @staticmethod
+    def _operation_columns():
+        return [
+            ("started_at", t("desktop.started_at"), _time),
+            ("operation", t("desktop.operation"), lambda value, _: t(f"desktop.{value}", value or "--")),
+            ("target_type", t("desktop.target"), _target_type),
+            ("status", t("desktop.status"), _status),
+            ("message", t("desktop.details"), None),
+        ]
 
     def _table(self, model):
         table = TableView(self)
@@ -94,3 +103,10 @@ class TasksPage(QWidget):
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
         except Exception as exc:
             InfoBar.error(t("desktop.diagnostics_failed"), str(exc), parent=self, position=InfoBarPosition.TOP)
+
+    def retranslate(self):
+        self.title.setText(t("desktop.task_history"))
+        self.refresh_button.setText(t("desktop.refresh"))
+        self.export_button.setText(t("desktop.export_diagnostics"))
+        self.run_model.set_columns(self._run_columns())
+        self.operation_model.set_columns(self._operation_columns())

@@ -242,7 +242,7 @@ pipenv run service
 
 ### GUI Software
 
-The PySide6 and QFluentWidgets desktop app supports Windows and macOS. It edits configuration with typed controls, switches between light and dark themes, displays live progress and logs, manages categories/channels/results, retests a channel or result, monitors RTMP, keeps task history, and checks for updates online.
+The PySide6 and QFluentWidgets desktop app supports Windows and macOS. Its navigation bar switches the interface between Chinese and English in real time, edits configuration with typed controls, switches between light and dark themes, displays live progress and logs, manages categories/channels/results, retests a channel or result, monitors RTMP, keeps task history, and checks for updates online.
 
 Install dependencies and start the desktop app:
 

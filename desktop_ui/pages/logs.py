@@ -14,13 +14,14 @@ class LogsPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("logsPage")
-        self.paths = [
-            (t("desktop.runtime_log"), constants.log_path),
-            (t("desktop.result_log"), constants.result_log_path),
-            (t("desktop.speed_log"), constants.speed_test_log_path),
-            (t("desktop.statistics_log"), constants.statistic_log_path),
-            (t("desktop.unmatched_log"), constants.unmatch_log_path),
+        self.path_specs = [
+            ("desktop.runtime_log", constants.log_path),
+            ("desktop.result_log", constants.result_log_path),
+            ("desktop.speed_log", constants.speed_test_log_path),
+            ("desktop.statistics_log", constants.statistic_log_path),
+            ("desktop.unmatched_log", constants.unmatch_log_path),
         ]
+        self.paths = [(t(key), path) for key, path in self.path_specs]
         self.selector = ComboBox(self)
         self.selector.addItems([item[0] for item in self.paths])
         self.search = LineEdit(self)
@@ -44,7 +45,8 @@ class LogsPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        layout.addWidget(SubtitleLabel(t("desktop.logs"), self))
+        self.title = SubtitleLabel(t("desktop.logs"), self)
+        layout.addWidget(self.title)
         layout.addLayout(actions)
         layout.addWidget(self.viewer, 1)
         self.timer = QTimer(self)
@@ -101,3 +103,19 @@ class LogsPage(QWidget):
         self.viewer.appendPlainText(text)
         if self.autoscroll.isChecked():
             self.viewer.verticalScrollBar().setValue(self.viewer.verticalScrollBar().maximum())
+
+    def retranslate(self):
+        index = self.selector.currentIndex()
+        self.paths = [(t(key), path) for key, path in self.path_specs]
+        self.selector.blockSignals(True)
+        self.selector.clear()
+        self.selector.addItems([item[0] for item in self.paths])
+        self.selector.setCurrentIndex(index)
+        self.selector.blockSignals(False)
+        self.title.setText(t("desktop.logs"))
+        self.search.setPlaceholderText(t("desktop.search_logs"))
+        self.autoscroll.setText(t("desktop.auto_scroll"))
+        self.refresh_button.setText(t("desktop.refresh"))
+        self.clear_button.setText(t("desktop.clear_view"))
+        self.export_button.setText(t("desktop.export_logs"))
+        self.refresh()
