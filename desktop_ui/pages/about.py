@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, HyperlinkButton, InfoBar, InfoBarPosition, PrimaryPushButton, ProgressBar, PushButton, StrongBodyLabel, SubtitleLabel
 
 from desktop_ui.update_manager import REPOSITORY_URL, UpdateManager
+from desktop_ui.widgets import PageTitle
 from utils.config import resource_path
 from utils.i18n import t
 from utils.tools import get_version_info
@@ -70,7 +71,7 @@ class AboutPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(16)
-        self.title = SubtitleLabel(t("desktop.about"), self)
+        self.title = PageTitle(FluentIcon.INFO, t("desktop.about"), self)
         layout.addWidget(self.title)
         layout.addLayout(hero)
         layout.addWidget(self.version_card)

@@ -16,6 +16,7 @@ from desktop_ui.pages.rtmp import RtmpPage
 from desktop_ui.pages.settings import SettingsPage
 from desktop_ui.pages.sources import SourcesPage
 from desktop_ui.pages.tasks import TasksPage
+from desktop_ui.models import ChannelLogoLoader
 import utils.constants as constants
 from utils.config import config, resource_path
 from utils.i18n import get_language, set_language, t
@@ -75,8 +76,9 @@ class MainWindow(FluentWindow):
         self.navigation_width = int(QSettings().value("appearance/navigation_width", 220))
         self.navigationInterface.setExpandWidth(self.navigation_width)
         self.navigationInterface.setMinimumExpandWidth(840)
-        self.dashboard = DashboardPage(self)
-        self.channels = ChannelCenterPage(self)
+        self.channel_logo_loader = ChannelLogoLoader(self)
+        self.dashboard = DashboardPage(self, self.channel_logo_loader)
+        self.channels = ChannelCenterPage(self, self.channel_logo_loader)
         self.rtmp = RtmpPage(self)
         self.sources = SourcesPage(self)
         self.logs = LogsPage(self)
@@ -87,7 +89,7 @@ class MainWindow(FluentWindow):
         self.channels_item = self.addSubInterface(self.channels, FluentIcon.LIBRARY, t("desktop.channel_center"))
         self.rtmp_item = self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.rtmp_monitor"))
         self.sources_item = self.addSubInterface(self.sources, FluentIcon.DOCUMENT, t("desktop.sources"))
-        self.logs_item = self.addSubInterface(self.logs, FluentIcon.DEVELOPER_TOOLS, t("desktop.logs"))
+        self.logs_item = self.addSubInterface(self.logs, FluentIcon.COMMAND_PROMPT, t("desktop.logs"))
         self.tasks_item = self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
         self.settings_item = self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)
         self.about_item = self.addSubInterface(self.about, FluentIcon.INFO, t("desktop.about"), NavigationItemPosition.BOTTOM)
@@ -124,6 +126,7 @@ class MainWindow(FluentWindow):
         self.service_controller = ServiceProcessController(self)
         self.dashboard.run_requested.connect(self._start_update)
         self.dashboard.cancel_requested.connect(self.controller.cancel)
+        self.dashboard.destination_requested.connect(self._navigate_from_dashboard)
         self.controller.started.connect(self._update_started)
         self.controller.progress.connect(self.dashboard.set_progress)
         self.controller.output.connect(self.logs.append_runtime)
@@ -137,9 +140,6 @@ class MainWindow(FluentWindow):
                 "retest_result",
                 {"channel_key": row["channel_key"], "result_key": row["result_key"]},
             )
-        )
-        self.channels.retest_category_requested.connect(
-            lambda category: self.operation_controller.enqueue("retest_category", {"category": category})
         )
         self.operation_controller.task_started.connect(self.channels.set_task_started)
         self.operation_controller.task_progress.connect(self.channels.set_task_progress)
@@ -281,6 +281,15 @@ class MainWindow(FluentWindow):
         self.show()
         self.raise_()
         self.activateWindow()
+
+    def _navigate_from_dashboard(self, destination: str):
+        page = {
+            "channels": self.channels,
+            "rtmp": self.rtmp,
+            "tasks": self.tasks,
+        }.get(destination)
+        if page:
+            self.switchTo(page)
 
     def _update_finished(self):
         self.dashboard.set_running(False)

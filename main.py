@@ -275,6 +275,28 @@ class UpdateSource:
             )
 
         self.start_time = time()
+        completed_items = 0
+        valid_counts = {}
+
+        def handle_task_complete(cate, name, item, is_channel_last=False, is_last=False, is_valid=True):
+            nonlocal completed_items
+            self.aggregator.add_item(cate, name, item, is_channel_last, is_last, is_valid)
+            completed_items += 1
+            key = (cate, name)
+            if is_valid:
+                valid_counts[key] = valid_counts.get(key, 0) + 1
+            if self.update_progress:
+                self.update_progress(
+                    name,
+                    int(completed_items / self.total * 100) if self.total else 0,
+                    url={
+                        "category": cate,
+                        "channel": name,
+                        "status": "completed" if is_channel_last else "testing",
+                        "valid_count": valid_counts.get(key, 0),
+                    },
+                )
+
         self.pbar = tqdm(
             total=self.total,
             desc=t("pbar.speed_test"),
@@ -292,7 +314,7 @@ class UpdateSource:
                     item_name=t("pbar.url"),
                     count=count,
                 ),
-                on_task_complete=self.aggregator.add_item,
+                on_task_complete=handle_task_complete,
             )
             self.aggregator.is_last = True
             return result

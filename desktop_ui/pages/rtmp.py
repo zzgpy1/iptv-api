@@ -5,10 +5,10 @@ from PySide6.QtCharts import QChart, QChartView, QDateTimeAxis, QLineSeries, QVa
 from PySide6.QtCore import QDateTime, Signal, Qt
 from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QPen
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QHBoxLayout, QSizePolicy, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, FluentIcon, PrimaryPushButton, PushButton, ScrollArea, SubtitleLabel, TableView, isDarkTheme, qconfig
+from qfluentwidgets import BodyLabel, FluentIcon, PrimaryPushButton, PushButton, ScrollArea, TableView, isDarkTheme, qconfig
 
 from desktop_ui.models import MappingTableModel
-from desktop_ui.widgets import MetricCard, metric_row
+from desktop_ui.widgets import MetricCard, PageTitle, metric_row
 from utils.i18n import t
 
 
@@ -116,7 +116,7 @@ class RtmpPage(QWidget):
         layout = QVBoxLayout(self.content)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        self.title = SubtitleLabel(t("desktop.rtmp_monitor"), self)
+        self.title = PageTitle(FluentIcon.IOT, t("desktop.rtmp_monitor"), self)
         layout.addWidget(self.title)
         layout.addWidget(self.error_label)
         layout.addWidget(metric_row([self.status_card, self.stream_card, self.client_card, self.bandwidth_card]))

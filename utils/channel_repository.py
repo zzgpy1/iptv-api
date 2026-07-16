@@ -1,13 +1,17 @@
 import hashlib
 import json
 import math
+import os
 import sqlite3
 import threading
 import time
 import uuid
 from typing import Any
+from urllib.parse import urlparse
 
 from utils.config import config
+from utils.config import resource_path
+import utils.constants as constants
 from utils.db import get_db_connection, return_db_connection
 from utils.identity import stable_channel_id, stable_result_id
 
@@ -41,6 +45,7 @@ def ensure_channel_repository(db_path: str) -> None:
                     min_delay REAL,
                     max_resolution TEXT,
                     health TEXT NOT NULL DEFAULT 'unknown',
+                    logo TEXT,
                     updated_at REAL NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_channels_category ON channels(category, name);
@@ -96,6 +101,9 @@ def ensure_channel_repository(db_path: str) -> None:
                 PRAGMA user_version=1;
                 """
             )
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(channels)")}
+            if "logo" not in columns:
+                conn.execute("ALTER TABLE channels ADD COLUMN logo TEXT")
             conn.commit()
         finally:
             return_db_connection(db_path, conn)
@@ -343,10 +351,31 @@ def list_channels(db_path: str, category: str | None = None, search: str = "") -
             params.extend([f"%{search}%", f"%{search}%"])
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         rows = conn.execute(
-            f"SELECT * FROM channels {where} ORDER BY category, name",
+            f"""
+            SELECT channels.*,
+                   COALESCE(NULLIF(channels.logo, ''), (
+                       SELECT json_extract(channel_results.extra_data, '$.tvg_logo')
+                       FROM channel_results
+                       WHERE channel_results.channel_key=channels.channel_key
+                         AND json_extract(channel_results.extra_data, '$.tvg_logo') IS NOT NULL
+                         AND json_extract(channel_results.extra_data, '$.tvg_logo') != ''
+                       LIMIT 1
+                   )) AS logo
+            FROM channels {where} ORDER BY category, name
+            """,
             params,
         ).fetchall()
-        return [dict(row) for row in rows]
+        result = [dict(row) for row in rows]
+        logo_root = resource_path(constants.channel_logo_path)
+        for row in result:
+            if row.get("logo"):
+                continue
+            local_logo = os.path.join(logo_root, f"{row['name']}.{config.logo_type}")
+            if os.path.isfile(local_logo):
+                row["logo"] = local_logo
+            elif config.logo_url:
+                row["logo"] = f"{config.logo_url.rstrip('/')}/{row['name']}.{config.logo_type}"
+        return result
     finally:
         return_db_connection(db_path, conn)
 
@@ -381,6 +410,99 @@ def get_channel(db_path: str, channel_key: str) -> dict[str, Any] | None:
     try:
         row = conn.execute("SELECT * FROM channels WHERE channel_key=?", (channel_key,)).fetchone()
         return dict(row) if row else None
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def upsert_manual_channel(db_path: str, category: str, name: str) -> str:
+    ensure_channel_repository(db_path)
+    channel_key = stable_channel_id(category, name)
+    conn = get_db_connection(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO channels(
+                channel_key, category, name, total_results, valid_results, selected_results,
+                health, updated_at
+            ) VALUES (?, ?, ?, 0, 0, 0, 'unknown', ?)
+            ON CONFLICT(channel_key) DO UPDATE SET
+                category=excluded.category, name=excluded.name, updated_at=excluded.updated_at
+            """,
+            (channel_key, category, name, time.time()),
+        )
+        conn.commit()
+    finally:
+        return_db_connection(db_path, conn)
+    return channel_key
+
+
+def delete_channel_records(db_path: str, channel_keys: list[str]) -> int:
+    keys = [key for key in channel_keys if key]
+    if not keys:
+        return 0
+    ensure_channel_repository(db_path)
+    placeholders = ",".join("?" for _ in keys)
+    conn = get_db_connection(db_path)
+    try:
+        conn.execute("PRAGMA foreign_keys=ON")
+        cursor = conn.execute(f"DELETE FROM channels WHERE channel_key IN ({placeholders})", keys)
+        conn.commit()
+        return cursor.rowcount
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def add_manual_result(db_path: str, channel_key: str, url: str) -> str:
+    ensure_channel_repository(db_path)
+    result_key = stable_result_id(url, None)
+    host = urlparse(url).hostname
+    now = time.time()
+    conn = get_db_connection(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO channel_results(
+                channel_key, result_key, url, host, origin, supply, valid,
+                selected_rank, tested_at, last_seen_at, extra_data
+            ) VALUES (?, ?, ?, ?, 'local', 0, 0, NULL, NULL, ?, '{}')
+            ON CONFLICT(channel_key, result_key) DO UPDATE SET
+                url=excluded.url, host=excluded.host, origin='local', last_seen_at=excluded.last_seen_at
+            """,
+            (channel_key, result_key, url, host, now),
+        )
+        conn.execute(
+            """
+            UPDATE channels SET
+                total_results=(SELECT COUNT(*) FROM channel_results WHERE channel_key=?),
+                updated_at=? WHERE channel_key=?
+            """,
+            (channel_key, now, channel_key),
+        )
+        conn.commit()
+    finally:
+        return_db_connection(db_path, conn)
+    return result_key
+
+
+def list_result_urls_by_channel(db_path: str) -> dict[str, list[str]]:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    try:
+        rows = conn.execute("SELECT channel_key, url FROM channel_results").fetchall()
+        result: dict[str, list[str]] = {}
+        for channel_key, url in rows:
+            result.setdefault(channel_key, []).append(url)
+        return result
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def set_channel_logo(db_path: str, channel_key: str, logo: str) -> None:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    try:
+        conn.execute("UPDATE channels SET logo=?, updated_at=? WHERE channel_key=?", (logo.strip(), time.time(), channel_key))
+        conn.commit()
     finally:
         return_db_connection(db_path, conn)
 

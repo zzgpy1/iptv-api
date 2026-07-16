@@ -1,9 +1,10 @@
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PrimaryPushButton, PushButton, SearchLineEdit, SubtitleLabel, TableView
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QLineEdit, QVBoxLayout, QWidget
+from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PrimaryPushButton, PushButton, SearchLineEdit, TableView
 
 from desktop_ui.delegates import ConfigValueDelegate, ElidedDescriptionDelegate
 from desktop_ui.models import ConfigTableModel
+from desktop_ui.widgets import PageTitle
 from utils.i18n import t
 
 
@@ -21,6 +22,7 @@ class SettingsPage(QWidget):
         self.table.setItemDelegateForColumn(1, ConfigValueDelegate(self.table))
         self.table.setItemDelegateForColumn(2, ElidedDescriptionDelegate(self.table))
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.AllEditTriggers)
         self.table.verticalHeader().setVisible(False)
         self.table.setBorderVisible(True)
@@ -39,7 +41,7 @@ class SettingsPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        self.title = SubtitleLabel(t("desktop.settings"), self)
+        self.title = PageTitle(FluentIcon.SETTING, t("desktop.settings"), self)
         layout.addWidget(self.title)
         layout.addLayout(actions)
         layout.addWidget(self.table, 1)
@@ -61,6 +63,15 @@ class SettingsPage(QWidget):
             index = self.model.index(row, 1)
             if index.flags() & Qt.ItemFlag.ItemIsEditable:
                 self.table.openPersistentEditor(index)
+        QTimer.singleShot(0, self._clear_editor_selection)
+
+    def _clear_editor_selection(self):
+        for editor in self.table.findChildren(QLineEdit):
+            editor.setCursorPosition(0)
+            editor.deselect()
+            editor.clearFocus()
+        self.table.clearSelection()
+        self.search.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def save(self):
         self.model.save()

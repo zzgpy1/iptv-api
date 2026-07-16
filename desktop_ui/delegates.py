@@ -50,6 +50,8 @@ class ConfigValueDelegate(QStyledItemDelegate):
             editor.setValue(float(value or 0))
         else:
             editor.setText(str(value or ""))
+            editor.setCursorPosition(0)
+            editor.deselect()
 
     def setModelData(self, editor, model, index):
         kind = index.data(ConfigTableModel.KindRole)

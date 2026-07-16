@@ -3,9 +3,10 @@ import os
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import ComboBox, FluentIcon, InfoBar, InfoBarPosition, LineEdit, PlainTextEdit, PushButton, SubtitleLabel, SwitchButton
+from qfluentwidgets import ComboBox, FluentIcon, InfoBar, InfoBarPosition, LineEdit, PlainTextEdit, PushButton, SwitchButton
 
 import utils.constants as constants
+from desktop_ui.widgets import PageTitle
 from utils.diagnostics import export_logs
 from utils.i18n import t
 
@@ -45,7 +46,7 @@ class LogsPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        self.title = SubtitleLabel(t("desktop.logs"), self)
+        self.title = PageTitle(FluentIcon.COMMAND_PROMPT, t("desktop.logs"), self)
         layout.addWidget(self.title)
         layout.addLayout(actions)
         layout.addWidget(self.viewer, 1)

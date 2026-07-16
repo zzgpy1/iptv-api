@@ -2,12 +2,13 @@ from datetime import datetime
 
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PrimaryPushButton, PushButton, SubtitleLabel, TableView
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QVBoxLayout, QWidget
+from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PrimaryPushButton, PushButton, TableView
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
-from utils.channel_repository import list_operations, list_runs
+from desktop_ui.widgets import PageTitle
+from utils.channel_repository import list_channels, list_operations, list_runs, result_metadata_map
 from utils.diagnostics import export_diagnostics
 from utils.i18n import t
 
@@ -20,23 +21,27 @@ def _status(value, _):
     return t(f"desktop.status_{value}", value or "--")
 
 
-def _target_type(value, _):
-    return t(f"desktop.target_{value}", value or "--")
+def _task(value, _):
+    return t(f"desktop.{value}", value or "--")
+
+
+def _duration(value, _):
+    return "--" if value is None else f"{float(value):.1f} s"
 
 
 class TasksPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("tasksPage")
-        self.run_model = MappingTableModel(self._run_columns(), self)
-        self.operation_model = MappingTableModel(self._operation_columns(), self)
-        self.run_table = self._table(self.run_model)
-        self.operation_table = self._table(self.operation_model)
-        splitter = QSplitter(self)
-        splitter.addWidget(self.run_table)
-        splitter.addWidget(self.operation_table)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 1)
+        self.model = MappingTableModel(self._columns(), self)
+        self.table = TableView(self)
+        self.table.setModel(self.model)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setBorderVisible(True)
+        self.table.setBorderRadius(8)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
         self.export_button = PrimaryPushButton(FluentIcon.IMAGE_EXPORT, t("desktop.export_diagnostics"), self)
         actions = QHBoxLayout()
@@ -46,10 +51,10 @@ class TasksPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        self.title = SubtitleLabel(t("desktop.task_history"), self)
+        self.title = PageTitle(FluentIcon.HISTORY, t("desktop.task_history"), self)
         layout.addWidget(self.title)
         layout.addLayout(actions)
-        layout.addWidget(splitter, 1)
+        layout.addWidget(self.table, 1)
         self.refresh_button.clicked.connect(self.refresh)
         self.export_button.clicked.connect(self.export)
         self.timer = QTimer(self)
@@ -59,42 +64,54 @@ class TasksPage(QWidget):
         self.refresh()
 
     @staticmethod
-    def _run_columns():
+    def _columns():
         return [
             ("started_at", t("desktop.started_at"), _time),
-            ("finished_at", t("desktop.finished_at"), _time),
+            ("task", t("desktop.task_type"), _task),
+            ("target", t("desktop.target"), None),
             ("status", t("desktop.status"), _status),
-            ("error", t("name.error"), None),
+            ("duration", t("desktop.duration"), _duration),
+            ("details", t("desktop.details"), None),
         ]
-
-    @staticmethod
-    def _operation_columns():
-        return [
-            ("started_at", t("desktop.started_at"), _time),
-            ("operation", t("desktop.operation"), lambda value, _: t(f"desktop.{value}", value or "--")),
-            ("target_type", t("desktop.target"), _target_type),
-            ("status", t("desktop.status"), _status),
-            ("message", t("desktop.details"), None),
-        ]
-
-    def _table(self, model):
-        table = TableView(self)
-        table.setModel(model)
-        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        table.verticalHeader().setVisible(False)
-        table.setBorderVisible(True)
-        table.setBorderRadius(8)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        table.horizontalHeader().setSectionResizeMode(model.columnCount() - 1, QHeaderView.ResizeMode.Stretch)
-        return table
 
     def refresh(self):
         try:
-            self.run_model.set_rows(list_runs(constants.channel_results_path))
-            self.operation_model.set_rows(list_operations(constants.channel_results_path))
+            runs = [
+                {
+                    **row,
+                    "task": "full_update",
+                    "target": "--",
+                    "duration": (row["finished_at"] - row["started_at"]) if row.get("finished_at") else None,
+                    "details": row.get("error") or "",
+                }
+                for row in list_runs(constants.channel_results_path)
+            ]
+            operation_rows = list_operations(constants.channel_results_path)
+            channel_names = {row["channel_key"]: row["name"] for row in list_channels(constants.channel_results_path)}
+            result_keys = [row.get("target_key") for row in operation_rows if row.get("target_type") == "result"]
+            result_names = result_metadata_map(constants.channel_results_path, result_keys)
+            operations = []
+            for row in operation_rows:
+                target_type = row.get("target_type")
+                target_key = row.get("target_key")
+                target_name = {
+                    "channel": channel_names.get(target_key),
+                    "result": (result_names.get(target_key) or {}).get("name"),
+                    "category": target_key,
+                }.get(target_type)
+                target = t(f"desktop.target_{target_type}", target_type or "--")
+                if target_name:
+                    target = f"{target} · {target_name}"
+                operations.append({
+                    **row,
+                    "task": row.get("operation"),
+                    "target": target,
+                    "duration": (row["finished_at"] - row["started_at"]) if row.get("finished_at") else None,
+                    "details": row.get("message") or "",
+                })
+            self.model.set_rows(sorted(runs + operations, key=lambda row: row.get("started_at") or 0, reverse=True))
         except Exception:
-            self.run_model.set_rows([])
-            self.operation_model.set_rows([])
+            self.model.set_rows([])
 
     def export(self):
         try:
@@ -108,5 +125,4 @@ class TasksPage(QWidget):
         self.title.setText(t("desktop.task_history"))
         self.refresh_button.setText(t("desktop.refresh"))
         self.export_button.setText(t("desktop.export_diagnostics"))
-        self.run_model.set_columns(self._run_columns())
-        self.operation_model.set_columns(self._operation_columns())
+        self.model.set_columns(self._columns())

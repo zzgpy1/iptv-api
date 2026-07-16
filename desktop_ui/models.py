@@ -1,9 +1,12 @@
 import os
 import re
+from collections import OrderedDict, deque
 from typing import Callable
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSize, QStandardPaths, Qt, QUrl, Signal
+from PySide6.QtGui import QColor, QIcon, QPixmap
+from PySide6.QtNetwork import QNetworkAccessManager, QNetworkDiskCache, QNetworkRequest
+from qfluentwidgets import FluentIcon
 
 from utils.config import config, resource_path
 from utils.i18n import get_language, t
@@ -58,10 +61,11 @@ def _config_kind(key: str, value: str) -> str:
 
 
 class MappingTableModel(QAbstractTableModel):
-    def __init__(self, columns: list[tuple[str, str, Callable | None]], parent=None):
+    def __init__(self, columns: list[tuple[str, str, Callable | None]], parent=None, checkable_key: str | None = None):
         super().__init__(parent)
         self.columns = columns
         self.rows: list[dict] = []
+        self.checkable_key = checkable_key
 
     def set_rows(self, rows: list[dict]):
         self.beginResetModel()
@@ -87,6 +91,8 @@ class MappingTableModel(QAbstractTableModel):
         value = row.get(key)
         if role == Qt.ItemDataRole.DisplayRole:
             return formatter(value, row) if formatter else "" if value is None else str(value)
+        if role == Qt.ItemDataRole.CheckStateRole and key == self.checkable_key:
+            return Qt.CheckState.Checked if value else Qt.CheckState.Unchecked
         if role == Qt.ItemDataRole.UserRole:
             return row
         if role == Qt.ItemDataRole.ForegroundRole and key == "health":
@@ -99,6 +105,22 @@ class MappingTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.TextAlignmentRole and isinstance(value, (int, float)):
             return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         return None
+
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if not index.isValid() or role != Qt.ItemDataRole.CheckStateRole:
+            return False
+        key = self.columns[index.column()][0]
+        if key != self.checkable_key:
+            return False
+        self.rows[index.row()][key] = value == Qt.CheckState.Checked.value or value == Qt.CheckState.Checked
+        self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
+        return True
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if index.isValid() and self.columns[index.column()][0] == self.checkable_key:
+            flags |= Qt.ItemFlag.ItemIsUserCheckable
+        return flags
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
@@ -119,6 +141,135 @@ class MappingTableModel(QAbstractTableModel):
     def row(self, index: QModelIndex | int) -> dict | None:
         row_index = index if isinstance(index, int) else index.row()
         return self.rows[row_index] if 0 <= row_index < len(self.rows) else None
+
+    def check_state(self):
+        if not self.checkable_key or not self.rows:
+            return Qt.CheckState.Unchecked
+        checked = sum(bool(row.get(self.checkable_key)) for row in self.rows)
+        if checked == 0:
+            return Qt.CheckState.Unchecked
+        if checked == len(self.rows):
+            return Qt.CheckState.Checked
+        return Qt.CheckState.PartiallyChecked
+
+    def set_all_checked(self, checked: bool):
+        if not self.checkable_key or not self.rows:
+            return
+        for row in self.rows:
+            row[self.checkable_key] = checked
+        column = next((index for index, item in enumerate(self.columns) if item[0] == self.checkable_key), 0)
+        self.dataChanged.emit(
+            self.index(0, column),
+            self.index(len(self.rows) - 1, column),
+            [Qt.ItemDataRole.CheckStateRole],
+        )
+
+
+class ChannelLogoLoader(QObject):
+    icon_ready = Signal(str)
+
+    def __init__(self, parent=None, max_entries: int = 512, max_concurrent: int = 6):
+        super().__init__(parent)
+        self._icons = OrderedDict()
+        self._queued = set()
+        self._queue = deque()
+        self._active = {}
+        self._max_entries = max_entries
+        self._max_concurrent = max_concurrent
+        self._fallback_icon = FluentIcon.VIDEO.icon()
+        self._network = QNetworkAccessManager(self)
+        cache = QNetworkDiskCache(self._network)
+        cache_dir = os.path.join(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.CacheLocation), "channel-logos")
+        cache.setCacheDirectory(cache_dir)
+        cache.setMaximumCacheSize(64 * 1024 * 1024)
+        self._network.setCache(cache)
+
+    @property
+    def fallback_icon(self):
+        return self._fallback_icon
+
+    def icon(self, logo: str):
+        if logo in self._icons:
+            self._icons.move_to_end(logo)
+            return self._icons[logo]
+        url = QUrl(logo)
+        if url.isLocalFile():
+            icon = QIcon(url.toLocalFile())
+        elif not url.scheme():
+            icon = QIcon(logo)
+        else:
+            self._enqueue(logo, url)
+            return None
+        if not icon.isNull():
+            self._store(logo, icon)
+            return icon
+        self._store(logo, self._fallback_icon)
+        return self._fallback_icon
+
+    def _enqueue(self, logo: str, url: QUrl):
+        if logo in self._queued or logo in self._active:
+            return
+        self._queued.add(logo)
+        self._queue.append((logo, url))
+        self._start_next()
+
+    def _start_next(self):
+        while self._queue and len(self._active) < self._max_concurrent:
+            logo, url = self._queue.popleft()
+            self._queued.discard(logo)
+            request = QNetworkRequest(url)
+            request.setAttribute(
+                QNetworkRequest.Attribute.CacheLoadControlAttribute,
+                QNetworkRequest.CacheLoadControl.PreferCache,
+            )
+            reply = self._network.get(request)
+            self._active[logo] = reply
+            reply.finished.connect(lambda value=logo, item=reply: self._loaded(value, item))
+
+    def _loaded(self, logo: str, reply):
+        self._active.pop(logo, None)
+        pixmap = QPixmap()
+        if reply.error() == reply.NetworkError.NoError and pixmap.loadFromData(reply.readAll()):
+            self._store(logo, QIcon(pixmap))
+        else:
+            self._store(logo, self._fallback_icon)
+        reply.deleteLater()
+        self.icon_ready.emit(logo)
+        self._start_next()
+
+    def _store(self, logo: str, icon: QIcon):
+        self._icons[logo] = icon
+        self._icons.move_to_end(logo)
+        while len(self._icons) > self._max_entries:
+            self._icons.popitem(last=False)
+
+
+class ChannelTableModel(MappingTableModel):
+    def __init__(self, columns, parent=None, checkable_key: str | None = None, logo_loader: ChannelLogoLoader | None = None):
+        super().__init__(columns, parent, checkable_key)
+        self._logo_loader = logo_loader or ChannelLogoLoader(self)
+        self._logo_loader.icon_ready.connect(self._logo_loaded)
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if index.isValid() and role == Qt.ItemDataRole.DecorationRole:
+            key = self.columns[index.column()][0]
+            if key == "name":
+                logo = str(self.rows[index.row()].get("logo") or "")
+                if logo:
+                    icon = self._logo_loader.icon(logo)
+                    if icon:
+                        return icon
+                return self._logo_loader.fallback_icon
+        if role == Qt.ItemDataRole.SizeHintRole and index.isValid() and self.columns[index.column()][0] == "name":
+            return QSize(180, 38)
+        return super().data(index, role)
+
+    def _logo_loaded(self, logo: str):
+        for row_index, row in enumerate(self.rows):
+            if row.get("logo") == logo:
+                column = next((i for i, item in enumerate(self.columns) if item[0] == "name"), 0)
+                index = self.index(row_index, column)
+                self.dataChanged.emit(index, index, [Qt.ItemDataRole.DecorationRole])
 
 
 class ConfigTableModel(QAbstractTableModel):
