@@ -18,20 +18,20 @@ config_files = [
     "epg.txt",
     "alias.txt",
 ]
-datas = [(os.path.join("config", item), "config") for item in config_files]
+datas = [(os.path.join("..", "config", item), "config") for item in config_files]
 datas.extend([
-    ("config/logo", "config/logo"),
-    ("locales", "locales"),
-    ("utils/ip_checker/data/qqwry.ipdb", "utils/ip_checker/data"),
-    ("favicon.ico", "."),
-    ("version.json", "."),
-    ("service/nginx.conf.template", "service"),
+    ("../config/logo", "config/logo"),
+    ("../locales", "locales"),
+    ("../utils/ip_checker/data/qqwry.ipdb", "utils/ip_checker/data"),
+    ("../favicon.ico", "."),
+    ("../version.json", "."),
+    ("../service/nginx.conf.template", "service"),
 ])
 if sys.platform == "win32":
-    datas.append(("utils/nginx-rtmp-win32", "utils/nginx-rtmp-win32"))
+    datas.append(("../utils/nginx-rtmp-win32", "utils/nginx-rtmp-win32"))
 
 a = Analysis(
-    ["desktop_ui/app.py"],
+    ["app.py"],
     pathex=["."],
     binaries=[],
     datas=datas,
@@ -60,7 +60,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="favicon.ico" if sys.platform == "win32" else None,
+    icon="../favicon.ico" if sys.platform == "win32" else None,
 )
 collection = COLLECT(
     exe,
@@ -75,7 +75,7 @@ if sys.platform == "darwin":
     app = BUNDLE(
         collection,
         name=f"{name}.app",
-        icon="favicon.ico",
+        icon="../favicon.ico",
         bundle_identifier="com.iptv-api.desktop",
         info_plist={"NSHighResolutionCapable": True},
     )

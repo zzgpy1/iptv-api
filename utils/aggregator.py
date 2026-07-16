@@ -40,6 +40,7 @@ class ResultAggregator:
         self._dirty_count = 0
         self._stopped = True
         self._task: Optional[asyncio.Task] = None
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
         self.realtime_write = config.open_realtime_write
         self.write_interval = write_interval
         self.first_channel_name = first_channel_name
@@ -80,11 +81,8 @@ class ResultAggregator:
                 asyncio.get_running_loop()
                 self._flush_event.set()
             except RuntimeError:
-                try:
-                    loop = asyncio.get_event_loop()
-                    loop.call_soon_threadsafe(self._flush_event.set)
-                except Exception:
-                    pass
+                if self._loop and self._loop.is_running():
+                    self._loop.call_soon_threadsafe(self._flush_event.set)
 
     async def _atomic_write_sorted_view(
             self,
@@ -275,6 +273,7 @@ class ResultAggregator:
             return
         if self._task and not self._task.done():
             return
+        self._loop = asyncio.get_running_loop()
         self._stopped = False
         self._flush_event.clear()
         self._task = asyncio.create_task(self._run_loop())
@@ -288,6 +287,7 @@ class ResultAggregator:
         if self._task:
             await self._task
             self._task = None
+        self._loop = None
         try:
             await self.flush_once(force=True)
         except Exception:

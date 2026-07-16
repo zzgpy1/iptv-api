@@ -19,7 +19,7 @@
     <img src="https://img.shields.io/github/v/release/guovin/iptv-api?label=Version" />
   </a>
   <a href="https://www.python.org/">
-    <img src="https://img.shields.io/badge/python-3.13-47c219?label=Python" />
+    <img src="https://img.shields.io/badge/python-3.14-47c219?label=Python" />
   </a>
   <a href="https://github.com/Guovin/iptv-api/releases/latest">
     <img src="https://img.shields.io/github/downloads/guovin/iptv-api/total?label=GUI%20Downloads" />
