@@ -35,6 +35,7 @@ from utils.tools import (
     to_serializable,
     get_subscribe_entries,
     count_disabled_urls,
+    get_resolution_value,
 )
 from utils.types import CategoryChannelData
 from utils.whitelist import load_whitelist_maps
@@ -277,6 +278,28 @@ class UpdateSource:
         self.start_time = time()
         completed_items = 0
         valid_counts = {}
+        playable_results = {}
+
+        def channel_metadata(cate, name):
+            items = self.aggregator.test_results[cate][name]
+            speeds = [item.get("speed") for item in items if (item.get("speed") or 0) > 0]
+            resolutions = [item.get("resolution") for item in items if item.get("resolution")]
+            playable_items = playable_results.get((cate, name), [])
+            best_item = max(playable_items, key=lambda item: item.get("speed") or 0, default=None)
+            logo = next((item.get("tvg_logo") for item in items if item.get("tvg_logo")), None)
+            if not logo:
+                logo = next(
+                    (item.get("tvg_logo") for item in self.channel_data.get(cate, {}).get(name, []) if item.get("tvg_logo")),
+                    None,
+                )
+            return {
+                "total_results": len(items),
+                "best_speed": max(speeds, default=None),
+                "max_resolution": max(resolutions, key=get_resolution_value, default=None),
+                "best_url": best_item.get("url") if best_item else None,
+                "playable_results": playable_items,
+                "logo": logo,
+            }
 
         def handle_task_complete(cate, name, item, is_channel_last=False, is_last=False, is_valid=True):
             nonlocal completed_items
@@ -285,6 +308,11 @@ class UpdateSource:
             key = (cate, name)
             if is_valid:
                 valid_counts[key] = valid_counts.get(key, 0) + 1
+                playable_results.setdefault(key, []).append({
+                    "url": item.get("url"),
+                    "speed": item.get("speed"),
+                    "resolution": item.get("resolution"),
+                })
             if self.update_progress:
                 self.update_progress(
                     name,
@@ -294,6 +322,8 @@ class UpdateSource:
                         "channel": name,
                         "status": "completed" if is_channel_last else "testing",
                         "valid_count": valid_counts.get(key, 0),
+                        "updated_at": time(),
+                        **channel_metadata(cate, name),
                     },
                 )
 
@@ -404,6 +434,49 @@ class UpdateSource:
                 else:
                     self.aggregator.test_results = self.channel_data
                     self.aggregator.is_last = True
+                    completed_channels = 0
+                    channel_total = sum(len(channels) for channels in self.channel_data.values())
+                    for category, channels in self.channel_data.items():
+                        for name, items in channels.items():
+                            completed_channels += 1
+                            if self.update_progress:
+                                self.update_progress(
+                                    name,
+                                    int(completed_channels / channel_total * 100) if channel_total else 100,
+                                    url={
+                                        "category": category,
+                                        "channel": name,
+                                        "status": "completed",
+                                        "valid_count": len(items),
+                                        "total_results": len(items),
+                                        "best_speed": max(
+                                            (item.get("speed") for item in items if (item.get("speed") or 0) > 0),
+                                            default=None,
+                                        ),
+                                        "max_resolution": max(
+                                            (item.get("resolution") for item in items if item.get("resolution")),
+                                            key=get_resolution_value,
+                                            default=None,
+                                        ),
+                                        "best_url": next(
+                                            (item.get("url") for item in items if item.get("url")),
+                                            None,
+                                        ),
+                                        "playable_results": [
+                                            {
+                                                "url": item.get("url"),
+                                                "speed": item.get("speed"),
+                                                "resolution": item.get("resolution"),
+                                            }
+                                            for item in items if item.get("url")
+                                        ],
+                                        "updated_at": time(),
+                                        "logo": next(
+                                            (item.get("tvg_logo") for item in items if item.get("tvg_logo")),
+                                            None,
+                                        ),
+                                    },
+                                )
 
             finally:
                 final_result = await self._stop_aggregator()

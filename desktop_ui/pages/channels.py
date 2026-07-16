@@ -1,11 +1,13 @@
+import datetime
+
 from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QSize, QSignalBlocker, Signal, Qt, QUrl
-from PySide6.QtGui import QDesktopServices, QGuiApplication, QMouseEvent
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QStyle, QStyledItemDelegate, QStyleOptionButton, QStyleOptionViewItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, EditableComboBox, FluentIcon, InfoBar, InfoBarPosition, LineEdit, MessageBox, PrimaryPushButton, ProgressBar, PushButton, RoundMenu, SearchLineEdit, TableView, ToolButton, isDarkTheme
+from PySide6.QtGui import QBrush, QColor, QDesktopServices, QGuiApplication, QMouseEvent, QPainter, QPen
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, EditableComboBox, FluentIcon, InfoBar, InfoBarPosition, LineEdit, MessageBox, ProgressBar, PushButton, RoundMenu, SearchLineEdit, TableView, ToolButton, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
-from desktop_ui.widgets import PageTitle
+from desktop_ui.widgets import AccentPushButton, DangerPushButton, PageTitle
 from utils.channel_repository import add_manual_result, delete_channel_records, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, set_channel_logo, upsert_manual_channel
 from utils.config import config
 from utils.i18n import t
@@ -31,6 +33,29 @@ def _delay(value, _):
     return "--" if value is None else f"{float(value):.0f} ms"
 
 
+def _updated_at(value, _):
+    return "--" if not value else datetime.datetime.fromtimestamp(float(value)).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _paint_checkbox(painter, rect, state):
+    size = min(16, rect.width(), rect.height())
+    box = QRect(rect.center().x() - size // 2, rect.center().y() - size // 2, size, size)
+    checked = state in (Qt.CheckState.Checked, Qt.CheckState.PartiallyChecked)
+    border = QColor("#60A5FA" if isDarkTheme() else "#2563EB") if checked else QColor("#94A3B8" if isDarkTheme() else "#64748B")
+    painter.save()
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(QPen(border, 1.6))
+    painter.setBrush(QBrush(border if checked else Qt.BrushStyle.NoBrush))
+    painter.drawRoundedRect(box.adjusted(1, 1, -1, -1), 3, 3)
+    painter.setPen(QPen(QColor("#FFFFFF"), 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+    if state == Qt.CheckState.Checked:
+        painter.drawLine(box.left() + 4, box.center().y(), box.left() + 7, box.bottom() - 4)
+        painter.drawLine(box.left() + 7, box.bottom() - 4, box.right() - 3, box.top() + 4)
+    elif state == Qt.CheckState.PartiallyChecked:
+        painter.drawLine(box.left() + 4, box.center().y(), box.right() - 4, box.center().y())
+    painter.restore()
+
+
 class CheckBoxHeader(QHeaderView):
     toggled = Signal(bool)
 
@@ -47,22 +72,7 @@ class CheckBoxHeader(QHeaderView):
         super().paintSection(painter, rect, logical_index)
         if logical_index != 0:
             return
-        option = QStyleOptionButton()
-        option.state = QStyle.StateFlag.State_Enabled
-        if self._state == Qt.CheckState.Checked:
-            option.state |= QStyle.StateFlag.State_On
-        elif self._state == Qt.CheckState.PartiallyChecked:
-            option.state |= QStyle.StateFlag.State_NoChange
-        else:
-            option.state |= QStyle.StateFlag.State_Off
-        indicator = self.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, option, self)
-        option.rect = QRect(
-            rect.center().x() - indicator.width() // 2,
-            rect.center().y() - indicator.height() // 2,
-            indicator.width(),
-            indicator.height(),
-        )
-        self.style().drawControl(QStyle.ControlElement.CE_CheckBox, option, painter, self)
+        _paint_checkbox(painter, rect, self._state)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton and self.logicalIndexAt(event.position().toPoint()) == 0:
@@ -79,26 +89,6 @@ class CheckBoxHeader(QHeaderView):
 
 
 class CheckBoxDelegate(QStyledItemDelegate):
-    @staticmethod
-    def _style_widget(option):
-        widget = option.widget
-        if widget and hasattr(widget, "horizontalHeader"):
-            return widget.horizontalHeader()
-        table = widget.parentWidget() if widget else None
-        return table.horizontalHeader() if table and hasattr(table, "horizontalHeader") else widget
-
-    @classmethod
-    def _indicator_rect(cls, option):
-        widget = cls._style_widget(option)
-        check_option = QStyleOptionButton()
-        indicator = widget.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, check_option, widget)
-        return QRect(
-            option.rect.center().x() - indicator.width() // 2,
-            option.rect.center().y() - indicator.height() // 2,
-            indicator.width(),
-            indicator.height(),
-        )
-
     def paint(self, painter, option, index):
         base_option = QStyleOptionViewItem(option)
         self.initStyleOption(base_option, index)
@@ -107,18 +97,8 @@ class CheckBoxDelegate(QStyledItemDelegate):
         option.widget.style().drawControl(
             QStyle.ControlElement.CE_ItemViewItem, base_option, painter, option.widget
         )
-        style_widget = self._style_widget(option)
-        check_option = QStyleOptionButton()
-        check_option.rect = self._indicator_rect(option)
-        check_option.state = QStyle.StateFlag.State_Enabled
         state = index.data(Qt.ItemDataRole.CheckStateRole)
-        if state == Qt.CheckState.Checked:
-            check_option.state |= QStyle.StateFlag.State_On
-        elif state == Qt.CheckState.PartiallyChecked:
-            check_option.state |= QStyle.StateFlag.State_NoChange
-        else:
-            check_option.state |= QStyle.StateFlag.State_Off
-        style_widget.style().drawControl(QStyle.ControlElement.CE_CheckBox, check_option, painter, style_widget)
+        _paint_checkbox(painter, option.rect, state)
 
     def editorEvent(self, event, model, option, index):
         if event.type() == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
@@ -177,8 +157,8 @@ class ChannelCenterPage(QWidget):
         self.refresh_button.setToolTip(t("desktop.refresh"))
         self.add_channel_button = PushButton(FluentIcon.ADD, t("desktop.add_channel"), self)
         self.add_result_button = PushButton(FluentIcon.LINK, t("desktop.add_result"), self)
-        self.delete_channel_button = PushButton(FluentIcon.DELETE, t("desktop.delete_channel"), self)
-        self.retest_channel_button = PrimaryPushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_channel"), self)
+        self.delete_channel_button = DangerPushButton(FluentIcon.DELETE, t("desktop.delete_channel"), self)
+        self.retest_channel_button = AccentPushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_channel"), self)
         self.selection_label = BodyLabel("", self)
         self.selection_label.hide()
         self.task_label = BodyLabel("", self)
@@ -253,8 +233,8 @@ class ChannelCenterPage(QWidget):
         drawer_layout.setSpacing(8)
         header = QHBoxLayout()
         self.results_title = BodyLabel(t("desktop.results"), self.result_drawer)
-        self.play_button = PrimaryPushButton(FluentIcon.PLAY, t("desktop.play"), self.result_drawer)
-        self.retest_result_button = PushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_result"), self.result_drawer)
+        self.play_button = AccentPushButton(FluentIcon.PLAY, t("desktop.play"), self.result_drawer)
+        self.retest_result_button = AccentPushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_result"), self.result_drawer)
         self.stream_button = PushButton(FluentIcon.VIDEO, t("desktop.stream_playback"), self.result_drawer)
         self.more_button = PushButton(FluentIcon.MORE, t("desktop.more_actions"), self.result_drawer)
         self.close_drawer_button = ToolButton(FluentIcon.CLOSE, self.result_drawer)
@@ -307,7 +287,7 @@ class ChannelCenterPage(QWidget):
         self.channel_retest_action = Action(FluentIcon.SPEED_HIGH, t("desktop.retest_channel"), self, triggered=self._request_channel_retest)
         self.channel_add_result_action = Action(FluentIcon.LINK, t("desktop.add_result"), self, triggered=self._add_manual_result)
         self.channel_edit_logo_action = Action(FluentIcon.PHOTO, t("desktop.edit_channel_logo"), self, triggered=self._edit_channel_logo)
-        self.channel_delete_action = Action(FluentIcon.DELETE, t("desktop.delete_channel"), self, triggered=self._delete_selected_channels)
+        self.channel_delete_action = Action(FluentIcon.DELETE.icon(color=QColor("#DC2626")), t("desktop.delete_channel"), self, triggered=self._delete_selected_channels)
         self.channel_menu = RoundMenu(parent=self)
         for action in (self.channel_retest_action, self.channel_add_result_action, self.channel_edit_logo_action, self.channel_delete_action):
             self.channel_menu.addAction(action)
@@ -326,6 +306,7 @@ class ChannelCenterPage(QWidget):
             ("best_speed", t("name.max_speed"), _speed),
             ("min_delay", t("name.min_delay"), _delay),
             ("max_resolution", t("name.max_resolution"), None),
+            ("updated_at", t("desktop.updated_at"), _updated_at),
         ]
 
     @staticmethod

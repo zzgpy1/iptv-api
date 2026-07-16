@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import ComboBox, FluentIcon, InfoBar, InfoBarPosition, LineEdit, PlainTextEdit, PushButton, SwitchButton
 
 import utils.constants as constants
-from desktop_ui.widgets import PageTitle
+from desktop_ui.widgets import AccentPushButton, PageTitle
 from utils.diagnostics import export_logs
 from utils.i18n import t
 
@@ -31,7 +31,7 @@ class LogsPage(QWidget):
         self.autoscroll.setChecked(True)
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
         self.clear_button = PushButton(FluentIcon.BROOM, t("desktop.clear_view"), self)
-        self.export_button = PushButton(FluentIcon.ZIP_FOLDER, t("desktop.export_logs"), self)
+        self.export_button = AccentPushButton(FluentIcon.ZIP_FOLDER, t("desktop.export_logs"), self)
         self.viewer = PlainTextEdit(self)
         self.viewer.setReadOnly(True)
         self.viewer.setLineWrapMode(PlainTextEdit.LineWrapMode.NoWrap)

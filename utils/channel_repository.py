@@ -148,6 +148,19 @@ def finish_run(db_path: str, run_id: str | None, status: str, error: str | None 
         return_db_connection(db_path, conn)
 
 
+def latest_successful_run(db_path: str) -> dict[str, Any] | None:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            "SELECT * FROM runs WHERE status='success' ORDER BY finished_at DESC LIMIT 1"
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        return_db_connection(db_path, conn)
+
+
 def _resolution_value(value: str | None) -> int:
     try:
         width, height = str(value).lower().replace("*", "x").split("x", 1)
@@ -207,6 +220,11 @@ def sync_channel_snapshot(
     tested_data = tested_data or {}
     selected_data = selected_data or {}
     now = time.time()
+    existing_conn = get_db_connection(db_path)
+    try:
+        existing_updated_at = dict(existing_conn.execute("SELECT channel_key, updated_at FROM channels").fetchall())
+    finally:
+        return_db_connection(db_path, existing_conn)
     channel_rows = []
     result_rows = []
     channel_keys = set()
@@ -228,6 +246,8 @@ def sync_channel_snapshot(
             health = "healthy" if len(valid_items) >= 2 else "warning" if valid_items else "offline"
             if not tested_data.get(category, {}).get(name) and not selected_items:
                 health = "unknown"
+            tested_times = [item.get("tested_at") for item in items if item.get("tested_at")]
+            updated_at = max(tested_times, default=existing_updated_at.get(channel_key, now))
             channel_rows.append((
                 channel_key,
                 category,
@@ -239,7 +259,7 @@ def sync_channel_snapshot(
                 min(delays, default=None),
                 max(resolutions, key=_resolution_value, default=None),
                 health,
-                now,
+                updated_at,
             ))
             for item in items:
                 extra_data = {
@@ -353,6 +373,16 @@ def list_channels(db_path: str, category: str | None = None, search: str = "") -
         rows = conn.execute(
             f"""
             SELECT channels.*,
+                   (
+                       SELECT channel_results.url
+                       FROM channel_results
+                       WHERE channel_results.channel_key=channels.channel_key
+                         AND channel_results.url IS NOT NULL
+                         AND channel_results.url != ''
+                         AND channel_results.valid = 1
+                       ORDER BY selected_rank IS NULL, selected_rank, valid DESC, speed DESC, delay ASC
+                       LIMIT 1
+                   ) AS best_url,
                    COALESCE(NULLIF(channels.logo, ''), (
                        SELECT json_extract(channel_results.extra_data, '$.tvg_logo')
                        FROM channel_results

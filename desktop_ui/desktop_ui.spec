@@ -29,6 +29,8 @@ datas.extend([
 ])
 if sys.platform == "win32":
     datas.append(("../utils/nginx-rtmp-win32", "utils/nginx-rtmp-win32"))
+if sys.platform == "darwin":
+    datas.append(("../static/images/macos_app_icon.icns", "static/images"))
 
 a = Analysis(
     ["app.py"],
@@ -75,7 +77,11 @@ if sys.platform == "darwin":
     app = BUNDLE(
         collection,
         name=f"{name}.app",
-        icon="../favicon.ico",
+        icon="../static/images/macos_app_icon.icns",
         bundle_identifier="com.iptv-api.desktop",
-        info_plist={"NSHighResolutionCapable": True},
+        info_plist={
+            "NSHighResolutionCapable": True,
+            "CFBundleDisplayName": "IPTV API",
+            "CFBundleName": "IPTV API",
+        },
     )

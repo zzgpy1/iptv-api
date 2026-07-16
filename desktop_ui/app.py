@@ -46,10 +46,12 @@ def main():
         return 0
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
+    app.setApplicationDisplayName("IPTV API")
     app.setQuitOnLastWindowClosed(False)
     _configure_fonts()
     from utils.config import resource_path
-    app.setWindowIcon(QIcon(resource_path("favicon.ico")))
+    icon_path = "static/images/macos_app_icon.icns" if sys.platform == "darwin" else "favicon.ico"
+    app.setWindowIcon(QIcon(resource_path(icon_path)))
     from desktop_ui.main_window import MainWindow
     theme = str(QSettings().value("appearance/theme", "system"))
     setTheme({"dark": Theme.DARK, "light": Theme.LIGHT}.get(theme, Theme.AUTO))

@@ -7,6 +7,7 @@ from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSize, QSt
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkDiskCache, QNetworkRequest
 from qfluentwidgets import FluentIcon
+import pytz
 
 from utils.config import config, resource_path
 from utils.i18n import get_language, t
@@ -49,6 +50,12 @@ def _config_descriptions() -> dict[str, str]:
 
 
 def _config_kind(key: str, value: str) -> str:
+    if key == "update_times":
+        return "times"
+    if key == "update_interval":
+        return "hours"
+    if key == "time_zone":
+        return "timezone"
     if value.strip().lower() in {"true", "false"}:
         return "bool"
     if key in CONFIG_OPTIONS:
@@ -300,7 +307,7 @@ class ConfigTableModel(QAbstractTableModel):
                 "description": description,
                 "env_name": env_name,
                 "kind": _config_kind(key, value),
-                "options": CONFIG_OPTIONS.get(key, []),
+                "options": pytz.common_timezones if key == "time_zone" else CONFIG_OPTIONS.get(key, []),
             })
         self.rows = list(self.all_rows)
         self.endResetModel()

@@ -3,10 +3,10 @@ import os
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, HyperlinkButton, InfoBar, InfoBarPosition, PrimaryPushButton, ProgressBar, PushButton, StrongBodyLabel, SubtitleLabel
+from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, HyperlinkButton, InfoBar, InfoBarPosition, ProgressBar, PushButton, StrongBodyLabel, SubtitleLabel
 
 from desktop_ui.update_manager import REPOSITORY_URL, UpdateManager
-from desktop_ui.widgets import PageTitle
+from desktop_ui.widgets import AccentPushButton, PageTitle
 from utils.config import resource_path
 from utils.i18n import t
 from utils.tools import get_version_info
@@ -48,7 +48,7 @@ class AboutPage(QWidget):
         self.progress = ProgressBar(self.version_card)
         self.progress.hide()
         actions = QHBoxLayout()
-        self.check_button = PrimaryPushButton(FluentIcon.SYNC, t("desktop.check_updates"), self.version_card)
+        self.check_button = AccentPushButton(FluentIcon.SYNC, t("desktop.check_updates"), self.version_card)
         self.download_button = PushButton(FluentIcon.DOWNLOAD, t("desktop.download_update"), self.version_card)
         self.download_button.hide()
         self.release_button = HyperlinkButton(FluentIcon.GLOBE, self.release_url, t("desktop.open_release"), self.version_card)

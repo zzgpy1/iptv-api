@@ -2,9 +2,9 @@ import os
 import sys
 import threading
 
-from PySide6.QtCore import QRect, QSettings, Signal, Qt
+from PySide6.QtCore import QRect, QSettings, QTimer, Signal, Qt
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter
-from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QCheckBox, QDialog, QDialogButtonBox, QLabel, QMenu, QMessageBox, QSystemTrayIcon, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, FluentWindow, InfoBar, InfoBarPosition, NavigationItemPosition, Theme, isDarkTheme, setTheme
 
 from desktop_ui.controller import ChannelOperationController, RtmpMonitorController, ServiceProcessController, UpdateController
@@ -17,6 +17,7 @@ from desktop_ui.pages.settings import SettingsPage
 from desktop_ui.pages.sources import SourcesPage
 from desktop_ui.pages.tasks import TasksPage
 from desktop_ui.models import ChannelLogoLoader
+from desktop_ui.platform_integration import set_macos_activation_policy
 import utils.constants as constants
 from utils.config import config, resource_path
 from utils.i18n import get_language, set_language, t
@@ -64,7 +65,8 @@ class MainWindow(FluentWindow):
         super().__init__()
         info = get_version_info()
         self.setWindowTitle(str(info.get("name") or "IPTV-API"))
-        self.setWindowIcon(QIcon(resource_path("favicon.ico")))
+        icon_path = "static/images/macos_app_icon.icns" if sys.platform == "darwin" else "favicon.ico"
+        self.setWindowIcon(QIcon(resource_path(icon_path)))
         self.resize(1280, 800)
         self.setMinimumSize(960, 640)
         self.navigationInterface.setReturnButtonVisible(False)
@@ -88,7 +90,7 @@ class MainWindow(FluentWindow):
         self.dashboard_item = self.addSubInterface(self.dashboard, FluentIcon.HOME, t("desktop.dashboard"))
         self.channels_item = self.addSubInterface(self.channels, FluentIcon.LIBRARY, t("desktop.channel_center"))
         self.rtmp_item = self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.rtmp_monitor"))
-        self.sources_item = self.addSubInterface(self.sources, FluentIcon.DOCUMENT, t("desktop.sources"))
+        self.sources_item = self.addSubInterface(self.sources, FluentIcon.CLOUD_DOWNLOAD, t("desktop.sources"))
         self.logs_item = self.addSubInterface(self.logs, FluentIcon.COMMAND_PROMPT, t("desktop.logs"))
         self.tasks_item = self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
         self.settings_item = self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)
@@ -127,6 +129,7 @@ class MainWindow(FluentWindow):
         self.dashboard.run_requested.connect(self._start_update)
         self.dashboard.cancel_requested.connect(self.controller.cancel)
         self.dashboard.destination_requested.connect(self._navigate_from_dashboard)
+        self.settings.settings_saved.connect(self.dashboard.refresh_schedule)
         self.controller.started.connect(self._update_started)
         self.controller.progress.connect(self.dashboard.set_progress)
         self.controller.output.connect(self.logs.append_runtime)
@@ -161,14 +164,16 @@ class MainWindow(FluentWindow):
             self._start_service()
         self.rtmp_controller.start()
         QApplication.instance().aboutToQuit.connect(self.shutdown)
+        self._force_quit = False
         self.tray = None
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray = QSystemTrayIcon(self.windowIcon(), self)
+            self.tray.setToolTip("IPTV API")
             menu = QMenu(self)
             self.show_action = QAction(t("desktop.show_window"), self)
             self.quit_action = QAction(t("desktop.quit"), self)
             self.show_action.triggered.connect(self.show_and_raise)
-            self.quit_action.triggered.connect(QApplication.quit)
+            self.quit_action.triggered.connect(self.quit_app)
             menu.addAction(self.show_action)
             menu.addSeparator()
             menu.addAction(self.quit_action)
@@ -278,9 +283,15 @@ class MainWindow(FluentWindow):
         self._position_navigation_resize_handle()
 
     def show_and_raise(self):
+        if sys.platform == "darwin":
+            set_macos_activation_policy(False)
         self.show()
         self.raise_()
         self.activateWindow()
+
+    def quit_app(self):
+        self._force_quit = True
+        QApplication.quit()
 
     def _navigate_from_dashboard(self, destination: str):
         page = {
@@ -414,8 +425,42 @@ class MainWindow(FluentWindow):
         self.controller.shutdown()
 
     def closeEvent(self, event):
-        if self.tray and self.tray.isVisible():
+        if self._force_quit:
+            event.accept()
+            return
+        if sys.platform == "win32" and self.tray and self.tray.isVisible():
+            action = str(QSettings().value("behavior/windows_close_action", "ask"))
+            if action == "ask":
+                action = self._ask_windows_close_action()
+            if action == "cancel":
+                event.ignore()
+                return
+            if action == "quit":
+                self._force_quit = True
+                event.accept()
+                QTimer.singleShot(0, QApplication.quit)
+                return
             self.hide()
             event.ignore()
             return
+        if self.tray and self.tray.isVisible():
+            self.hide()
+            event.ignore()
+            if sys.platform == "darwin":
+                QTimer.singleShot(0, lambda: set_macos_activation_policy(True))
+            return
         super().closeEvent(event)
+
+    def _ask_windows_close_action(self):
+        dialog = QMessageBox(QMessageBox.Icon.Question, t("desktop.close_window"), t("desktop.close_window_prompt"), parent=self)
+        minimize_button = dialog.addButton(t("desktop.minimize_to_tray"), QMessageBox.ButtonRole.AcceptRole)
+        quit_button = dialog.addButton(t("desktop.quit_app"), QMessageBox.ButtonRole.DestructiveRole)
+        dialog.addButton(t("desktop.cancel"), QMessageBox.ButtonRole.RejectRole)
+        remember = QCheckBox(t("desktop.remember_close_action"), dialog)
+        dialog.setCheckBox(remember)
+        dialog.exec()
+        clicked = dialog.clickedButton()
+        action = "tray" if clicked is minimize_button else "quit" if clicked is quit_button else "cancel"
+        if remember.isChecked() and action in {"tray", "quit"}:
+            QSettings().setValue("behavior/windows_close_action", action)
+        return action

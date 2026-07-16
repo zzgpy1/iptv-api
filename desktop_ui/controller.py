@@ -6,6 +6,7 @@ import sys
 import traceback
 from collections import deque
 import threading
+import time
 
 from PySide6.QtCore import QByteArray, QObject, QProcess, QProcessEnvironment, QThread, QUrl, Signal, Slot
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
@@ -30,6 +31,7 @@ class UpdateWorker(QObject):
         self.loop = None
         self.task = None
         self.source = UpdateSource()
+        self._last_progress_emit = 0.0
 
     @Slot()
     def run(self):
@@ -56,6 +58,11 @@ class UpdateWorker(QObject):
             self.loop.call_soon_threadsafe(self.task.cancel)
 
     def _progress(self, title, progress, finished=False, url=None, now=None):
+        timestamp = time.monotonic()
+        channel_completed = isinstance(url, dict) and url.get("status") == "completed"
+        if not finished and not channel_completed and timestamp - self._last_progress_emit < 0.1:
+            return
+        self._last_progress_emit = timestamp
         self.progress.emit(str(title), int(progress), bool(finished), url, now)
 
 

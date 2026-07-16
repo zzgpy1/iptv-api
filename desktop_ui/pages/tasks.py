@@ -3,11 +3,11 @@ from datetime import datetime
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PrimaryPushButton, PushButton, TableView
+from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, TableView
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
-from desktop_ui.widgets import PageTitle
+from desktop_ui.widgets import AccentPushButton, PageTitle
 from utils.channel_repository import list_channels, list_operations, list_runs, result_metadata_map
 from utils.diagnostics import export_diagnostics
 from utils.i18n import t
@@ -43,7 +43,7 @@ class TasksPage(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
-        self.export_button = PrimaryPushButton(FluentIcon.IMAGE_EXPORT, t("desktop.export_diagnostics"), self)
+        self.export_button = AccentPushButton(FluentIcon.ZIP_FOLDER, t("desktop.export_diagnostics"), self)
         actions = QHBoxLayout()
         actions.addStretch(1)
         actions.addWidget(self.refresh_button)

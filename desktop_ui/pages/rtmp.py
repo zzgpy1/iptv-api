@@ -5,10 +5,10 @@ from PySide6.QtCharts import QChart, QChartView, QDateTimeAxis, QLineSeries, QVa
 from PySide6.QtCore import QDateTime, Signal, Qt
 from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QPen
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QHBoxLayout, QSizePolicy, QSplitter, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, FluentIcon, PrimaryPushButton, PushButton, ScrollArea, TableView, isDarkTheme, qconfig
+from qfluentwidgets import BodyLabel, FluentIcon, PushButton, ScrollArea, TableView, isDarkTheme, qconfig
 
 from desktop_ui.models import MappingTableModel
-from desktop_ui.widgets import MetricCard, PageTitle, metric_row
+from desktop_ui.widgets import AccentPushButton, MetricCard, PageTitle, metric_row
 from utils.i18n import t
 
 
@@ -39,7 +39,7 @@ class RtmpPage(QWidget):
         self.client_card = MetricCard(t("desktop.clients"), "0")
         self.bandwidth_card = MetricCard(t("desktop.output_bandwidth"), "0 Kbit/s")
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
-        self.install_button = PrimaryPushButton(FluentIcon.DOWNLOAD, t("desktop.install_nginx_rtmp"), self)
+        self.install_button = AccentPushButton(FluentIcon.DOWNLOAD, t("desktop.install_nginx_rtmp"), self)
         self.install_button.hide()
         self.stop_button = PushButton(FluentIcon.PAUSE_BOLD, t("desktop.stop_stream"), self)
         self.restart_button = PushButton(FluentIcon.ROTATE, t("desktop.restart_stream"), self)
