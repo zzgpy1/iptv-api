@@ -242,22 +242,22 @@ pipenv run service
 
 ### GUI Software
 
-The PySide6 and QFluentWidgets desktop app supports Windows and macOS. Its navigation bar switches the interface between Chinese and English in real time, edits configuration with typed controls, switches between light and dark themes, displays live progress and logs, manages categories/channels/results, retests a channel or result, monitors RTMP, keeps task history, and checks for updates online.
+The recommended GUI is the new PySide6 and QFluentWidgets desktop app for Windows and macOS. Its navigation bar switches the interface between Chinese and English in real time, edits configuration with typed controls, switches between light and dark themes, displays live progress and logs, manages categories/channels/results, retests a channel or result, monitors RTMP, keeps task history, and checks for updates online.
 
 Install dependencies and start the desktop app:
 
 ```shell
 pipenv install --dev
-pipenv run desktop_ui
+pipenv run ui
 ```
 
 Build a package for the current platform:
 
 ```shell
-pipenv run desktop_build
+pipenv run ui_build
 ```
 
-The legacy Tkinter interface remains available with `pipenv run ui`. Resolution probing requires FFmpeg. Windows can use the bundled nginx-rtmp runtime. On macOS the app detects an installed nginx build with the RTMP module; `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can explicitly select the executable and dynamic module.
+The legacy Tkinter interface is retained only as a compatibility option. Start it with `pipenv run legacy_ui` or package it with `pipenv run legacy_ui_build`. Resolution probing requires FFmpeg. Windows can use the bundled nginx-rtmp runtime. On macOS the app detects an installed nginx build with the RTMP module; `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can explicitly select the executable and dynamic module.
 
 ### Docker
 

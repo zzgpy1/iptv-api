@@ -35,8 +35,8 @@ jobs:
           pipenv --python 3.14
           pipenv install --dev
 
-      - name: Build the Fluent desktop application
-        run: pipenv run desktop_build
+      - name: Build the primary GUI application
+        run: pipenv run ui_build
 
       - name: Read version info
         shell: bash
@@ -57,32 +57,32 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $bundle = Join-Path $PWD "dist\$env:name-Desktop-v$env:version"
+          $bundle = Join-Path $PWD "dist\$env:name-GUI-v$env:version"
           if (-not (Test-Path $bundle)) {
             Write-Error "Windows application directory not found: $bundle"
             exit 1
           }
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-          $asset = "$env:name-Desktop-Windows-$env:RUNNER_ARCH-v$env:version.zip"
+          $asset = "$env:name-GUI-Windows-$env:RUNNER_ARCH-v$env:version.zip"
           Compress-Archive -Path $bundle -DestinationPath (Join-Path $PWD "artifacts\$asset")
 
       - name: Package macOS application
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          app_path="dist/${name}-Desktop-v${version}.app"
+          app_path="dist/${name}-GUI-v${version}.app"
           if [[ ! -d "$app_path" ]]; then
             echo "macOS application bundle not found: $app_path" >&2
             exit 1
           fi
           mkdir -p artifacts
-          asset="${name}-Desktop-macOS-${RUNNER_ARCH}-v${version}.zip"
+          asset="${name}-GUI-macOS-${RUNNER_ARCH}-v${version}.zip"
           ditto -c -k --sequesterRsrc --keepParent "$app_path" "artifacts/$asset"
 
-      - name: Upload desktop artifact
+      - name: Upload GUI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-${{ matrix.platform }}-${{ runner.arch }}
+          name: gui-${{ matrix.platform }}-${{ runner.arch }}
           path: artifacts/*.zip
           if-no-files-found: error
 
@@ -96,10 +96,10 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Download desktop artifacts
+      - name: Download GUI artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: desktop-*
+          pattern: gui-*
           path: release-assets
           merge-multiple: true
 

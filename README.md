@@ -237,22 +237,22 @@ pipenv run service
 
 ### GUI 软件
 
-基于 PySide6 与 QFluentWidgets 的桌面端支持 Windows 和 macOS，可从导航栏实时切换中文/English 界面、直接修改配置、切换深浅色主题、查看实时进度与日志，并提供频道分类/频道/结果三级管理、单频道或单结果重新测速、RTMP 监控、任务历史与在线版本检查。
+推荐使用基于 PySide6 与 QFluentWidgets 的新版 GUI，支持 Windows 和 macOS。它可从导航栏实时切换中文/English 界面、直接修改配置、切换深浅色主题、查看实时进度与日志，并提供频道分类/频道/结果三级管理、单频道或单结果重新测速、RTMP 监控、任务历史与在线版本检查。
 
 安装依赖并启动桌面端：
 
 ```shell
 pipenv install --dev
-pipenv run desktop_ui
+pipenv run ui
 ```
 
 构建当前平台的安装包：
 
 ```shell
-pipenv run desktop_build
+pipenv run ui_build
 ```
 
-旧版 Tkinter 界面仍可通过 `pipenv run ui` 启动。分辨率检测需要系统安装 FFmpeg。Windows 可使用随包提供的 nginx-rtmp；macOS 会自动检测系统中带 RTMP 模块的 nginx，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定可执行文件与动态模块。
+旧版 Tkinter 界面仅作为兼容选项保留，可通过 `pipenv run legacy_ui` 启动，并通过 `pipenv run legacy_ui_build` 打包。分辨率检测需要系统安装 FFmpeg。Windows 可使用随包提供的 nginx-rtmp；macOS 会自动检测系统中带 RTMP 模块的 nginx，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定可执行文件与动态模块。
 
 ### Docker
 

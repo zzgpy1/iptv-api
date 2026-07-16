@@ -7,7 +7,7 @@ import sys
 with open("version.json", encoding="utf-8") as file:
     version_data = json.load(file)
 
-name = f"{version_data['name']}-Desktop-v{version_data['version']}"
+name = f"{version_data['name']}-GUI-v{version_data['version']}"
 config_files = [
     "config.ini",
     "demo.txt",

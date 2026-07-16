@@ -2,9 +2,9 @@ import os
 import sys
 
 from PySide6.QtCore import QCoreApplication, QSettings, QStandardPaths, Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QFontDatabase, QIcon
 from PySide6.QtWidgets import QApplication
-from qfluentwidgets import Theme, setTheme, setThemeColor
+from qfluentwidgets import Theme, setFontFamilies, setTheme, setThemeColor
 
 
 def _prepare_runtime():
@@ -25,6 +25,18 @@ def _copy_runtime_resources():
         config.copy(os.path.join("utils", "nginx-rtmp-win32"))
 
 
+def _configure_fonts():
+    candidates = {
+        "darwin": ["PingFang SC", "Helvetica Neue", "Arial"],
+        "win32": ["Segoe UI", "Microsoft YaHei", "Arial"],
+    }.get(sys.platform, ["Noto Sans CJK SC", "Noto Sans", "DejaVu Sans"])
+    available = set(QFontDatabase.families())
+    families = [family for family in candidates if family in available]
+    if not families:
+        families = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont).families()
+    setFontFamilies(families)
+
+
 def main():
     _prepare_runtime()
     _copy_runtime_resources()
@@ -35,6 +47,7 @@ def main():
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+    _configure_fonts()
     from utils.config import resource_path
     app.setWindowIcon(QIcon(resource_path("favicon.ico")))
     from desktop_ui.main_window import MainWindow

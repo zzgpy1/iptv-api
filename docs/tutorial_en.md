@@ -313,24 +313,24 @@ pipenv run service
 
 ## GUI Software
 
-The new desktop app uses PySide6 and QFluentWidgets and supports Windows and macOS. The dashboard starts or cancels a full update and shows stage progress. Channel Center displays category, channel, and result metrics and supports category/channel/result retests, copy/play actions, whitelist and blacklist updates, and stream start. RTMP Monitor provides a light/dark adaptive bandwidth chart plus client and media details. Settings uses switches, choices, and numeric controls based on each value type. More Information checks and downloads new builds for the current platform. Tasks keeps update and operation history and exports a redacted diagnostic bundle.
+The recommended GUI is the new PySide6 and QFluentWidgets desktop app for Windows and macOS. The dashboard starts or cancels a full update and shows stage progress. Channel Center displays category, channel, and result metrics and supports category/channel/result retests, copy/play actions, whitelist and blacklist updates, and stream start. RTMP Monitor provides a light/dark adaptive bandwidth chart plus client and media details. Settings uses switches, choices, and numeric controls based on each value type. More Information checks and downloads new builds for the current platform. Tasks keeps update and operation history and exports a redacted diagnostic bundle.
 
 Install dependencies and start it from the project directory:
 
 ```shell
 pipenv install --dev
-pipenv run desktop_ui
+pipenv run ui
 ```
 
 Build the desktop application for the current platform:
 
 ```shell
-pipenv run desktop_build
+pipenv run ui_build
 ```
 
 Settings are saved to `config/user_config.ini`; generated results, channel snapshots, task history, and logs are stored under `output/`. A packaged application places these directories in the operating system's application data directory on first launch. Install FFmpeg before enabling resolution probing. The Windows package can include nginx-rtmp. On macOS, install an nginx build with the RTMP module; the app generates and starts an isolated configuration automatically, while `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can override discovery.
 
-The legacy Tkinter interface remains available with `pipenv run ui`.
+The legacy Tkinter interface is retained only as a compatibility option. Start it with `pipenv run legacy_ui` or package it with `pipenv run legacy_ui_build`.
 
 ## Docker
 
