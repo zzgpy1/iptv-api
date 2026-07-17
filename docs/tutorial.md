@@ -269,7 +269,7 @@ pipenv run service
 
 ## GUI 软件
 
-推荐使用基于 PySide6 与 QFluentWidgets 的新版 GUI，支持 Windows 与 macOS。首页可启动或取消完整更新并查看阶段进度；频道中心按分类、频道、结果查看测速数据，并支持分类、单频道或单结果重新测速、复制/播放地址、加入黑白名单及启动推流；推流监控页显示自适应深浅色主题的带宽图表、客户端和媒体信息；设置页根据配置类型提供开关、选项和数值控件；更多信息页可检查并下载当前平台的新版本；任务页保留更新与操作历史并可导出脱敏诊断包。
+基于 PySide6 与 QFluentWidgets 的新版桌面端是当前唯一受支持的 GUI，支持 Windows 与 macOS。首页可启动或取消完整更新并查看阶段进度；频道中心按分类、频道、结果查看测速数据，并支持分类、单频道或单结果重新测速、复制/播放地址、加入黑白名单及启动推流；推流监控页显示自适应深浅色主题的带宽图表、客户端和媒体信息；设置页根据配置类型提供开关、选项和数值控件；更多信息页可检查并下载当前平台的新版本；任务页保留更新与操作历史并可导出脱敏诊断包。后续 GUI 维护、问题修复和新功能均面向该桌面端。
 
 在项目目录安装依赖并启动：
 
@@ -286,7 +286,7 @@ pipenv run ui_build
 
 配置保存到 `config/user_config.ini`，运行结果、频道快照、任务历史与日志保存在 `output/`。打包应用首次启动时，这两个目录位于系统应用数据目录。启用分辨率检测前请安装 FFmpeg。Windows 包内可附带 nginx-rtmp；macOS 需要安装带 RTMP 模块的 nginx，桌面端会自动生成独立配置并启动，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定路径。
 
-旧版 Tkinter 界面仅作为兼容选项保留，可通过 `pipenv run legacy_ui` 启动，并通过 `pipenv run legacy_ui_build` 打包。
+旧版 Tkinter 界面已弃用，仅为兼容现有用户而临时保留，并将在后续版本中移除。该界面不再维护、修复问题或新增功能；过渡期间仍可通过 `pipenv run legacy_ui` 启动，并通过 `pipenv run legacy_ui_build` 打包。
 
 ## Docker
 
