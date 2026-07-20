@@ -231,7 +231,7 @@ class RtmpPage(QWidget):
         page_background = QColor("#202124" if dark else "#F3F3F3")
         text = QColor("#F8FAFC" if dark else "#1E293B")
         grid = QColor("#475569" if dark else "#D7DEE8")
-        line = QColor("#2DD4BF" if dark else "#0F766E")
+        line = QColor("#60A5FA" if dark else "#2563EB")
         self.chart.setBackgroundBrush(QBrush(background))
         self.chart.setPlotAreaBackgroundBrush(QBrush(background))
         self.chart.setPlotAreaBackgroundVisible(True)
