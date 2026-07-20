@@ -5,11 +5,11 @@ import pytz
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QPainter
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHeaderView, QHBoxLayout, QStackedWidget, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, ProgressBar, PushButton, RoundMenu, SearchLineEdit, StrongBodyLabel, TableView, isDarkTheme
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableView, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel
-from desktop_ui.widgets import AccentPushButton, DangerPushButton, MetricCard, PageTitle, metric_row, play_circle_icon
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, PageTitle, metric_row, play_circle_icon
 from utils.channel_repository import latest_successful_run, list_categories, list_channel_results, list_channels
 from utils.config import config
 from utils.i18n import t
@@ -134,7 +134,7 @@ class DashboardPage(QWidget):
         channel_layout.setContentsMargins(18, 16, 18, 16)
         channel_layout.setSpacing(8)
         self.channels_title = BodyLabel(t("desktop.channel_result_status"), self.channels_card)
-        self.channel_search = SearchLineEdit(self.channels_card)
+        self.channel_search = AppSearchLineEdit(self.channels_card)
         self.channel_search.setPlaceholderText(t("desktop.search_channels"))
         self.channel_model = ChannelTableModel(self._channel_columns(), self, logo_loader=logo_loader)
         self.channel_table = TableView(self.channels_card)

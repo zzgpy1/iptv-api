@@ -1,29 +1,43 @@
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QLineEdit, QStyledItemDelegate, QTimeEdit, QToolTip, QWidget
-from qfluentwidgets import ComboBox, DoubleSpinBox, EditableComboBox, FluentIcon, LineEdit, SpinBox, SwitchButton, TableItemDelegate, TimeEdit, ToolButton
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QStyledItemDelegate, QToolTip, QWidget
+from qfluentwidgets import ComboBox, DoubleSpinBox, FluentIcon, SpinBox, SwitchButton, TableItemDelegate, TimeEdit, ToolButton
 
 from desktop_ui.models import ConfigTableModel
+from desktop_ui.widgets import AppEditableComboBox, AppLineEdit, apply_input_border_style
 
 
-def _draw_focused_border(widget):
-    if not widget.hasFocus():
-        return
-    painter = QPainter(widget)
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.fillRect(5, widget.height() - 2, max(0, widget.width() - 10), 2, widget.focusedBorderColor())
+class _WheelGuard:
+    def wheelEvent(self, event):
+        if not self.hasFocus():
+            event.ignore()
+            return
+        super().wheelEvent(event)
 
 
-class SettingsLineEdit(LineEdit):
-    def paintEvent(self, event):
-        QLineEdit.paintEvent(self, event)
-        _draw_focused_border(self)
+class SettingsLineEdit(AppLineEdit):
+    pass
 
 
-class SettingsTimeEdit(TimeEdit):
-    def paintEvent(self, event):
-        QTimeEdit.paintEvent(self, event)
-        _draw_focused_border(self)
+class SettingsEditableComboBox(AppEditableComboBox):
+    pass
+
+
+class SettingsSpinBox(_WheelGuard, SpinBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        apply_input_border_style(self, "SpinBox")
+
+
+class SettingsDoubleSpinBox(_WheelGuard, DoubleSpinBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        apply_input_border_style(self, "DoubleSpinBox")
+
+
+class SettingsTimeEdit(_WheelGuard, TimeEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        apply_input_border_style(self, "TimeEdit")
 
 
 class TimeListEditor(QWidget):
@@ -89,10 +103,11 @@ class TimeListEditor(QWidget):
             self.valueChanged.emit(self.value())
 
 
-class WheelFocusFilter(QObject):
+class EditorFocusFilter(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._owners = {}
+        self._active_editors = set()
 
     def register(self, editor):
         widgets = [editor]
@@ -106,24 +121,42 @@ class WheelFocusFilter(QObject):
         editor = self._owners.get(watched)
         if not editor:
             return super().eventFilter(watched, event)
-        if event.type() == QEvent.Type.FocusIn and event.reason() == Qt.FocusReason.MouseFocusReason:
-            if QApplication.mouseButtons() == Qt.MouseButton.NoButton:
-                QTimer.singleShot(0, editor.clearFocus)
-        elif event.type() == QEvent.Type.Wheel and not (editor.hasFocus() or editor.focusWidget()):
-            return True
+        if event.type() == QEvent.Type.FocusIn:
+            keyboard_reasons = {
+                Qt.FocusReason.TabFocusReason,
+                Qt.FocusReason.BacktabFocusReason,
+                Qt.FocusReason.ShortcutFocusReason,
+            }
+            restore_reasons = {
+                Qt.FocusReason.ActiveWindowFocusReason,
+                Qt.FocusReason.PopupFocusReason,
+            }
+            mouse_pressed = QApplication.mouseButtons() != Qt.MouseButton.NoButton
+            restoring = editor in self._active_editors and event.reason() in restore_reasons
+            if mouse_pressed or event.reason() in keyboard_reasons or restoring:
+                self._active_editors.add(editor)
+            else:
+                watched.clearFocus()
+                editor.clearFocus()
+                return True
+        elif event.type() == QEvent.Type.FocusOut and event.reason() not in {
+            Qt.FocusReason.ActiveWindowFocusReason,
+            Qt.FocusReason.PopupFocusReason,
+        }:
+            self._active_editors.discard(editor)
         return super().eventFilter(watched, event)
 
 
 class ConfigValueDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._wheel_filter = WheelFocusFilter(self)
+        self._focus_filter = EditorFocusFilter(self)
 
-    def _guard_wheel(self, editor):
+    def _prepare_editor(self, editor):
         editor.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         if hasattr(editor, "lineEdit"):
             editor.lineEdit().setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self._wheel_filter.register(editor)
+        self._focus_filter.register(editor)
         return editor
 
     def createEditor(self, parent, option, index):
@@ -134,45 +167,45 @@ class ConfigValueDelegate(QStyledItemDelegate):
             editor.setOffText("")
             editor.setText("")
             editor.checkedChanged.connect(lambda checked: index.model().setData(index, checked))
-            return self._guard_wheel(editor)
+            return self._prepare_editor(editor)
         if kind == "options":
             editor = ComboBox(parent)
             editor.addItems(index.data(ConfigTableModel.OptionsRole) or [])
             editor.currentTextChanged.connect(lambda value: index.model().setData(index, value))
-            return self._guard_wheel(editor)
+            return self._prepare_editor(editor)
         if kind == "int":
-            editor = SpinBox(parent)
+            editor = SettingsSpinBox(parent)
             editor.setRange(-1_000_000, 1_000_000)
             editor.valueChanged.connect(lambda value: index.model().setData(index, value))
-            return self._guard_wheel(editor)
+            return self._prepare_editor(editor)
         if kind == "float":
-            editor = DoubleSpinBox(parent)
+            editor = SettingsDoubleSpinBox(parent)
             editor.setRange(-1_000_000, 1_000_000)
             editor.setDecimals(3)
             editor.valueChanged.connect(lambda value: index.model().setData(index, value))
-            return self._guard_wheel(editor)
+            return self._prepare_editor(editor)
         if kind == "hours":
-            editor = DoubleSpinBox(parent)
+            editor = SettingsDoubleSpinBox(parent)
             editor.setRange(0, 8760)
             editor.setSingleStep(0.25)
             editor.setDecimals(2)
             editor.setSuffix(" h")
             editor.valueChanged.connect(lambda value: index.model().setData(index, value))
-            return self._guard_wheel(editor)
+            return self._prepare_editor(editor)
         if kind == "times":
             editor = TimeListEditor(parent)
             editor.valueChanged.connect(lambda value: index.model().setData(index, value))
-            self._guard_wheel(editor.display)
-            self._guard_wheel(editor.picker)
+            self._prepare_editor(editor.display)
+            self._prepare_editor(editor.picker)
             return editor
         if kind == "timezone":
-            editor = EditableComboBox(parent)
+            editor = SettingsEditableComboBox(parent)
             editor.addItems(index.data(ConfigTableModel.OptionsRole) or [])
             editor.currentTextChanged.connect(lambda value: index.model().setData(index, value))
-            return self._guard_wheel(editor)
+            return self._prepare_editor(editor)
         editor = SettingsLineEdit(parent)
         editor.textChanged.connect(lambda value: index.model().setData(index, value))
-        return self._guard_wheel(editor)
+        return self._prepare_editor(editor)
 
     def setEditorData(self, editor, index):
         kind = index.data(ConfigTableModel.KindRole)

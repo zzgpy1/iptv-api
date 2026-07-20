@@ -3,11 +3,11 @@ import datetime
 from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QSize, QSignalBlocker, Signal, Qt, QUrl
 from PySide6.QtGui import QBrush, QColor, QDesktopServices, QGuiApplication, QMouseEvent, QPainter, QPen
 from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, EditableComboBox, FluentIcon, InfoBar, InfoBarPosition, LineEdit, MessageBox, ProgressBar, PushButton, RoundMenu, SearchLineEdit, TableView, ToolButton, isDarkTheme
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, FluentIcon, InfoBar, InfoBarPosition, MessageBox, ProgressBar, PushButton, RoundMenu, TableView, ToolButton, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
-from desktop_ui.widgets import AccentPushButton, DangerPushButton, PageTitle
+from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, PageTitle
 from utils.channel_repository import add_manual_result, delete_channel_records, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, set_channel_logo, upsert_manual_channel
 from utils.config import config
 from utils.i18n import t
@@ -151,7 +151,7 @@ class ChannelCenterPage(QWidget):
         self._checked_result_keys = set()
         self.category_selector = ComboBox(self)
         self.category_selector.setMinimumWidth(170)
-        self.search = SearchLineEdit(self)
+        self.search = AppSearchLineEdit(self)
         self.search.setPlaceholderText(t("desktop.search_channels"))
         self.refresh_button = ToolButton(FluentIcon.SYNC, self)
         self.refresh_button.setToolTip(t("desktop.refresh"))
@@ -630,9 +630,9 @@ class ChannelCenterPage(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle(t("desktop.add_channel"))
         form = QFormLayout(dialog)
-        category = EditableComboBox(dialog)
+        category = AppEditableComboBox(dialog)
         category.addItems([row["category"] for row in list_categories(constants.channel_results_path)])
-        name = LineEdit(dialog)
+        name = AppLineEdit(dialog)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
         form.addRow(t("desktop.categories"), category)
         form.addRow(t("name.channel"), name)
@@ -659,7 +659,7 @@ class ChannelCenterPage(QWidget):
         logo_row = QWidget(dialog)
         logo_layout = QHBoxLayout(logo_row)
         logo_layout.setContentsMargins(0, 0, 0, 0)
-        logo = LineEdit(logo_row)
+        logo = AppLineEdit(logo_row)
         logo.setText(str(channel.get("logo") or ""))
         logo.setPlaceholderText(t("desktop.logo_path_or_url"))
         browse = ToolButton(FluentIcon.FOLDER, logo_row)
@@ -715,7 +715,7 @@ class ChannelCenterPage(QWidget):
         dialog.setWindowTitle(t("desktop.add_result"))
         form = QFormLayout(dialog)
         channel_label = QLabel(channel["name"], dialog)
-        url = LineEdit(dialog)
+        url = AppLineEdit(dialog)
         url.setPlaceholderText("https://example.com/live.m3u8")
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
         form.addRow(t("name.channel"), channel_label)

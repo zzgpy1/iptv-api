@@ -3,10 +3,10 @@ import os
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import ComboBox, FluentIcon, InfoBar, InfoBarPosition, LineEdit, PlainTextEdit, PushButton, SwitchButton
+from qfluentwidgets import ComboBox, FluentIcon, InfoBar, InfoBarPosition, PushButton, SwitchButton
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, PageTitle
+from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, PageTitle
 from utils.diagnostics import export_logs
 from utils.i18n import t
 
@@ -25,16 +25,16 @@ class LogsPage(QWidget):
         self.paths = [(t(key), path) for key, path in self.path_specs]
         self.selector = ComboBox(self)
         self.selector.addItems([item[0] for item in self.paths])
-        self.search = LineEdit(self)
+        self.search = AppLineEdit(self)
         self.search.setPlaceholderText(t("desktop.search_logs"))
         self.autoscroll = SwitchButton(t("desktop.auto_scroll"), self)
         self.autoscroll.setChecked(True)
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
         self.clear_button = PushButton(FluentIcon.BROOM, t("desktop.clear_view"), self)
         self.export_button = AccentPushButton(FluentIcon.ZIP_FOLDER, t("desktop.export_logs"), self)
-        self.viewer = PlainTextEdit(self)
+        self.viewer = AppPlainTextEdit(self)
         self.viewer.setReadOnly(True)
-        self.viewer.setLineWrapMode(PlainTextEdit.LineWrapMode.NoWrap)
+        self.viewer.setLineWrapMode(AppPlainTextEdit.LineWrapMode.NoWrap)
         self.cleared_offsets = {}
         actions = QHBoxLayout()
         actions.addWidget(self.selector)

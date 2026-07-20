@@ -1,10 +1,10 @@
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QLineEdit, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SearchLineEdit, TableView
+from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, TableView
 
 from desktop_ui.delegates import ConfigValueDelegate, ElidedDescriptionDelegate
 from desktop_ui.models import ConfigTableModel
-from desktop_ui.widgets import AccentPushButton, PageTitle
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, PageTitle
 from utils.i18n import t
 
 
@@ -15,7 +15,7 @@ class SettingsPage(QWidget):
         super().__init__(parent)
         self.setObjectName("settingsPage")
         self.model = ConfigTableModel(self)
-        self.search = SearchLineEdit(self)
+        self.search = AppSearchLineEdit(self)
         self.search.setPlaceholderText(t("desktop.search_settings"))
         self.save_button = AccentPushButton(FluentIcon.SAVE, t("desktop.save_settings"), self)
         self.reload_button = PushButton(FluentIcon.SYNC, t("desktop.reload"), self)

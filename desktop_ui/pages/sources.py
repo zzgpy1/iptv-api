@@ -4,10 +4,10 @@ from collections import defaultdict
 from PySide6.QtCore import QIODevice, QSaveFile, Signal, Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel, QStackedWidget, QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PlainTextEdit, PushButton, SearchLineEdit, ToolButton, isDarkTheme
+from qfluentwidgets import BodyLabel, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PushButton, ToolButton, isDarkTheme
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, DangerPushButton, PageTitle
+from desktop_ui.widgets import AccentPushButton, AppPlainTextEdit, AppSearchLineEdit, DangerPushButton, PageTitle
 from utils.config import config, resource_path
 from utils.i18n import t
 
@@ -58,7 +58,7 @@ class AliasTagsEditor(QWidget):
         dialog.resize(480, 360)
         layout = QVBoxLayout(dialog)
         hint = BodyLabel(t("desktop.alias_editor_hint"), dialog)
-        editor = PlainTextEdit(dialog)
+        editor = AppPlainTextEdit(dialog)
         editor.setPlainText("\n".join(self.aliases))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Save, parent=dialog)
         buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
@@ -86,13 +86,13 @@ class SourceEditor(QWidget):
         self.group_order = []
         self._syncing = False
         self.loaded = False
-        self.raw_editor = PlainTextEdit(self)
-        self.raw_editor.setLineWrapMode(PlainTextEdit.LineWrapMode.NoWrap)
+        self.raw_editor = AppPlainTextEdit(self)
+        self.raw_editor.setLineWrapMode(AppPlainTextEdit.LineWrapMode.NoWrap)
         self.table = QTableWidget(self)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.verticalHeader().setVisible(False)
-        self.search = SearchLineEdit(self)
+        self.search = AppSearchLineEdit(self)
         self.search.setPlaceholderText(t("desktop.search_source_data"))
         self.search.setMaximumWidth(320)
         self.add_button = AccentPushButton(FluentIcon.ADD, t("desktop.add_item"), self)

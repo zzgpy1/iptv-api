@@ -2,7 +2,45 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtCore import QPointF
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, IconWidget, PrimaryPushButton, PushButton, StrongBodyLabel, SubtitleLabel, isDarkTheme, qconfig
+from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, SubtitleLabel, isDarkTheme, qconfig, setCustomStyleSheet
+
+
+def apply_input_border_style(widget, selector):
+    states = ",\n".join([
+        selector,
+        f"{selector}:hover",
+        f"{selector}:focus",
+        f"{selector}[transparent=true]:focus",
+        f"{selector}[transparent=false]:focus",
+        f"{selector}:disabled",
+    ])
+    light = f"{states} {{ border-bottom-color: rgba(0, 0, 0, 13); }}"
+    dark = f"{states} {{ border-bottom-color: rgba(255, 255, 255, 0.08); }}"
+    setCustomStyleSheet(widget, light, dark)
+
+
+class AppLineEdit(LineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        apply_input_border_style(self, "LineEdit")
+
+
+class AppSearchLineEdit(SearchLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        apply_input_border_style(self, "LineEdit")
+
+
+class AppEditableComboBox(EditableComboBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        apply_input_border_style(self, "LineEdit")
+
+
+class AppPlainTextEdit(PlainTextEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        apply_input_border_style(self, "PlainTextEdit")
 
 
 class AccentPushButton(PrimaryPushButton):
