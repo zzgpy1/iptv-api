@@ -51,12 +51,8 @@ _nginx_started_by_app = False
 
 
 def _reserve_stream(channel_id):
-    victims = []
     with STREAMS_LOCK:
-        for running_channel_id, running_process in list(hls_running_streams.items()):
-            if running_process.poll() is not None:
-                hls_running_streams.pop(running_channel_id, None)
-                hls_last_access.pop(running_channel_id, None)
+        _cleanup_dead_streams_locked()
         existing = hls_running_streams.get(channel_id)
         if existing and existing.poll() is None:
             hls_last_access[channel_id] = time.time()
@@ -67,20 +63,34 @@ def _reserve_stream(channel_id):
             hls_last_access.pop(channel_id, None)
         if channel_id in hls_starting_streams:
             return None, False
-        if MAX_STREAMS <= 0:
+        if MAX_STREAMS <= 0 or len(hls_running_streams) + len(hls_starting_streams) >= MAX_STREAMS:
             return None, False
-
-        while len(hls_running_streams) + len(hls_starting_streams) >= MAX_STREAMS:
-            if not hls_running_streams:
-                return None, False
-            oldest_channel_id, oldest_process = hls_running_streams.popitem(last=False)
-            hls_last_access.pop(oldest_channel_id, None)
-            victims.append(oldest_process)
         hls_starting_streams.add(channel_id)
-
-    for process in victims:
-        _terminate_process_safe(process)
     return None, True
+
+
+def _cleanup_dead_streams_locked():
+    for channel_id, process in list(hls_running_streams.items()):
+        if process.poll() is not None:
+            hls_running_streams.pop(channel_id, None)
+            hls_last_access.pop(channel_id, None)
+
+
+def stream_capacity_snapshot():
+    with STREAMS_LOCK:
+        _cleanup_dead_streams_locked()
+        active_streams = list(hls_running_streams)
+        starting_streams = list(hls_starting_streams)
+    active_count = len(active_streams)
+    starting_count = len(starting_streams)
+    return {
+        "max_streams": MAX_STREAMS,
+        "active_count": active_count,
+        "starting_count": starting_count,
+        "available_slots": max(0, MAX_STREAMS - active_count - starting_count),
+        "active_streams": active_streams,
+        "starting_streams": starting_streams,
+    }
 
 
 def _release_stream_reservation(channel_id):
@@ -251,6 +261,34 @@ def start_hls_to_rtmp(host, channel_id, client_user_agent: str | None = None):
         return _start_reserved_hls_to_rtmp(host, channel_id, client_user_agent)
     finally:
         _release_stream_reservation(channel_id)
+
+
+def start_hls_to_rtmp_async(host, channel_id, client_user_agent: str | None = None):
+    ensure_hls_idle_monitor_started()
+    if not host or not channel_id:
+        return {"accepted": False, "status": "invalid", **stream_capacity_snapshot()}
+
+    existing, reserved = _reserve_stream(channel_id)
+    if existing:
+        return {"accepted": True, "status": "active", **stream_capacity_snapshot()}
+    if not reserved:
+        capacity = stream_capacity_snapshot()
+        if channel_id in capacity["active_streams"]:
+            status = "active"
+        elif channel_id in capacity["starting_streams"]:
+            status = "starting"
+        else:
+            status = "capacity"
+        return {"accepted": status != "capacity", "status": status, **capacity}
+
+    def run():
+        try:
+            _start_reserved_hls_to_rtmp(host, channel_id, client_user_agent)
+        finally:
+            _release_stream_reservation(channel_id)
+
+    threading.Thread(target=run, daemon=True, name=f"rtmp-start-{channel_id}").start()
+    return {"accepted": True, "status": "starting", **stream_capacity_snapshot()}
 
 
 def _start_reserved_hls_to_rtmp(host, channel_id, client_user_agent: str | None = None):

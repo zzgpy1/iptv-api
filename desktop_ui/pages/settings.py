@@ -76,3 +76,17 @@ class SettingsPage(QWidget):
         self.model.save()
         self.settings_saved.emit()
         InfoBar.success(t("desktop.saved"), t("desktop.restart_hint"), parent=self, position=InfoBarPosition.TOP)
+
+    def focus_setting(self, key: str):
+        self.search.setText(key)
+        QTimer.singleShot(50, lambda: self._focus_setting_editor(key))
+
+    def _focus_setting_editor(self, key: str):
+        row = next((index for index, item in enumerate(self.model.rows) if item.get("key") == key), -1)
+        if row < 0:
+            return
+        index = self.model.index(row, 1)
+        self.table.scrollTo(index, QAbstractItemView.ScrollHint.PositionAtCenter)
+        editor = self.table.indexWidget(index)
+        if editor:
+            editor.setFocus(Qt.FocusReason.OtherFocusReason)

@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import redirect_stderr, redirect_stdout
+import json
 import os
 import socket
 import sys
@@ -7,6 +8,7 @@ import traceback
 from collections import deque
 import threading
 import time
+import requests
 
 from PySide6.QtCore import QByteArray, QObject, QProcess, QProcessEnvironment, QThread, QUrl, Signal, Slot
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
@@ -256,12 +258,16 @@ class RtmpMonitorWorker(QObject):
 class RtmpMonitorController(QObject):
     snapshot = Signal(dict)
     control_finished = Signal(str, bool, str)
+    batch_control_finished = Signal(str, int, int, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.thread = None
         self.worker = None
         self.network = QNetworkAccessManager(self)
+        self.controlled_streams = set()
+        self._batch_requests = {}
+        self._batch_sequence = 0
 
     def start(self):
         if self.thread:
@@ -286,24 +292,104 @@ class RtmpMonitorController(QObject):
             self.worker.refresh()
 
     def shutdown(self):
+        for result_key in list(self.controlled_streams):
+            try:
+                requests.post(
+                    f"http://127.0.0.1:{config.app_port}/api/rtmp/streams/{result_key}/stop",
+                    json={},
+                    timeout=0.5,
+                )
+            except requests.RequestException:
+                pass
+        self.controlled_streams.clear()
         self.stop()
         if self.thread:
             self.thread.quit()
             self.thread.wait(3000)
 
     def control(self, action: str, result_key: str):
+        if action in {"start", "restart"}:
+            self.controlled_streams.add(result_key)
+        elif action == "stop":
+            self.controlled_streams.discard(result_key)
         url = QUrl(f"http://127.0.0.1:{config.app_port}/api/rtmp/streams/{result_key}/{action}")
         request = QNetworkRequest(url)
         request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, "application/json")
         reply = self.network.post(request, QByteArray(b"{}"))
-        reply.finished.connect(lambda: self._control_finished(action, reply))
+        reply.finished.connect(lambda: self._control_finished(action, result_key, reply))
 
-    def _control_finished(self, action: str, reply: QNetworkReply):
+    def control_many(self, action: str, result_keys: list[str]):
+        keys = list(dict.fromkeys(result_key for result_key in result_keys if result_key))
+        if not keys:
+            return
+        if action in {"start", "restart"}:
+            self.controlled_streams.update(keys)
+        elif action == "stop":
+            self.controlled_streams.difference_update(keys)
+        self._batch_sequence += 1
+        batch_id = self._batch_sequence
+        self._batch_requests[batch_id] = {
+            "action": action,
+            "total": len(keys),
+            "done": 0,
+            "success": 0,
+            "errors": [],
+        }
+        for result_key in keys:
+            url = QUrl(f"http://127.0.0.1:{config.app_port}/api/rtmp/streams/{result_key}/{action}")
+            request = QNetworkRequest(url)
+            request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, "application/json")
+            reply = self.network.post(request, QByteArray(b"{}"))
+            reply.finished.connect(
+                lambda reply=reply, batch_id=batch_id, result_key=result_key: self._batch_control_reply(
+                    batch_id,
+                    result_key,
+                    reply,
+                )
+            )
+
+    def _batch_control_reply(self, batch_id: int, result_key: str, reply: QNetworkReply):
+        batch = self._batch_requests.get(batch_id)
+        if not batch:
+            reply.deleteLater()
+            return
         status = reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
         success = isinstance(status, int) and 200 <= status < 300
-        message = bytes(reply.readAll()).decode("utf-8", errors="replace")
+        message = self._response_message(reply)
+        batch["done"] += 1
+        batch["success"] += int(success)
+        if not success and message:
+            batch["errors"].append(message)
+        if not success and batch["action"] in {"start", "restart"}:
+            self.controlled_streams.discard(result_key)
+        reply.deleteLater()
+        if batch["done"] < batch["total"]:
+            return
+        self.batch_control_finished.emit(
+            batch["action"],
+            batch["success"],
+            batch["total"],
+            "\n".join(batch["errors"]),
+        )
+        self._batch_requests.pop(batch_id, None)
+
+    def _control_finished(self, action: str, result_key: str, reply: QNetworkReply):
+        status = reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
+        success = isinstance(status, int) and 200 <= status < 300
+        message = self._response_message(reply)
+        if not success and action in {"start", "restart"}:
+            self.controlled_streams.discard(result_key)
         self.control_finished.emit(action, success, message)
         reply.deleteLater()
+
+    @staticmethod
+    def _response_message(reply: QNetworkReply):
+        content = bytes(reply.readAll()).decode("utf-8", errors="replace")
+        try:
+            payload = json.loads(content)
+            return payload.get("error") or content
+        except (json.JSONDecodeError, AttributeError):
+            return content
 
     def _finished(self):
         self.worker = None
@@ -343,6 +429,14 @@ class ServiceProcessController(QObject):
     def stop(self):
         if not self.process or not self.owns_process:
             return
+        try:
+            requests.post(
+                f"http://127.0.0.1:{config.app_port}/api/rtmp/shutdown",
+                json={},
+                timeout=2,
+            )
+        except requests.RequestException:
+            pass
         if self.process.state() != QProcess.ProcessState.NotRunning:
             self.process.terminate()
             if not self.process.waitForFinished(3000):

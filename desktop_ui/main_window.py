@@ -89,7 +89,7 @@ class MainWindow(FluentWindow):
         self.about = AboutPage(self)
         self.dashboard_item = self.addSubInterface(self.dashboard, FluentIcon.HOME, t("desktop.dashboard"))
         self.channels_item = self.addSubInterface(self.channels, FluentIcon.LIBRARY, t("desktop.channel_center"))
-        self.rtmp_item = self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.rtmp_monitor"))
+        self.rtmp_item = self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.play_streaming"))
         self.sources_item = self.addSubInterface(self.sources, FluentIcon.CLOUD_DOWNLOAD, t("desktop.sources"))
         self.logs_item = self.addSubInterface(self.logs, FluentIcon.COMMAND_PROMPT, t("desktop.logs"))
         self.tasks_item = self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
@@ -149,13 +149,20 @@ class MainWindow(FluentWindow):
         self.operation_controller.task_succeeded.connect(self._operation_succeeded)
         self.operation_controller.task_failed.connect(self._operation_failed)
         self.rtmp_controller.snapshot.connect(self.rtmp.set_snapshot)
+        self.rtmp_controller.snapshot.connect(self.dashboard.set_stream_snapshot)
+        self.rtmp_controller.snapshot.connect(self.channels.set_stream_snapshot)
         self.rtmp.stream_control_requested.connect(self.rtmp_controller.control)
+        self.rtmp.stream_control_many_requested.connect(self.rtmp_controller.control_many)
+        self.dashboard.stream_control_many_requested.connect(self.rtmp_controller.control_many)
+        self.channels.stream_control_many_requested.connect(self.rtmp_controller.control_many)
         self.rtmp.refresh_requested.connect(self.rtmp_controller.refresh)
         self.rtmp.install_requested.connect(self._install_rtmp_from_ui)
-        self.channels.stream_control_requested.connect(
-            lambda action, row: self.rtmp_controller.control(action, row["result_key"])
-        )
+        self.rtmp.settings_requested.connect(self._open_rtmp_limit_settings)
+        self.channels.playback_workspace_requested.connect(self._open_playback_workspace)
+        self.channels.playback_batch_requested.connect(self._open_playback_batch)
+        self.channels.stream_monitor_requested.connect(lambda: self.switchTo(self.rtmp))
         self.rtmp_controller.control_finished.connect(self._stream_control_finished)
+        self.rtmp_controller.batch_control_finished.connect(self._stream_batch_control_finished)
         self.service_controller.status_changed.connect(self.dashboard.set_service_status)
         self.service_controller.output.connect(self.logs.append_runtime)
         self.rtmp_install_finished.connect(self._finish_rtmp_install)
@@ -230,7 +237,7 @@ class MainWindow(FluentWindow):
         navigation_items = (
             (self.dashboard_item, "desktop.dashboard"),
             (self.channels_item, "desktop.channel_center"),
-            (self.rtmp_item, "desktop.rtmp_monitor"),
+            (self.rtmp_item, "desktop.play_streaming"),
             (self.sources_item, "desktop.sources"),
             (self.logs_item, "desktop.logs"),
             (self.tasks_item, "desktop.task_history"),
@@ -302,10 +309,39 @@ class MainWindow(FluentWindow):
         if page:
             self.switchTo(page)
 
+    def _open_playback_workspace(self, row: dict):
+        self.rtmp.select_result(row)
+        self.switchTo(self.rtmp)
+
+    def _open_playback_batch(self, rows: list[dict]):
+        channel_keys = [row["channel_key"] for row in rows if row.get("channel_key")]
+        selected_count = self.rtmp.select_channels(channel_keys)
+        expected_count = len(channel_keys)
+        if selected_count < expected_count:
+            InfoBar.warning(
+                t("desktop.start_selected_streams"),
+                t("desktop.channels_without_output").format(count=expected_count - selected_count),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+        self.switchTo(self.rtmp)
+
+    def _open_rtmp_limit_settings(self):
+        self.switchTo(self.settings)
+        self.settings.focus_setting("rtmp_max_streams")
+        InfoBar.info(
+            t("desktop.adjust_concurrency_limit"),
+            t("desktop.concurrency_limit_restart_notice"),
+            parent=self,
+            position=InfoBarPosition.TOP,
+            duration=8000,
+        )
+
     def _update_finished(self):
         self.dashboard.set_running(False)
         self.dashboard.refresh_metrics()
         self.channels.reload()
+        self.rtmp.reload_channels()
         self.operation_controller.resume()
 
     def _start_service(self):
@@ -417,6 +453,23 @@ class MainWindow(FluentWindow):
             InfoBar.success(t("desktop.stream_action_sent"), t(f"desktop.{action}_stream", action), parent=self, position=InfoBarPosition.TOP)
         else:
             InfoBar.error(t("desktop.stream_action_failed"), message or action, parent=self, position=InfoBarPosition.TOP)
+
+    def _stream_batch_control_finished(self, action: str, success: int, total: int, message: str):
+        if success == total:
+            InfoBar.success(
+                t("desktop.stream_action_sent"),
+                t("desktop.batch_stream_action_success").format(count=success),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+        else:
+            InfoBar.error(
+                t("desktop.stream_action_failed"),
+                t("desktop.batch_stream_action_partial").format(success=success, total=total, info=message),
+                parent=self,
+                position=InfoBarPosition.TOP,
+                duration=8000,
+            )
 
     def shutdown(self):
         self.rtmp_controller.shutdown()

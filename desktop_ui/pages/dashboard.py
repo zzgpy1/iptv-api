@@ -5,11 +5,12 @@ import pytz
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QPainter
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableItemDelegate, TableView, isDarkTheme
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, InfoBar, MessageBox, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableView, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
+from desktop_ui.stream_status import StreamingStatusDelegate, apply_channel_stream_state, build_channel_stream_states
 from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, PageTitle, configure_table_columns, metric_row, play_circle_icon
 from utils.channel_repository import latest_successful_run, list_categories, list_channel_results, list_channels, set_channel_logo
 from utils.config import config
@@ -48,10 +49,10 @@ def _channel_logo(name, logo):
     return None
 
 
-class ChannelNamePlayDelegate(TableItemDelegate):
-    def __init__(self, callback, parent=None):
-        super().__init__(parent)
-        self._callback = callback
+class ChannelNamePlayDelegate(StreamingStatusDelegate):
+    def __init__(self, play_callback, stream_callback, parent=None):
+        super().__init__(stream_callback, parent, trailing_width=42)
+        self._play_callback = play_callback
         self._icon = play_circle_icon()
 
     def initStyleOption(self, option, index):
@@ -61,10 +62,6 @@ class ChannelNamePlayDelegate(TableItemDelegate):
             option.rect.adjust(0, 0, -42, 0)
 
     def paint(self, painter: QPainter, option, index):
-        primary_delegate = self.parent().delegate
-        self.hoverRow = primary_delegate.hoverRow
-        self.pressedRow = primary_delegate.pressedRow
-        self.selectedRows = primary_delegate.selectedRows
         row = index.data(Qt.ItemDataRole.UserRole) or {}
         playable = bool(row.get("best_url") and int(row.get("valid_results") or 0) > 0)
         super().paint(painter, option, index)
@@ -80,10 +77,12 @@ class ChannelNamePlayDelegate(TableItemDelegate):
         painter.restore()
 
     def editorEvent(self, event, model, option, index):
+        if super().editorEvent(event, model, option, index):
+            return True
         if event.type() == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
             row = index.data(Qt.ItemDataRole.UserRole) or {}
             if row.get("best_url") and int(row.get("valid_results") or 0) > 0 and self._button_rect(option.rect).contains(event.position().toPoint()):
-                self._callback(row)
+                self._play_callback(row)
                 return True
         return False
 
@@ -97,6 +96,7 @@ class DashboardPage(QWidget):
     run_requested = Signal()
     cancel_requested = Signal()
     destination_requested = Signal(str)
+    stream_control_many_requested = Signal(str, list)
 
     def __init__(self, parent=None, logo_loader: ChannelLogoLoader | None = None):
         super().__init__(parent)
@@ -105,6 +105,8 @@ class DashboardPage(QWidget):
         self._running = False
         self._service_status = "unknown"
         self._runtime_rows = []
+        self._stream_snapshot = {"streams": []}
+        self._stream_states = {}
         self._active_channel = None
         self.status_card = MetricCard(t("desktop.run_status"), t("desktop.idle"), icon=FluentIcon.UPDATE, accent="#2563EB")
         self.channel_card = MetricCard(t("desktop.channels"), "0", icon=FluentIcon.LIBRARY, accent="#7C3AED")
@@ -154,7 +156,11 @@ class DashboardPage(QWidget):
         configure_table_columns(self.channel_table, [260, 100, 85, 85, 105, 115, 110, 85, 170], "dashboard.channels")
         self.channel_table.setBorderVisible(False)
         self.channel_table.setIconSize(QSize(32, 24))
-        self.play_delegate = ChannelNamePlayDelegate(self._play_channel, self.channel_table)
+        self.play_delegate = ChannelNamePlayDelegate(
+            self._play_channel,
+            self._show_stream_menu,
+            self.channel_table,
+        )
         self.channel_table.setItemDelegateForColumn(0, self.play_delegate)
         self.channel_stack = QStackedWidget(self.channels_card)
         self.channel_stack.addWidget(self.channel_table)
@@ -249,7 +255,10 @@ class DashboardPage(QWidget):
             count=sum(int(row.get("selected_results") or 0) for row in all_channels)
         ))
         if not self._running:
-            self._runtime_rows = [{**row, "display_status": "completed"} for row in all_channels]
+            self._runtime_rows = [
+                apply_channel_stream_state({**row, "display_status": "completed"}, self._stream_states)
+                for row in all_channels
+            ]
         self._apply_runtime_rows()
 
     def _apply_runtime_rows(self):
@@ -325,9 +334,10 @@ class DashboardPage(QWidget):
             -1,
         )
         if existing < 0:
-            self._runtime_rows.append(runtime_row)
+            self._runtime_rows.append(apply_channel_stream_state(runtime_row, self._stream_states))
         else:
-            self._runtime_rows[existing] = runtime_row
+            runtime_row["channel_key"] = self._runtime_rows[existing].get("channel_key")
+            self._runtime_rows[existing] = apply_channel_stream_state(runtime_row, self._stream_states)
         self.channel_card.set_value(len(self._runtime_rows))
         self.valid_card.set_value(sum(int(row.get("valid_results") or 0) for row in self._runtime_rows))
         self._apply_runtime_rows()
@@ -341,6 +351,46 @@ class DashboardPage(QWidget):
             "failed": t("desktop.unavailable"),
         }.get(status, t("desktop.unknown"))
         self.service_card.set_value(label, get_public_url())
+
+    def set_stream_snapshot(self, snapshot: dict):
+        self._stream_snapshot = snapshot
+        self._stream_states = build_channel_stream_states(snapshot)
+        self._runtime_rows = [
+            apply_channel_stream_state(row, self._stream_states)
+            for row in self._runtime_rows
+        ]
+        self._apply_runtime_rows()
+
+    def _show_stream_menu(self, row: dict, position):
+        menu = RoundMenu(parent=self)
+        menu.addAction(Action(
+            FluentIcon.IOT,
+            t("desktop.view_stream_details"),
+            self,
+            triggered=lambda _checked=False: self.destination_requested.emit("rtmp"),
+        ))
+        menu.addAction(Action(
+            FluentIcon.PAUSE_BOLD.icon(color=QColor("#DC2626")),
+            t("desktop.stop_channel_streams"),
+            self,
+            triggered=lambda _checked=False: self._stop_channel_streams(row),
+        ))
+        menu.exec(position)
+
+    def _stop_channel_streams(self, row: dict):
+        result_keys = list(row.get("stream_result_keys") or [])
+        if not result_keys:
+            return
+        box = MessageBox(
+            t("desktop.stop_channel_streams"),
+            t("desktop.stop_channel_streams_confirm").format(
+                name=row.get("name") or "--",
+                count=len(result_keys),
+            ),
+            self,
+        )
+        if box.exec():
+            self.stream_control_many_requested.emit("stop", result_keys)
 
     def _play_channel(self, row):
         results = list(row.get("playable_results") or [])
@@ -441,6 +491,7 @@ class DashboardPage(QWidget):
             self.progress_title.setText(t("desktop.ready"))
         self.set_service_status(self._service_status)
         self.refresh_metrics()
+        self.set_stream_snapshot(self._stream_snapshot)
         self.refresh_schedule()
 
     def _open_service_route(self, route: str):

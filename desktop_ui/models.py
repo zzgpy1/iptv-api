@@ -145,6 +145,8 @@ class MappingTableModel(QAbstractTableModel):
             return Qt.CheckState.Checked if value else Qt.CheckState.Unchecked
         if role == Qt.ItemDataRole.UserRole:
             return row
+        if role == Qt.ItemDataRole.AccessibleDescriptionRole and key == "name" and row.get("streaming"):
+            return row.get("stream_tooltip") or ""
         if role == Qt.ItemDataRole.ForegroundRole and key == "health":
             return {
                 "healthy": QColor("#16a34a"),

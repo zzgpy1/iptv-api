@@ -433,6 +433,29 @@ def list_channel_results(db_path: str, channel_key: str) -> list[dict[str, Any]]
         return_db_connection(db_path, conn)
 
 
+def list_streamable_results(db_path: str) -> list[dict[str, Any]]:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            """
+            SELECT c.channel_key, c.category, c.name AS channel_name,
+                   r.result_key, r.url, r.selected_rank, r.speed, r.delay,
+                   r.resolution, r.video_codec, r.audio_codec
+            FROM channel_results r
+            JOIN channels c ON c.channel_key=r.channel_key
+            WHERE r.selected_rank IS NOT NULL
+              AND r.url IS NOT NULL
+              AND r.url != ''
+            ORDER BY c.category, c.name, r.selected_rank
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        return_db_connection(db_path, conn)
+
+
 def get_channel(db_path: str, channel_key: str) -> dict[str, Any] | None:
     ensure_channel_repository(db_path)
     conn = get_db_connection(db_path)

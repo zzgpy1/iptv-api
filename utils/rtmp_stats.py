@@ -106,13 +106,72 @@ def fetch_rtmp_snapshot(timeout: float = 1.5) -> dict:
     try:
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
-        return parse_rtmp_stats(response.content)
+        snapshot = parse_rtmp_stats(response.content)
+        snapshot.update({
+            "max_streams": config.rtmp_max_streams,
+            "active_count": len(snapshot.get("streams", [])),
+            "starting_count": 0,
+            "available_slots": max(0, config.rtmp_max_streams - len(snapshot.get("streams", []))),
+            "active_streams": [row.get("result_key") for row in snapshot.get("streams", [])],
+            "starting_streams": [],
+        })
+        try:
+            runtime_response = requests.get(
+                f"http://127.0.0.1:{config.app_port}/api/rtmp/runtime",
+                timeout=min(timeout, 0.8),
+            )
+            runtime_response.raise_for_status()
+            runtime_payload = runtime_response.json()
+            runtime = runtime_payload.get("streams", {})
+            for stream in snapshot.get("streams", []):
+                stream.update(runtime.get(stream.get("result_key"), {}))
+            for key in (
+                "max_streams",
+                "active_count",
+                "starting_count",
+                "available_slots",
+                "active_streams",
+                "starting_streams",
+            ):
+                if key in runtime_payload:
+                    snapshot[key] = runtime_payload[key]
+            existing = {row.get("result_key") for row in snapshot.get("streams", [])}
+            starting_keys = [key for key in runtime_payload.get("starting_streams", []) if key not in existing]
+            metadata = result_metadata_map(constants.channel_results_path, starting_keys)
+            for result_key in starting_keys:
+                meta = metadata.get(result_key, {})
+                snapshot["streams"].append({
+                    "result_key": result_key,
+                    "name": result_key,
+                    "channel_key": meta.get("channel_key"),
+                    "category": meta.get("category") or "",
+                    "channel_name": meta.get("name") or result_key,
+                    "url": meta.get("url"),
+                    "state": "starting",
+                    "active": False,
+                    "clients": 0,
+                    "bw_in": 0,
+                    "bw_out": 0,
+                    "resolution": "",
+                    "uptime": "--",
+                    "idle_remaining": None,
+                    "client_details": [],
+                })
+        except Exception:
+            pass
+        return snapshot
     except Exception as exc:
         status = rtmp_runtime_status() if sys.platform == "darwin" else {}
         return {
             "available": False,
             "sampled_at": time.time(),
             "streams": [],
+            "max_streams": config.rtmp_max_streams,
+            "active_count": 0,
+            "starting_count": 0,
+            "available_slots": config.rtmp_max_streams,
+            "active_streams": [],
+            "starting_streams": [],
             "error": str(exc),
             "error_code": status.get("error_code") or "connection",
         }

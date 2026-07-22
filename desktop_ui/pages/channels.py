@@ -8,6 +8,7 @@ from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, FluentIcon, 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
+from desktop_ui.stream_status import StreamingStatusDelegate, apply_channel_stream_state, build_channel_stream_states
 from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, PageTitle, configure_table_columns
 from utils.channel_repository import add_manual_result, delete_channel_records, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, set_channel_logo, upsert_manual_channel
 from utils.config import config
@@ -151,7 +152,10 @@ class RubberBandTableView(TableView):
 class ChannelCenterPage(QWidget):
     retest_channel_requested = Signal(dict)
     retest_result_requested = Signal(dict)
-    stream_control_requested = Signal(str, dict)
+    playback_workspace_requested = Signal(dict)
+    playback_batch_requested = Signal(list)
+    stream_monitor_requested = Signal()
+    stream_control_many_requested = Signal(str, list)
 
     def __init__(self, parent=None, logo_loader: ChannelLogoLoader | None = None):
         super().__init__(parent)
@@ -161,6 +165,8 @@ class ChannelCenterPage(QWidget):
         self._drawer_channel_key = None
         self._checked_channel_keys = set()
         self._checked_result_keys = set()
+        self._stream_snapshot = {"streams": []}
+        self._stream_states = {}
         self.category_selector = ComboBox(self)
         self.category_selector.setMinimumWidth(170)
         self.search = AppSearchLineEdit(self)
@@ -171,6 +177,8 @@ class ChannelCenterPage(QWidget):
         self.add_result_button = PushButton(FluentIcon.LINK, t("desktop.add_result"), self)
         self.delete_channel_button = DangerPushButton(FluentIcon.DELETE, t("desktop.delete_channel"), self)
         self.retest_channel_button = AccentPushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_channel"), self)
+        self.stream_selected_button = PushButton(FluentIcon.VIDEO, t("desktop.open_selected_streams"), self)
+        self.stream_selected_button.hide()
         self.selection_label = BodyLabel("", self)
         self.selection_label.hide()
         self.task_label = BodyLabel("", self)
@@ -194,6 +202,8 @@ class ChannelCenterPage(QWidget):
         )
         self.channel_table.setIconSize(QSize(32, 24))
         self.channel_table.setItemDelegateForColumn(0, CheckBoxDelegate(self.channel_table))
+        self.stream_status_delegate = StreamingStatusDelegate(self._show_stream_menu, self.channel_table)
+        self.channel_table.setItemDelegateForColumn(1, self.stream_status_delegate)
         self.channel_header.toggled.connect(self._toggle_all_channels)
         self.channel_model.modelReset.connect(self._update_channel_header)
 
@@ -207,6 +217,7 @@ class ChannelCenterPage(QWidget):
         toolbar.addWidget(self.add_result_button)
         toolbar.addWidget(self.delete_channel_button)
         toolbar.addWidget(self.retest_channel_button)
+        toolbar.addWidget(self.stream_selected_button)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
@@ -234,6 +245,7 @@ class ChannelCenterPage(QWidget):
         self.add_result_button.clicked.connect(self._add_manual_result)
         self.delete_channel_button.clicked.connect(self._delete_selected_channels)
         self.retest_channel_button.clicked.connect(self._request_channel_retest)
+        self.stream_selected_button.clicked.connect(self._open_selected_in_playback)
         QApplication.instance().installEventFilter(self)
         self.reload()
 
@@ -249,7 +261,7 @@ class ChannelCenterPage(QWidget):
         self.results_title = BodyLabel(t("desktop.results"), self.result_drawer)
         self.play_button = AccentPushButton(FluentIcon.PLAY, t("desktop.play"), self.result_drawer)
         self.retest_result_button = AccentPushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_result"), self.result_drawer)
-        self.stream_button = PushButton(FluentIcon.VIDEO, t("desktop.stream_playback"), self.result_drawer)
+        self.stream_button = PushButton(FluentIcon.VIDEO, t("desktop.open_play_streaming"), self.result_drawer)
         self.more_button = PushButton(FluentIcon.MORE, t("desktop.more_actions"), self.result_drawer)
         self.close_drawer_button = ToolButton(FluentIcon.CLOSE, self.result_drawer)
         header.addWidget(self.results_title)
@@ -458,6 +470,7 @@ class ChannelCenterPage(QWidget):
             row["whitelist_count"] = sum(is_url_whitelisted(whitelist_maps, url, row["name"]) for url in urls)
             row["blacklist_count"] = sum(check_url_by_keywords(url, blacklist) for url in urls)
             row["batch_selected"] = row.get("channel_key") in (checked_keys or self._checked_channel_keys)
+            row.update(apply_channel_stream_state(row, self._stream_states))
         self.channel_model.set_rows(rows)
         selection = self.channel_table.selectionModel()
         selection.clearSelection()
@@ -533,6 +546,7 @@ class ChannelCenterPage(QWidget):
         count = len(self.selected_channels())
         self.selection_label.setText(t("desktop.channels_selected").format(count=count))
         self.selection_label.setVisible(count > 0)
+        self.stream_selected_button.setVisible(count > 0)
 
     def _channel_clicked(self, index):
         row = self.channel_model.row(index)
@@ -582,6 +596,49 @@ class ChannelCenterPage(QWidget):
                 self.channel_table.selectRow(index.row())
             self.channel_menu.exec(self.channel_table.viewport().mapToGlobal(position))
 
+    def set_stream_snapshot(self, snapshot: dict):
+        self._stream_snapshot = snapshot
+        self._stream_states = build_channel_stream_states(snapshot)
+        for index, row in enumerate(self.channel_model.rows):
+            self.channel_model.rows[index] = apply_channel_stream_state(row, self._stream_states)
+        if self.channel_model.rows:
+            self.channel_model.dataChanged.emit(
+                self.channel_model.index(0, 1),
+                self.channel_model.index(len(self.channel_model.rows) - 1, 1),
+                [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.UserRole],
+            )
+
+    def _show_stream_menu(self, row: dict, position):
+        menu = RoundMenu(parent=self)
+        menu.addAction(Action(
+            FluentIcon.IOT,
+            t("desktop.view_stream_details"),
+            self,
+            triggered=lambda _checked=False: self.stream_monitor_requested.emit(),
+        ))
+        menu.addAction(Action(
+            FluentIcon.PAUSE_BOLD.icon(color=QColor("#DC2626")),
+            t("desktop.stop_channel_streams"),
+            self,
+            triggered=lambda _checked=False: self._stop_channel_streams(row),
+        ))
+        menu.exec(position)
+
+    def _stop_channel_streams(self, row: dict):
+        result_keys = list(row.get("stream_result_keys") or [])
+        if not result_keys:
+            return
+        box = MessageBox(
+            t("desktop.stop_channel_streams"),
+            t("desktop.stop_channel_streams_confirm").format(
+                name=row.get("name") or "--",
+                count=len(result_keys),
+            ),
+            self,
+        )
+        if box.exec():
+            self.stream_control_many_requested.emit("stop", result_keys)
+
     def _show_result_menu(self, position):
         index = self.result_table.indexAt(position)
         if index.isValid():
@@ -592,6 +649,11 @@ class ChannelCenterPage(QWidget):
     def _request_channel_retest(self):
         for row in self.selected_channels():
             self.retest_channel_requested.emit(row)
+
+    def _open_selected_in_playback(self):
+        rows = self.selected_channels()
+        if rows:
+            self.playback_batch_requested.emit(rows)
 
     def _request_result_retest(self):
         for row in self.selected_results():
@@ -612,9 +674,7 @@ class ChannelCenterPage(QWidget):
     def _stream_playback(self):
         row = self.selected_result()
         if row and row.get("selected_rank") is not None:
-            self.stream_control_requested.emit("start", row)
-            url = f"{get_public_url().rstrip('/')}/hls_proxy/{row['result_key']}"
-            QDesktopServices.openUrl(QUrl(url))
+            self.playback_workspace_requested.emit(row)
         elif row:
             InfoBar.warning(t("desktop.not_selected_result"), t("desktop.select_result_hint"), parent=self, position=InfoBarPosition.TOP)
 
@@ -748,9 +808,10 @@ class ChannelCenterPage(QWidget):
         self.add_result_button.setText(t("desktop.add_result"))
         self.delete_channel_button.setText(t("desktop.delete_channel"))
         self.retest_channel_button.setText(t("desktop.retest_channel"))
+        self.stream_selected_button.setText(t("desktop.open_selected_streams"))
         self.play_button.setText(t("desktop.play"))
         self.retest_result_button.setText(t("desktop.retest_result"))
-        self.stream_button.setText(t("desktop.stream_playback"))
+        self.stream_button.setText(t("desktop.open_play_streaming"))
         self.more_button.setText(t("desktop.more_actions"))
         for action, key in (
             (self.copy_action, "desktop.copy_url"),
@@ -766,3 +827,4 @@ class ChannelCenterPage(QWidget):
         self.channel_model.set_columns(self._channel_columns())
         self.result_model.set_columns(self._result_columns())
         self.reload()
+        self.set_stream_snapshot(self._stream_snapshot)

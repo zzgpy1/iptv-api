@@ -11,7 +11,8 @@ from utils.config import config
 import utils.constants as constants
 import atexit
 from service.rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hls_temp_path, STREAMS_LOCK, \
-    hls_running_streams, start_hls_to_rtmp, hls_last_access, HLS_WAIT_TIMEOUT, HLS_WAIT_INTERVAL, stop_stream
+    hls_running_streams, start_hls_to_rtmp, start_hls_to_rtmp_async, hls_last_access, HLS_IDLE_TIMEOUT, \
+    HLS_WAIT_TIMEOUT, HLS_WAIT_INTERVAL, stop_all_streams, stop_stream, stream_capacity_snapshot
 import logging
 from utils.i18n import t
 from utils.rtmp_runtime import install_rtmp_runtime, rtmp_runtime_status
@@ -247,7 +248,20 @@ def hls_proxy(channel_id):
         host = f"{app_rtmp_url}/hls"
         client_ua = request.headers.get('User-Agent') if request and hasattr(request, 'headers') else None
         print(f"▶️ {client_ua}")
-        start_hls_to_rtmp(host, channel_id, client_user_agent=client_ua)
+        process = start_hls_to_rtmp(host, channel_id, client_user_agent=client_ua)
+        if process is None:
+            capacity = stream_capacity_snapshot()
+            occupied = set(capacity["active_streams"]) | set(capacity["starting_streams"])
+            if channel_id not in occupied and capacity["available_slots"] == 0:
+                return jsonify({
+                    t("name.error"): t("msg.rtmp_capacity_reached").format(
+                        limit=capacity["max_streams"],
+                        active=capacity["active_count"],
+                        starting=capacity["starting_count"],
+                    ),
+                    "error_code": "capacity_reached",
+                    **capacity,
+                }), 409
 
     hls_min_segments = 3
     waited = 0.0
@@ -310,8 +324,52 @@ def control_rtmp_stream(channel_id, action):
         stop_stream(channel_id)
     if action in {"start", "restart"}:
         host = f"{app_rtmp_url}/hls"
-        threading.Thread(target=start_hls_to_rtmp, args=(host, channel_id), daemon=True).start()
+        result = start_hls_to_rtmp_async(host, channel_id)
+        if not result["accepted"]:
+            result.update({
+                "channel_id": channel_id,
+                "action": action,
+                "error": t("msg.rtmp_capacity_reached").format(
+                    limit=result["max_streams"],
+                    active=result["active_count"],
+                    starting=result["starting_count"],
+                ),
+                "error_code": "capacity_reached",
+            })
+            return jsonify(result), 409
+        return jsonify({"channel_id": channel_id, "action": action, **result}), 202
     return jsonify({"channel_id": channel_id, "action": action, "accepted": True}), 202
+
+
+@app.get('/api/rtmp/runtime')
+def rtmp_runtime():
+    if not _local_request():
+        return jsonify({t("name.error"): t("msg.api_local_only")}), 403
+    now = time.time()
+    with STREAMS_LOCK:
+        streams = {
+            channel_id: {
+                "last_access": last_access,
+                "idle_timeout": HLS_IDLE_TIMEOUT,
+                "idle_remaining": max(0, HLS_IDLE_TIMEOUT - (now - last_access)),
+            }
+            for channel_id, last_access in hls_last_access.items()
+        }
+    return jsonify({
+        "sampled_at": now,
+        "idle_timeout": HLS_IDLE_TIMEOUT,
+        "streams": streams,
+        **stream_capacity_snapshot(),
+    })
+
+
+@app.post('/api/rtmp/shutdown')
+def shutdown_rtmp_runtime():
+    if not _local_request():
+        return jsonify({t("name.error"): t("msg.api_local_only")}), 403
+    stop_all_streams()
+    stop_rtmp_service()
+    return jsonify({"stopped": True})
 
 
 def _prompt_rtmp_install():
