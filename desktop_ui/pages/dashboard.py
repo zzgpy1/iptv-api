@@ -4,13 +4,14 @@ import os
 import pytz
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QPainter
-from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHeaderView, QHBoxLayout, QStackedWidget, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableView, isDarkTheme
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableItemDelegate, TableView, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, PageTitle, metric_row, play_circle_icon
-from utils.channel_repository import latest_successful_run, list_categories, list_channel_results, list_channels
+from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, PageTitle, configure_table_columns, metric_row, play_circle_icon
+from utils.channel_repository import latest_successful_run, list_categories, list_channel_results, list_channels, set_channel_logo
 from utils.config import config
 from utils.i18n import t
 from utils.tools import get_public_url, parse_times, resource_path
@@ -47,19 +48,26 @@ def _channel_logo(name, logo):
     return None
 
 
-class ChannelNamePlayDelegate(QStyledItemDelegate):
+class ChannelNamePlayDelegate(TableItemDelegate):
     def __init__(self, callback, parent=None):
         super().__init__(parent)
         self._callback = callback
         self._icon = play_circle_icon()
 
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        row = index.data(Qt.ItemDataRole.UserRole) or {}
+        if row.get("best_url") and int(row.get("valid_results") or 0) > 0:
+            option.rect.adjust(0, 0, -42, 0)
+
     def paint(self, painter: QPainter, option, index):
-        base_option = QStyleOptionViewItem(option)
+        primary_delegate = self.parent().delegate
+        self.hoverRow = primary_delegate.hoverRow
+        self.pressedRow = primary_delegate.pressedRow
+        self.selectedRows = primary_delegate.selectedRows
         row = index.data(Qt.ItemDataRole.UserRole) or {}
         playable = bool(row.get("best_url") and int(row.get("valid_results") or 0) > 0)
-        if playable:
-            base_option.rect = base_option.rect.adjusted(0, 0, -42, 0)
-        super().paint(painter, base_option, index)
+        super().paint(painter, option, index)
         if not playable:
             return
         rect = self._button_rect(option.rect)
@@ -137,15 +145,15 @@ class DashboardPage(QWidget):
         self.channel_search = AppSearchLineEdit(self.channels_card)
         self.channel_search.setPlaceholderText(t("desktop.search_channels"))
         self.channel_model = ChannelTableModel(self._channel_columns(), self, logo_loader=logo_loader)
+        self.logo_loader = self.channel_model.logo_loader
         self.channel_table = TableView(self.channels_card)
         self.channel_table.setModel(self.channel_model)
         self.channel_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.channel_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.channel_table.verticalHeader().setVisible(False)
-        self.channel_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.channel_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        configure_table_columns(self.channel_table, [260, 100, 85, 85, 105, 115, 110, 85, 170], "dashboard.channels")
         self.channel_table.setBorderVisible(False)
-        self.channel_table.setIconSize(QSize(28, 28))
+        self.channel_table.setIconSize(QSize(32, 24))
         self.play_delegate = ChannelNamePlayDelegate(self._play_channel, self.channel_table)
         self.channel_table.setItemDelegateForColumn(0, self.play_delegate)
         self.channel_stack = QStackedWidget(self.channels_card)
@@ -187,6 +195,7 @@ class DashboardPage(QWidget):
         self.cancel_button.clicked.connect(self.cancel_requested)
         self.output_button.clicked.connect(self.open_output)
         self.channel_search.textChanged.connect(self._apply_runtime_rows)
+        self.channel_table.clicked.connect(self._channel_clicked)
         self.status_card.clicked.connect(lambda: self.destination_requested.emit("tasks"))
         self.channel_card.clicked.connect(lambda: self.destination_requested.emit("channels"))
         self.valid_card.clicked.connect(lambda: self.destination_requested.emit("channels"))
@@ -218,14 +227,14 @@ class DashboardPage(QWidget):
     def _channel_columns():
         return [
             ("name", t("name.channel"), None),
-            ("category", t("desktop.categories"), None),
-            ("display_status", t("desktop.test_status"), _channel_status),
-            ("total_results", t("desktop.total_results"), None),
-            ("valid_results", t("desktop.valid_results"), None),
-            ("selected_results", t("desktop.output_results"), None),
-            ("best_speed", t("name.max_speed"), _speed),
-            ("max_resolution", t("name.max_resolution"), None),
-            ("updated_at", t("desktop.updated_at"), _updated_at),
+            ("display_status", t("desktop.status"), _channel_status),
+            ("valid_results", t("desktop.column_valid"), None),
+            ("selected_results", t("desktop.column_output"), None),
+            ("best_speed", t("desktop.column_best_speed"), _speed),
+            ("max_resolution", t("desktop.column_resolution"), None),
+            ("category", t("desktop.column_category"), None),
+            ("total_results", t("desktop.column_results"), None),
+            ("updated_at", t("desktop.column_updated"), _updated_at),
         ]
 
     def refresh_metrics(self):
@@ -362,6 +371,29 @@ class DashboardPage(QWidget):
         layout.addRow(buttons)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             QDesktopServices.openUrl(QUrl(selector.currentData()))
+
+    def _channel_clicked(self, index):
+        if self.channel_model.columns[index.column()][0] != "name" or not is_channel_logo_click(self.channel_table, index):
+            return
+        row = self.channel_model.row(index)
+        if not row:
+            return
+        channel_key = row.get("channel_key")
+        if not channel_key:
+            try:
+                match = next(
+                    item for item in list_channels(constants.channel_results_path)
+                    if item.get("name") == row.get("name") and item.get("category") == row.get("category")
+                )
+                channel_key = match["channel_key"]
+            except (StopIteration, OSError):
+                return
+        dialog = ChannelLogoDialog(row, self.logo_loader, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        set_channel_logo(constants.channel_results_path, channel_key, dialog.logo_value())
+        self.refresh_metrics()
+        InfoBar.success(t("desktop.channel_logo_updated"), row["name"], parent=self, position=InfoBarPosition.TOP)
 
     def refresh_schedule(self):
         try:

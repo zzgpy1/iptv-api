@@ -2,12 +2,13 @@ import datetime
 
 from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QSize, QSignalBlocker, Signal, Qt, QUrl
 from PySide6.QtGui import QBrush, QColor, QDesktopServices, QGuiApplication, QMouseEvent, QPainter, QPen
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, FluentIcon, InfoBar, InfoBarPosition, MessageBox, ProgressBar, PushButton, RoundMenu, TableView, ToolButton, isDarkTheme
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QStyleOptionViewItem, QVBoxLayout, QWidget
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, FluentIcon, InfoBar, InfoBarPosition, MessageBox, ProgressBar, PushButton, RoundMenu, TableItemDelegate, TableView, ToolButton, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
-from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, PageTitle
+from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
+from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, PageTitle, configure_table_columns
 from utils.channel_repository import add_manual_result, delete_channel_records, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, set_channel_logo, upsert_manual_channel
 from utils.config import config
 from utils.i18n import t
@@ -62,6 +63,7 @@ class CheckBoxHeader(QHeaderView):
     def __init__(self, parent=None):
         super().__init__(Qt.Orientation.Horizontal, parent)
         self._state = Qt.CheckState.Unchecked
+        self._resizing = False
 
     def set_check_state(self, state):
         if state != self._state:
@@ -75,6 +77,10 @@ class CheckBoxHeader(QHeaderView):
         _paint_checkbox(painter, rect, self._state)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
+        if self._resizing:
+            self._resizing = False
+            super().mouseReleaseEvent(event)
+            return
         if event.button() == Qt.MouseButton.LeftButton and self.logicalIndexAt(event.position().toPoint()) == 0:
             self.toggled.emit(self._state != Qt.CheckState.Checked)
             event.accept()
@@ -83,22 +89,28 @@ class CheckBoxHeader(QHeaderView):
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton and self.logicalIndexAt(event.position().toPoint()) == 0:
+            boundary = self.sectionViewportPosition(0) + self.sectionSize(0)
+            if abs(event.position().x() - boundary) <= 6:
+                self._resizing = True
+                super().mousePressEvent(event)
+                return
             event.accept()
             return
         super().mousePressEvent(event)
 
 
-class CheckBoxDelegate(QStyledItemDelegate):
+class CheckBoxDelegate(TableItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        option.text = ""
+        option.features &= ~QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator
+
     def paint(self, painter, option, index):
-        base_option = QStyleOptionViewItem(option)
-        self.initStyleOption(base_option, index)
-        base_option.text = ""
-        base_option.features &= ~QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator
-        option.widget.style().drawControl(
-            QStyle.ControlElement.CE_ItemViewItem, base_option, painter, option.widget
-        )
-        state = index.data(Qt.ItemDataRole.CheckStateRole)
-        _paint_checkbox(painter, option.rect, state)
+        primary_delegate = self.parent().delegate
+        self.hoverRow = primary_delegate.hoverRow
+        self.pressedRow = primary_delegate.pressedRow
+        self.selectedRows = primary_delegate.selectedRows
+        super().paint(painter, option, index)
 
     def editorEvent(self, event, model, option, index):
         if event.type() == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
@@ -169,16 +181,18 @@ class ChannelCenterPage(QWidget):
         self.channel_model = ChannelTableModel(
             self._channel_columns(), self, checkable_key="batch_selected", logo_loader=logo_loader
         )
+        self.logo_loader = self.channel_model.logo_loader
         self.result_model = MappingTableModel(self._result_columns(), self, checkable_key="batch_selected")
         self.channel_table = self._table(self.channel_model, multiple=True)
         self.channel_header = CheckBoxHeader(self.channel_table)
         self.channel_table.setHorizontalHeader(self.channel_header)
         self.channel_header.setSortIndicator(1, Qt.SortOrder.AscendingOrder)
-        self.channel_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.channel_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        self.channel_table.horizontalHeader().resizeSection(0, 42)
-        self.channel_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.channel_table.setIconSize(QSize(28, 28))
+        configure_table_columns(
+            self.channel_table,
+            [42, 240, 90, 80, 80, 105, 90, 115, 105, 85, 90, 170],
+            "channel_center.channels",
+        )
+        self.channel_table.setIconSize(QSize(32, 24))
         self.channel_table.setItemDelegateForColumn(0, CheckBoxDelegate(self.channel_table))
         self.channel_header.toggled.connect(self._toggle_all_channels)
         self.channel_model.modelReset.connect(self._update_channel_header)
@@ -250,10 +264,11 @@ class ChannelCenterPage(QWidget):
         self.result_header = CheckBoxHeader(self.result_table)
         self.result_table.setHorizontalHeader(self.result_header)
         self.result_header.setSortIndicator(1, Qt.SortOrder.AscendingOrder)
-        self.result_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.result_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
-        self.result_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        self.result_table.horizontalHeader().resizeSection(0, 42)
+        configure_table_columns(
+            self.result_table,
+            [42, 90, 110, 90, 110, 90, 100, 280],
+            "channel_center.results",
+        )
         self.result_table.setItemDelegateForColumn(0, CheckBoxDelegate(self.result_table))
         self.result_header.toggled.connect(self._toggle_all_results)
         self.result_model.modelReset.connect(self._update_result_header)
@@ -297,16 +312,16 @@ class ChannelCenterPage(QWidget):
         return [
             ("batch_selected", "", None),
             ("name", t("name.channel"), None),
-            ("category", t("desktop.categories"), None),
-            ("health", t("desktop.health"), _health),
-            ("total_results", t("desktop.total_results"), None),
-            ("valid_results", t("name.valid"), None),
-            ("whitelist_count", t("desktop.whitelist_count"), None),
-            ("blacklist_count", t("desktop.blacklist_count"), None),
-            ("best_speed", t("name.max_speed"), _speed),
-            ("min_delay", t("name.min_delay"), _delay),
-            ("max_resolution", t("name.max_resolution"), None),
-            ("updated_at", t("desktop.updated_at"), _updated_at),
+            ("health", t("desktop.status"), _health),
+            ("valid_results", t("desktop.column_valid"), None),
+            ("total_results", t("desktop.column_results"), None),
+            ("best_speed", t("desktop.column_best_speed"), _speed),
+            ("min_delay", t("desktop.column_delay"), _delay),
+            ("max_resolution", t("desktop.column_resolution"), None),
+            ("category", t("desktop.column_category"), None),
+            ("whitelist_count", t("desktop.column_whitelist"), None),
+            ("blacklist_count", t("desktop.column_blacklist"), None),
+            ("updated_at", t("desktop.column_updated"), _updated_at),
         ]
 
     @staticmethod
@@ -314,11 +329,11 @@ class ChannelCenterPage(QWidget):
         return [
             ("batch_selected", "", None),
             ("valid", t("desktop.status"), lambda value, _: t("name.valid") if value else t("desktop.unavailable")),
+            ("speed", t("desktop.column_speed"), _speed),
+            ("delay", t("desktop.column_delay"), _delay),
+            ("resolution", t("desktop.column_resolution"), None),
+            ("ipv_type", t("desktop.column_protocol"), None),
             ("origin", t("name.from"), None),
-            ("ipv_type", t("name.ipv_type"), None),
-            ("speed", t("name.speed"), _speed),
-            ("delay", t("name.delay"), _delay),
-            ("resolution", t("name.resolution"), None),
             ("host", t("desktop.host"), None),
         ]
 
@@ -521,6 +536,9 @@ class ChannelCenterPage(QWidget):
 
     def _channel_clicked(self, index):
         row = self.channel_model.row(index)
+        if row and self.channel_model.columns[index.column()][0] == "name" and is_channel_logo_click(self.channel_table, index):
+            self._edit_channel_logo(row)
+            return
         if row and self.channel_model.columns[index.column()][0] != "batch_selected":
             if self._drawer_channel_key != row["channel_key"]:
                 self._checked_result_keys.clear()
@@ -648,47 +666,16 @@ class ChannelCenterPage(QWidget):
         else:
             InfoBar.warning(t("desktop.channel_exists"), name.text().strip(), parent=self, position=InfoBarPosition.TOP)
 
-    def _edit_channel_logo(self):
-        channel = self.selected_channel()
+    def _edit_channel_logo(self, channel=None):
+        channel = channel if isinstance(channel, dict) else self.selected_channel()
         if not channel:
             return
-        dialog = QDialog(self)
-        dialog.setWindowTitle(t("desktop.edit_channel_logo"))
-        form = QFormLayout(dialog)
-        channel_label = QLabel(channel["name"], dialog)
-        logo_row = QWidget(dialog)
-        logo_layout = QHBoxLayout(logo_row)
-        logo_layout.setContentsMargins(0, 0, 0, 0)
-        logo = AppLineEdit(logo_row)
-        logo.setText(str(channel.get("logo") or ""))
-        logo.setPlaceholderText(t("desktop.logo_path_or_url"))
-        browse = ToolButton(FluentIcon.FOLDER, logo_row)
-        browse.setToolTip(t("desktop.choose_logo_file"))
-        logo_layout.addWidget(logo, 1)
-        logo_layout.addWidget(browse)
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
-        form.addRow(t("name.channel"), channel_label)
-        form.addRow(t("desktop.channel_logo"), logo_row)
-        form.addRow(buttons)
-        browse.clicked.connect(lambda: self._choose_logo_file(dialog, logo))
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
+        dialog = ChannelLogoDialog(channel, self.logo_loader, self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        set_channel_logo(constants.channel_results_path, channel["channel_key"], logo.text())
+        set_channel_logo(constants.channel_results_path, channel["channel_key"], dialog.logo_value())
         self.reload()
         InfoBar.success(t("desktop.channel_logo_updated"), channel["name"], parent=self, position=InfoBarPosition.TOP)
-
-    @staticmethod
-    def _choose_logo_file(parent, target):
-        path, _ = QFileDialog.getOpenFileName(
-            parent,
-            t("desktop.choose_logo_file"),
-            "",
-            t("desktop.logo_image_filter"),
-        )
-        if path:
-            target.setText(path)
 
     def _delete_selected_channels(self):
         rows = self.selected_channels()

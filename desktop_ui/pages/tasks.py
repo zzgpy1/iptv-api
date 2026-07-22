@@ -2,12 +2,12 @@ from datetime import datetime
 
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, TableView
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
-from desktop_ui.widgets import AccentPushButton, PageTitle
+from desktop_ui.widgets import AccentPushButton, PageTitle, configure_table_columns
 from utils.channel_repository import list_channels, list_operations, list_runs, result_metadata_map
 from utils.diagnostics import export_diagnostics
 from utils.i18n import t
@@ -40,8 +40,7 @@ class TasksPage(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.setBorderVisible(True)
         self.table.setBorderRadius(8)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        configure_table_columns(self.table, [170, 95, 110, 200, 85, 360], "tasks.history")
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
         self.export_button = AccentPushButton(FluentIcon.ZIP_FOLDER, t("desktop.export_diagnostics"), self)
         actions = QHBoxLayout()
@@ -66,11 +65,11 @@ class TasksPage(QWidget):
     @staticmethod
     def _columns():
         return [
-            ("started_at", t("desktop.started_at"), _time),
-            ("task", t("desktop.task_type"), _task),
-            ("target", t("desktop.target"), None),
+            ("started_at", t("desktop.column_started"), _time),
             ("status", t("desktop.status"), _status),
-            ("duration", t("desktop.duration"), _duration),
+            ("task", t("desktop.column_task"), _task),
+            ("target", t("desktop.target"), None),
+            ("duration", t("desktop.column_duration"), _duration),
             ("details", t("desktop.details"), None),
         ]
 

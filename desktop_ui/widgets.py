@@ -1,7 +1,6 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPointF, QSettings, QTimer, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
-from PySide6.QtCore import QPointF
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHeaderView, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, SubtitleLabel, isDarkTheme, qconfig, setCustomStyleSheet
 
 
@@ -17,6 +16,31 @@ def apply_input_border_style(widget, selector):
     light = f"{states} {{ border-bottom-color: rgba(0, 0, 0, 13); }}"
     dark = f"{states} {{ border-bottom-color: rgba(255, 255, 255, 0.08); }}"
     setCustomStyleSheet(widget, light, dark)
+
+
+def configure_table_columns(table, widths: list[int], state_key: str):
+    header = table.horizontalHeader()
+    header.setCascadingSectionResizes(False)
+    header.setMinimumSectionSize(40)
+    header.setStretchLastSection(False)
+    header.setSectionsMovable(True)
+    header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+    for column, width in enumerate(widths[:header.count()]):
+        header.resizeSection(column, width)
+    saved_state = QSettings().value(f"appearance/table_headers/{state_key}")
+    if saved_state is not None:
+        header.restoreState(saved_state)
+    if getattr(header, "_column_state_key", None) == state_key:
+        return
+    header._column_state_key = state_key
+    header._column_state_timer = QTimer(header)
+    header._column_state_timer.setSingleShot(True)
+    header._column_state_timer.setInterval(250)
+    header._column_state_timer.timeout.connect(
+        lambda: QSettings().setValue(f"appearance/table_headers/{state_key}", header.saveState())
+    )
+    header.sectionMoved.connect(lambda *_: header._column_state_timer.start())
+    header.sectionResized.connect(lambda *_: header._column_state_timer.start())
 
 
 class AppLineEdit(LineEdit):
@@ -128,6 +152,7 @@ class PageTitle(QWidget):
 class MetricCard(CardWidget):
     def __init__(self, title: str, value: str = "--", detail: str = "", icon=None, parent=None, accent="#0E5CAD"):
         super().__init__(parent)
+        self._accent = QColor(accent)
         self.setMinimumHeight(104)
         self.setBorderRadius(8)
         root = QHBoxLayout(self)
@@ -156,11 +181,21 @@ class MetricCard(CardWidget):
         font.setBold(True)
         self.value_label.setFont(font)
         self.detail_label = BodyLabel(detail, self)
-        self.detail_label.setStyleSheet(f"color: {'#94A3B8' if isDarkTheme() else '#64748B'}")
         layout.addWidget(self.title_label)
         layout.addWidget(self.value_label)
         layout.addWidget(self.detail_label)
         root.addLayout(layout, 1)
+        qconfig.themeChangedFinished.connect(self._apply_text_colors)
+        self._apply_text_colors()
+
+    def _apply_text_colors(self, *_):
+        dark = isDarkTheme()
+        title = "#CBD5E1" if dark else "#475569"
+        detail = "#94A3B8" if dark else "#64748B"
+        value = self._accent.lighter(135).name() if dark else self._accent.name()
+        self.title_label.setStyleSheet(f"color: {title};")
+        self.value_label.setStyleSheet(f"color: {value};")
+        self.detail_label.setStyleSheet(f"color: {detail};")
 
     def set_clickable(self, clickable: bool = True):
         self.setClickEnabled(clickable)

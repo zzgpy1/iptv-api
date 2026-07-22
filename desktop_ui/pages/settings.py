@@ -1,10 +1,10 @@
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, TableView
 
 from desktop_ui.delegates import ConfigValueDelegate, ElidedDescriptionDelegate
 from desktop_ui.models import ConfigTableModel
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, PageTitle
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, PageTitle, configure_table_columns
 from utils.i18n import t
 
 
@@ -29,13 +29,10 @@ class SettingsPage(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.setBorderVisible(True)
         self.table.setBorderRadius(8)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        self.table.setColumnWidth(1, 420)
+        configure_table_columns(self.table, [190, 420, 520], "settings.config")
         self.table.setWordWrap(False)
         self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
-        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         actions = QHBoxLayout()
         actions.addWidget(self.search, 1)
         actions.addWidget(self.reload_button)

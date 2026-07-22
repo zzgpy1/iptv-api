@@ -3,11 +3,11 @@ from collections import defaultdict
 
 from PySide6.QtCore import QIODevice, QSaveFile, Signal, Qt
 from PySide6.QtGui import QTextCursor
-from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel, QStackedWidget, QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QStackedWidget, QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PushButton, ToolButton, isDarkTheme
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, AppPlainTextEdit, AppSearchLineEdit, DangerPushButton, PageTitle
+from desktop_ui.widgets import AccentPushButton, AppPlainTextEdit, AppSearchLineEdit, DangerPushButton, PageTitle, configure_table_columns
 from utils.config import config, resource_path
 from utils.i18n import t
 
@@ -230,13 +230,24 @@ class SourceEditor(QWidget):
 
     def _headers(self):
         return {
-            "template": [t("desktop.categories"), t("name.channel")],
+            "template": [t("name.channel"), t("desktop.column_category")],
             "local": [t("name.channel"), t("desktop.source_url")],
-            "subscribe": [t("desktop.whitelist_subscription"), t("desktop.source_url"), t("desktop.source_options")],
+            "subscribe": [t("desktop.source_url"), t("desktop.column_whitelist"), t("desktop.source_options")],
             "epg": [t("desktop.source_url"), t("desktop.source_options")],
-            "whitelist": [t("desktop.rule_type"), t("name.channel"), t("desktop.match_value")],
+            "whitelist": [t("name.channel"), t("desktop.column_match"), t("desktop.column_rule")],
             "blacklist": [t("desktop.keyword")],
-            "alias": [t("desktop.canonical_name"), t("desktop.alias_values")],
+            "alias": [t("desktop.column_canonical"), t("desktop.column_aliases")],
+        }[self.kind]
+
+    def _column_widths(self):
+        return {
+            "template": [260, 160],
+            "local": [180, 520],
+            "subscribe": [520, 85, 260],
+            "epg": [520, 260],
+            "whitelist": [180, 420, 110],
+            "blacklist": [520],
+            "alias": [180, 520],
         }[self.kind]
 
     def _rebuild_table(self):
@@ -248,12 +259,8 @@ class SourceEditor(QWidget):
         self.table.setRowCount(len(self.rows))
         for row_index, row in enumerate(self.rows):
             self._populate_row(row_index, row)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        if self.kind in {"subscribe", "whitelist"}:
-            self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        configure_table_columns(self.table, self._column_widths(), f"sources.{self.kind}")
         if self.kind == "alias":
-            self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-            self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
             self.table.verticalHeader().setDefaultSectionSize(46)
         self._syncing = False
         self._filter_rows()
@@ -263,14 +270,14 @@ class SourceEditor(QWidget):
             item = QTableWidgetItem()
             item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Checked if row.get("whitelist") else Qt.CheckState.Unchecked)
-            self.table.setItem(row_index, 0, item)
-            self._set_text_item(row_index, 1, row.get("url", ""))
+            self._set_text_item(row_index, 0, row.get("url", ""))
+            self.table.setItem(row_index, 1, item)
             self._set_text_item(row_index, 2, row.get("options", ""))
             return
         if self.kind == "whitelist":
-            self._set_combo(row_index, 0, [(t("desktop.rule_exact"), "exact"), (t("desktop.rule_keyword"), "keyword")], row.get("rule_type"))
-            self._set_text_item(row_index, 1, row.get("channel", ""))
-            self._set_text_item(row_index, 2, row.get("value", ""))
+            self._set_text_item(row_index, 0, row.get("channel", ""))
+            self._set_text_item(row_index, 1, row.get("value", ""))
+            self._set_combo(row_index, 2, [(t("desktop.rule_exact"), "exact"), (t("desktop.rule_keyword"), "keyword")], row.get("rule_type"))
             return
         if self.kind == "alias":
             self._set_text_item(row_index, 0, row.get("canonical", ""))
@@ -279,7 +286,7 @@ class SourceEditor(QWidget):
             self.table.setCellWidget(row_index, 1, aliases)
             return
         keys = {
-            "template": ("group", "name"),
+            "template": ("name", "group"),
             "local": ("channel", "url"),
             "epg": ("url", "options"),
             "blacklist": ("keyword",),
@@ -308,15 +315,15 @@ class SourceEditor(QWidget):
     def _read_row(self, row: int):
         text = lambda column: self.table.item(row, column).text().strip() if self.table.item(row, column) else ""
         if self.kind == "template":
-            return {"group": text(0), "name": text(1)}
+            return {"group": text(1), "name": text(0)}
         if self.kind == "local":
             return {"channel": text(0), "url": text(1)}
         if self.kind == "subscribe":
-            return {"whitelist": self.table.item(row, 0).checkState() == Qt.CheckState.Checked, "url": text(1), "options": text(2)}
+            return {"whitelist": self.table.item(row, 1).checkState() == Qt.CheckState.Checked, "url": text(0), "options": text(2)}
         if self.kind == "epg":
             return {"url": text(0), "options": text(1)}
         if self.kind == "whitelist":
-            return {"rule_type": self.table.cellWidget(row, 0).currentData(), "channel": text(1), "value": text(2)}
+            return {"rule_type": self.table.cellWidget(row, 2).currentData(), "channel": text(0), "value": text(1)}
         if self.kind == "blacklist":
             return {"keyword": text(0)}
         aliases = self.table.cellWidget(row, 1)
@@ -392,7 +399,7 @@ class SourceEditor(QWidget):
         self._rebuild_table()
         row = self.table.rowCount() - 1
         self.table.selectRow(row)
-        edit_column = 0 if self.kind == "alias" else 1 if self.kind in {"template", "local", "subscribe", "whitelist"} else 0
+        edit_column = 1 if self.kind == "local" else 0
         self.table.editItem(self.table.item(row, edit_column))
 
     def delete_items(self):

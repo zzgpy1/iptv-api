@@ -3,8 +3,8 @@ import re
 from collections import OrderedDict, deque
 from typing import Callable
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSize, QStandardPaths, Qt, QUrl, Signal
-from PySide6.QtGui import QColor, QIcon, QPixmap
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QRect, QSize, QStandardPaths, Qt, QUrl, Signal
+from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkDiskCache, QNetworkRequest
 from qfluentwidgets import FluentIcon
 import pytz
@@ -23,6 +23,49 @@ CONFIG_OPTIONS = {
     "logo_type": ["png", "jpg", "jpeg"],
     "rtmp_transcode_mode": ["copy", "auto"],
 }
+
+
+def _framed_channel_icon(icon: QIcon) -> QIcon:
+    rendered = icon.pixmap(QSize(64, 40))
+    image = rendered.toImage()
+    luminance = 0.0
+    weight = 0
+    left = image.width()
+    top = image.height()
+    right = -1
+    bottom = -1
+    for y in range(image.height()):
+        for x in range(image.width()):
+            color = image.pixelColor(x, y)
+            alpha = color.alpha()
+            if alpha < 32:
+                continue
+            luminance += (0.2126 * color.red() + 0.7152 * color.green() + 0.0722 * color.blue()) * alpha
+            weight += alpha
+            left = min(left, x)
+            top = min(top, y)
+            right = max(right, x)
+            bottom = max(bottom, y)
+    if right >= left and bottom >= top:
+        rendered = rendered.copy(QRect(left, top, right - left + 1, bottom - top + 1))
+    source = rendered.scaled(
+        QSize(28, 18),
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    light_icon = weight == 0 or luminance / weight >= 165
+    background = QColor("#334155" if light_icon else "#F8FAFC")
+    border = QColor("#1E293B" if light_icon else "#CBD5E1")
+    canvas = QPixmap(32, 24)
+    canvas.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(canvas)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(QPen(border, 1))
+    painter.setBrush(background)
+    painter.drawRoundedRect(0.5, 0.5, 31, 23, 5, 5)
+    painter.drawPixmap((32 - source.width()) // 2, (24 - source.height()) // 2, source)
+    painter.end()
+    return QIcon(canvas)
 
 
 def _config_descriptions() -> dict[str, str]:
@@ -178,12 +221,14 @@ class ChannelLogoLoader(QObject):
     def __init__(self, parent=None, max_entries: int = 512, max_concurrent: int = 6):
         super().__init__(parent)
         self._icons = OrderedDict()
+        self._display_icons = {}
         self._queued = set()
         self._queue = deque()
         self._active = {}
         self._max_entries = max_entries
         self._max_concurrent = max_concurrent
-        self._fallback_icon = FluentIcon.VIDEO.icon()
+        self._fallback_source_icon = FluentIcon.VIDEO.icon()
+        self._fallback_icon = _framed_channel_icon(self._fallback_source_icon)
         self._network = QNetworkAccessManager(self)
         cache = QNetworkDiskCache(self._network)
         cache_dir = os.path.join(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.CacheLocation), "channel-logos")
@@ -195,10 +240,24 @@ class ChannelLogoLoader(QObject):
     def fallback_icon(self):
         return self._fallback_icon
 
+    @property
+    def fallback_source_icon(self):
+        return self._fallback_source_icon
+
     def icon(self, logo: str):
+        if self._ensure_icon(logo):
+            return self._display_icons[logo]
+        return None
+
+    def source_icon(self, logo: str):
+        if self._ensure_icon(logo):
+            return self._icons[logo]
+        return None
+
+    def _ensure_icon(self, logo: str):
         if logo in self._icons:
             self._icons.move_to_end(logo)
-            return self._icons[logo]
+            return True
         url = QUrl(logo)
         if url.isLocalFile():
             icon = QIcon(url.toLocalFile())
@@ -206,12 +265,12 @@ class ChannelLogoLoader(QObject):
             icon = QIcon(logo)
         else:
             self._enqueue(logo, url)
-            return None
+            return False
         if not icon.isNull():
             self._store(logo, icon)
-            return icon
-        self._store(logo, self._fallback_icon)
-        return self._fallback_icon
+        else:
+            self._store_fallback(logo)
+        return True
 
     def _enqueue(self, logo: str, url: QUrl):
         if logo in self._queued or logo in self._active:
@@ -239,16 +298,26 @@ class ChannelLogoLoader(QObject):
         if reply.error() == reply.NetworkError.NoError and pixmap.loadFromData(reply.readAll()):
             self._store(logo, QIcon(pixmap))
         else:
-            self._store(logo, self._fallback_icon)
+            self._store_fallback(logo)
         reply.deleteLater()
         self.icon_ready.emit(logo)
         self._start_next()
 
     def _store(self, logo: str, icon: QIcon):
         self._icons[logo] = icon
+        self._display_icons[logo] = _framed_channel_icon(icon)
+        self._trim_cache(logo)
+
+    def _store_fallback(self, logo: str):
+        self._icons[logo] = self._fallback_source_icon
+        self._display_icons[logo] = self._fallback_icon
+        self._trim_cache(logo)
+
+    def _trim_cache(self, logo: str):
         self._icons.move_to_end(logo)
         while len(self._icons) > self._max_entries:
-            self._icons.popitem(last=False)
+            expired, _ = self._icons.popitem(last=False)
+            self._display_icons.pop(expired, None)
 
 
 class ChannelTableModel(MappingTableModel):
@@ -256,6 +325,10 @@ class ChannelTableModel(MappingTableModel):
         super().__init__(columns, parent, checkable_key)
         self._logo_loader = logo_loader or ChannelLogoLoader(self)
         self._logo_loader.icon_ready.connect(self._logo_loaded)
+
+    @property
+    def logo_loader(self):
+        return self._logo_loader
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid() and role == Qt.ItemDataRole.DecorationRole:

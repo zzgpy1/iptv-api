@@ -4,11 +4,11 @@ from datetime import datetime
 from PySide6.QtCharts import QChart, QChartView, QDateTimeAxis, QLineSeries, QValueAxis
 from PySide6.QtCore import QDateTime, Signal, Qt
 from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QPen
-from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QHBoxLayout, QSizePolicy, QSplitter, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QSizePolicy, QSplitter, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, FluentIcon, PushButton, ScrollArea, TableView, isDarkTheme, qconfig
 
 from desktop_ui.models import MappingTableModel
-from desktop_ui.widgets import AccentPushButton, MetricCard, PageTitle, metric_row
+from desktop_ui.widgets import AccentPushButton, MetricCard, PageTitle, configure_table_columns, metric_row
 from utils.i18n import t
 
 
@@ -34,10 +34,10 @@ class RtmpPage(QWidget):
         self._error_code = None
         self._error = ""
         self._installing = False
-        self.status_card = MetricCard(t("desktop.rtmp_service"), t("desktop.unknown"))
-        self.stream_card = MetricCard(t("desktop.active_streams"), "0")
-        self.client_card = MetricCard(t("desktop.clients"), "0")
-        self.bandwidth_card = MetricCard(t("desktop.output_bandwidth"), "0 Kbit/s")
+        self.status_card = MetricCard(t("desktop.rtmp_service"), t("desktop.unknown"), accent="#2563EB")
+        self.stream_card = MetricCard(t("desktop.active_streams"), "0", accent="#7C3AED")
+        self.client_card = MetricCard(t("desktop.clients"), "0", accent="#059669")
+        self.bandwidth_card = MetricCard(t("desktop.output_bandwidth"), "0 Kbit/s", accent="#EA580C")
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
         self.install_button = AccentPushButton(FluentIcon.DOWNLOAD, t("desktop.install_nginx_rtmp"), self)
         self.install_button.hide()
@@ -54,8 +54,7 @@ class RtmpPage(QWidget):
         self.table.setBorderRadius(8)
         self.table.setMinimumHeight(70)
         self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        configure_table_columns(self.table, [200, 90, 80, 110, 120, 110, 70, 110], "rtmp.streams")
         self.client_table = TableView(self)
         self.client_table.setModel(self.client_model)
         self.client_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -64,8 +63,7 @@ class RtmpPage(QWidget):
         self.client_table.setBorderRadius(8)
         self.client_table.setMinimumHeight(60)
         self.client_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
-        self.client_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.client_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        configure_table_columns(self.client_table, [200, 100, 110, 80, 90], "rtmp.clients")
 
         self.series = QLineSeries(self)
         self.chart = QChart()
@@ -143,24 +141,24 @@ class RtmpPage(QWidget):
     @staticmethod
     def _stream_columns():
         return [
-            ("state", t("desktop.status"), _stream_state),
             ("channel_name", t("name.channel"), None),
+            ("state", t("desktop.status"), _stream_state),
             ("clients", t("desktop.clients"), None),
-            ("bw_out", t("desktop.output_bandwidth"), lambda value, _: f"{float(value or 0) / 1000:.1f} Kbit/s"),
-            ("resolution", t("name.resolution"), None),
-            ("video_codec", t("name.video_codec"), None),
+            ("resolution", t("desktop.column_resolution"), None),
+            ("bw_out", t("desktop.column_bandwidth"), lambda value, _: f"{float(value or 0) / 1000:.1f} Kbit/s"),
+            ("video_codec", t("desktop.column_codec"), None),
             ("fps", t("name.fps"), None),
-            ("uptime", t("desktop.uptime"), None),
+            ("uptime", t("desktop.column_uptime"), None),
         ]
 
     @staticmethod
     def _client_columns():
         return [
+            ("address", t("desktop.column_address"), None),
             ("state", t("desktop.status"), _client_state),
-            ("address", t("desktop.client_address"), None),
-            ("dropped", t("desktop.dropped_frames"), None),
-            ("av_sync", t("desktop.av_sync"), None),
-            ("uptime", t("desktop.uptime"), None),
+            ("uptime", t("desktop.column_uptime"), None),
+            ("dropped", t("desktop.column_dropped"), None),
+            ("av_sync", t("desktop.column_av_sync"), None),
         ]
 
     def set_snapshot(self, snapshot: dict):
