@@ -34,12 +34,15 @@ class UpdateWorker(QObject):
         self.task = None
         self.source = UpdateSource()
         self._last_progress_emit = 0.0
+        self._cancel_requested = threading.Event()
 
     @Slot()
     def run(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.task = self.loop.create_task(self.source.run_once(self._progress))
+        if self._cancel_requested.is_set():
+            self.task.cancel()
         stream = SignalLogStream(constants.log_path, self.output.emit, sys.stdout)
         try:
             with redirect_stdout(stream), redirect_stderr(stream):
@@ -56,6 +59,7 @@ class UpdateWorker(QObject):
             self.finished.emit()
 
     def cancel(self):
+        self._cancel_requested.set()
         if self.loop and self.task:
             self.loop.call_soon_threadsafe(self.task.cancel)
 

@@ -103,6 +103,7 @@ class DashboardPage(QWidget):
         self.setObjectName("dashboardPage")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._running = False
+        self._cancelling = False
         self._service_status = "unknown"
         self._runtime_rows = []
         self._stream_snapshot = {"streams": []}
@@ -198,7 +199,7 @@ class DashboardPage(QWidget):
         layout.addWidget(self.channels_card, 1)
 
         self.run_button.clicked.connect(self.run_requested)
-        self.cancel_button.clicked.connect(self.cancel_requested)
+        self.cancel_button.clicked.connect(self._request_cancel)
         self.output_button.clicked.connect(self.open_output)
         self.channel_search.textChanged.connect(self._apply_runtime_rows)
         self.channel_table.clicked.connect(self._channel_clicked)
@@ -287,19 +288,37 @@ class DashboardPage(QWidget):
             self.channel_table.scrollTo(index, QAbstractItemView.ScrollHint.PositionAtCenter)
 
     def set_running(self, running: bool):
+        was_cancelling = self._cancelling
         self._running = running
+        self._cancelling = False
         if running:
             self.setFocus(Qt.FocusReason.OtherFocusReason)
         self.run_button.setEnabled(not running)
         self.cancel_button.setVisible(running)
+        self.cancel_button.setEnabled(running)
+        self.cancel_button.setText(t("desktop.cancel"))
         self.status_card.set_value(t("desktop.running") if running else t("desktop.idle"))
         if running:
             self._active_channel = None
             self._apply_runtime_rows()
         else:
+            if was_cancelling:
+                self.progress_title.setText(t("desktop.status_cancelled"))
             self.refresh_metrics()
 
+    def _request_cancel(self):
+        if not self._running or self._cancelling:
+            return
+        self._cancelling = True
+        self.cancel_button.setEnabled(False)
+        self.cancel_button.setText(t("desktop.stopping"))
+        self.status_card.set_value(t("desktop.stopping"))
+        self.progress_title.setText(t("desktop.stopping"))
+        self.cancel_requested.emit()
+
     def set_progress(self, title: str, value: int, finished: bool = False, metadata=None, _now=None):
+        if self._cancelling:
+            return
         self.progress.setValue(max(0, min(100, int(value))))
         if isinstance(metadata, dict) and metadata.get("channel"):
             key = (metadata.get("category"), metadata["channel"])

@@ -21,12 +21,12 @@ from utils.channel import get_channel_items, append_total_data, test_speed
 from utils.channel_repository import finish_run, start_run
 from utils.config import config
 from utils.i18n import t
+from utils.requests.async_tools import check_ipv6_support_async
 from utils.speed import clear_cache
 from utils.tools import (
     get_pbar_remaining,
     process_nested_dict,
     format_interval,
-    check_ipv6_support,
     get_urls_from_file,
     get_version_info,
     get_urls_len,
@@ -232,11 +232,11 @@ class UpdateSource:
         )
         await self.aggregator.start()
 
-    async def _stop_aggregator(self):
+    async def _stop_aggregator(self, flush: bool = True):
         if self.aggregator:
             aggregator = self.aggregator
             try:
-                await aggregator.stop()
+                await aggregator.stop(flush=flush)
                 return aggregator.result
             finally:
                 self.aggregator = None
@@ -478,8 +478,14 @@ class UpdateSource:
                                     },
                                 )
 
-            finally:
-                final_result = await self._stop_aggregator()
+            except asyncio.CancelledError:
+                await self._stop_aggregator(flush=False)
+                raise
+            except Exception:
+                await self._stop_aggregator(flush=False)
+                raise
+            else:
+                final_result = await self._stop_aggregator(flush=True)
                 if config.open_history:
                     self._save_cache(final_result)
                     frozen.save(constants.frozen_path)
@@ -521,7 +527,7 @@ class UpdateSource:
         if self.run_ui:
             self.update_progress(t("msg.check_ipv6_support"), 0)
 
-        self.ipv6_support = config.ipv6_support or check_ipv6_support()
+        self.ipv6_support = config.ipv6_support or await check_ipv6_support_async()
         await self.main()
 
     async def start(self, callback=None):
@@ -539,7 +545,7 @@ class UpdateSource:
         if self.run_ui:
             self.update_progress(t("msg.check_ipv6_support"), 0)
 
-        self.ipv6_support = config.ipv6_support or check_ipv6_support()
+        self.ipv6_support = config.ipv6_support or await check_ipv6_support_async()
 
         if not os.getenv("GITHUB_ACTIONS") and (config.update_interval or config.update_times):
             await self.scheduler(asyncio.Event())

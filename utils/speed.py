@@ -139,7 +139,9 @@ async def get_speed_with_download(url: str, headers: dict = None, session: Any =
                                     'size': total_size,
                                     'time': total_time,
                                 }
-    except:
+    except asyncio.CancelledError:
+        raise
+    except Exception:
         pass
     finally:
         if created_session:
@@ -169,7 +171,9 @@ async def get_headers(url: str, headers: dict = None, session: Any = None, timeo
         async with _limit(semaphore):
             async with session.head(url, headers=headers, timeout=timeout, allow_redirects=False) as response:
                 res_headers = dict(response.headers)
-    except:
+    except asyncio.CancelledError:
+        raise
+    except Exception:
         pass
     finally:
         if created_session:
@@ -198,7 +202,9 @@ async def get_url_content(url: str, headers: dict = None, session: Any = None,
                     content = payload.decode(response.charset or "utf-8", errors="replace")
                 else:
                     raise Exception("Invalid response")
-    except:
+    except asyncio.CancelledError:
+        raise
+    except Exception:
         pass
     finally:
         if created_session:
@@ -342,26 +348,29 @@ async def get_result(url: str, headers: dict = None, resolution: str = None,
                     info['speed'] = total_size / total_time / 1024 / 1024 if total_time > 0 else 0
                     delays = [result['delay'] for result in valid_results if result.get('delay', -1) >= 0]
                     info['delay'] = int(sum(delays) / len(delays)) if delays else -1
-    except:
+    except asyncio.CancelledError:
+        raise
+    except Exception:
         pass
-    finally:
-        probe_speed_threshold = min(
-            [min_speed_value, *resolution_speed_map.values()],
-            default=min_speed_value,
-        )
-        should_probe = open_supply or not open_filter_speed or (info.get('speed') or 0) >= probe_speed_threshold
-        if (filter_resolution and should_probe and not location
-                and not info.get('resolution') and info.get('delay') != -1):
-            try:
-                async with _limit(probe_semaphore):
-                    probed = await probe_url(url, headers, timeout=timeout)
-                if probed:
-                    info['resolution'] = probed.get('resolution')
-                    info['fps'] = probed.get('fps')
-                    info['video_codec'] = probed.get('video_codec')
-                    info['audio_codec'] = probed.get('audio_codec')
-            except Exception:
-                pass
+    probe_speed_threshold = min(
+        [min_speed_value, *resolution_speed_map.values()],
+        default=min_speed_value,
+    )
+    should_probe = open_supply or not open_filter_speed or (info.get('speed') or 0) >= probe_speed_threshold
+    if (filter_resolution and should_probe and not location
+            and not info.get('resolution') and info.get('delay') != -1):
+        try:
+            async with _limit(probe_semaphore):
+                probed = await probe_url(url, headers, timeout=timeout)
+            if probed:
+                info['resolution'] = probed.get('resolution')
+                info['fps'] = probed.get('fps')
+                info['video_codec'] = probed.get('video_codec')
+                info['audio_codec'] = probed.get('audio_codec')
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            pass
     return info
 
 

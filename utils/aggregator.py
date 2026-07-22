@@ -278,19 +278,29 @@ class ResultAggregator:
         self._flush_event.clear()
         self._task = asyncio.create_task(self._run_loop())
 
-    async def stop(self) -> None:
+    async def stop(self, flush: bool = True) -> None:
         """
         Stop the aggregator and clean up resources.
         """
-        self._stopped = True
-        self._flush_event.set()
-        if self._task:
-            await self._task
-            self._task = None
-        self._loop = None
         try:
-            await self.flush_once(force=True)
-        except Exception:
-            pass
-        if self.stat_logger:
-            close_logger_handlers(self.stat_logger)
+            self._stopped = True
+            self._flush_event.set()
+            if self._task:
+                if flush:
+                    await self._task
+                else:
+                    self._task.cancel()
+                    try:
+                        await self._task
+                    except asyncio.CancelledError:
+                        pass
+                self._task = None
+            self._loop = None
+            if flush:
+                try:
+                    await self.flush_once(force=True)
+                except Exception:
+                    pass
+        finally:
+            if self.stat_logger:
+                close_logger_handlers(self.stat_logger)

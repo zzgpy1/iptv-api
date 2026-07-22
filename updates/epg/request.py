@@ -1,27 +1,25 @@
+import asyncio
 import gzip
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from threading import Lock
 from time import time
 import sys
 
-from requests import Session
+from aiohttp import ClientSession, TCPConnector
 from tqdm.asyncio import tqdm_asyncio
 
 import utils.constants as constants
 from utils.channel import format_channel_name
 from utils.config import config
 from utils.i18n import t
-from utils.retry import retry_func
+from utils.requests.async_tools import fetch_first
 from utils.tools import (
     get_pbar_remaining,
     opencc_t2s,
     github_blob_to_raw,
     get_request_url_candidates,
-    request_first,
     get_subscribe_entries,
     count_disabled_urls,
     disable_urls_in_file,
@@ -50,8 +48,8 @@ def parse_epg(epg_content):
     try:
         parser = ET.XMLParser(encoding='UTF-8')
         root = ET.fromstring(epg_content, parser=parser)
-    except ET.ParseError as e:
-        print(f"Error parsing XML: {e}")
+    except ET.ParseError as exc:
+        print(f"Error parsing XML: {exc}")
         if isinstance(epg_content, (bytes, bytearray)):
             preview = bytes(epg_content[:500]).decode("utf-8", errors="replace")
         else:
@@ -86,8 +84,7 @@ def parse_epg(epg_content):
         channel_elem = ET.Element(
             'programme', attrib={"channel": channel_id, "start": channel_start.strftime("%Y%m%d%H%M%S +0800"),
                                  "stop": channel_stop.strftime("%Y%m%d%H%M%S +0800")})
-        channel_elem_s = ET.SubElement(
-            channel_elem, 'title', attrib={"lang": "zh"})
+        channel_elem_s = ET.SubElement(channel_elem, 'title', attrib={"lang": "zh"})
         channel_elem_s.text = channel_text
         programmes[channel_id].append(channel_elem)
 
@@ -95,9 +92,6 @@ def parse_epg(epg_content):
 
 
 def _epg_dedup_key(url) -> str:
-    """
-    Normalize an EPG url for de-duplication (scheme / .gz / trailing-slash insensitive).
-    """
     if not url:
         return ""
     key = github_blob_to_raw(str(url)).strip()
@@ -113,12 +107,14 @@ async def get_epg(names=None, callback=None, extra_entries=None):
     configured_entries = whitelist_entries + default_entries
     discovered_entries = []
     if extra_entries:
-        seen_keys = {_epg_dedup_key(e.get("url") if isinstance(e, dict) else e) for e in configured_entries}
+        seen_keys = {_epg_dedup_key(entry.get("url") if isinstance(entry, dict) else entry)
+                     for entry in configured_entries}
         for url in extra_entries:
             key = _epg_dedup_key(url)
             if url and key and key not in seen_keys:
                 discovered_entries.append(url)
                 seen_keys.add(key)
+
     disabled_count = count_disabled_urls(constants.epg_path)
     print(
         t("msg.epg_urls_whitelist_total").format(
@@ -128,9 +124,11 @@ async def get_epg(names=None, callback=None, extra_entries=None):
             total=len(configured_entries),
         )
     )
-    if not configured_entries and not discovered_entries:
+    entries = configured_entries + discovered_entries
+    if not entries:
         return {}
-    urls_len = len(configured_entries) + len(discovered_entries)
+
+    urls_len = len(entries)
     pbar = tqdm_asyncio(
         total=urls_len,
         desc=t("pbar.getting_name").format(name=t("name.epg")),
@@ -142,99 +140,123 @@ async def get_epg(names=None, callback=None, extra_entries=None):
     start_time = time()
     result = defaultdict(list)
     all_result_verify = set()
-    result_lock = Lock()
-    session = Session()
     open_unmatch_category = config.open_unmatch_category
     open_auto_disable_source = config.open_auto_disable_source
     disabled_urls = set()
-    disabled_lock = Lock()
+    fetch_workers = config.performance_settings.fetch_workers
+    semaphore = asyncio.Semaphore(fetch_workers)
 
-    def _mark_disabled(source_url: str, reason: str):
+    def mark_disabled(source_url: str, reason: str):
         if not open_auto_disable_source or not source_url:
             return
-        with disabled_lock:
-            disabled_urls.add(source_url)
+        disabled_urls.add(source_url)
         print(t("msg.auto_disable_source").format(name=t("name.epg"), url=source_url, reason=reason), flush=True)
 
-    def process_run(entry):
-        nonlocal all_result_verify, result
-        disable_reason = None
+    def advance_progress():
+        pbar.update()
+        if callback:
+            callback(
+                t("msg.progress_desc").format(
+                    name=f"{t('pbar.get')}{t('name.epg')}",
+                    remaining_total=urls_len - pbar.n,
+                    item_name=t("pbar.source"),
+                    remaining_time=get_pbar_remaining(n=pbar.n, total=pbar.total, start_time=start_time),
+                ),
+                int((pbar.n / urls_len) * 100),
+            )
+
+    async def process_run(session: ClientSession, entry):
         request_url = entry.get('url') if isinstance(entry, dict) else entry
-        source_url = None
+        source_url = entry.get('source_url', request_url) if isinstance(entry, dict) else request_url
+        headers = entry.get('headers') if isinstance(entry, dict) else None
+        disable_reason = None
+        cancelled = False
         try:
-            source_url = entry.get('source_url', request_url) if isinstance(entry, dict) else request_url
-            headers = entry.get('headers') if isinstance(entry, dict) else None
-            response = None
+            content = None
             try:
-                candidates = get_request_url_candidates(request_url)
-
-                def _fetch(u):
-                    resp = session.get(u, timeout=config.request_timeout, headers=headers)
-                    resp.raise_for_status()
-                    return resp
-
-                response = retry_func(
-                    lambda: request_first(candidates, _fetch),
-                    name=request_url,
-                )
-            except Exception as e:
-                print(e, flush=True)
+                async with semaphore:
+                    payload = await fetch_first(
+                        session,
+                        get_request_url_candidates(request_url),
+                        name=request_url,
+                        headers=headers,
+                        timeout=config.request_timeout,
+                        as_bytes=True,
+                    )
+                content = _normalize_epg_content(payload, request_url=request_url)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                print(exc, flush=True)
                 disable_reason = t("msg.auto_disable_request_failed")
-            if response:
-                content = _normalize_epg_content(response.content, request_url=request_url, response=response)
-                if content:
-                    channels, programmes = parse_epg(content)
-                    entry_matched = False
-                    for channel_id, display_name in channels.items():
-                        display_name = format_channel_name(display_name)
-                        if not open_unmatch_category and normalized_names and display_name not in normalized_names:
-                            continue
-                        entry_matched = True
-                        if channel_id not in all_result_verify and display_name not in all_result_verify:
-                            with result_lock:
-                                if channel_id not in all_result_verify and display_name not in all_result_verify:
-                                    if not channel_id.isdigit():
-                                        all_result_verify.add(channel_id)
-                                    all_result_verify.add(display_name)
-                                    result[display_name] = programmes[channel_id]
-                    if not entry_matched and not disable_reason:
-                        disable_reason = t("msg.auto_disable_no_match")
-                elif not disable_reason:
-                    disable_reason = t("msg.auto_disable_empty_content")
+
+            if content:
+                channels, programmes = await asyncio.to_thread(parse_epg, content)
+                entry_matched = False
+                for index, (channel_id, display_name) in enumerate(channels.items()):
+                    if index % 250 == 0:
+                        await asyncio.sleep(0)
+                    display_name = format_channel_name(display_name)
+                    if not open_unmatch_category and normalized_names and display_name not in normalized_names:
+                        continue
+                    entry_matched = True
+                    if channel_id in all_result_verify or display_name in all_result_verify:
+                        continue
+                    if not channel_id.isdigit():
+                        all_result_verify.add(channel_id)
+                    all_result_verify.add(display_name)
+                    result[display_name] = programmes[channel_id]
+                if not entry_matched and not disable_reason:
+                    disable_reason = t("msg.auto_disable_no_match")
             elif not disable_reason:
-                disable_reason = t("msg.auto_disable_request_failed")
-        except Exception as e:
-            print(t("msg.error_name_info").format(name=request_url, info=e), flush=True)
+                disable_reason = t("msg.auto_disable_empty_content")
+        except asyncio.CancelledError:
+            cancelled = True
+            raise
+        except Exception as exc:
+            print(t("msg.error_name_info").format(name=request_url, info=exc), flush=True)
             if not disable_reason:
                 disable_reason = t("msg.auto_disable_request_failed")
         finally:
             if disable_reason:
-                _mark_disabled(source_url, disable_reason)
-            pbar.update()
-            if callback:
-                callback(
-                    t("msg.progress_desc").format(name=f"{t("pbar.get")}{t("name.epg")}",
-                                                  remaining_total=urls_len - pbar.n,
-                                                  item_name=t("pbar.source"),
-                                                  remaining_time=get_pbar_remaining(n=pbar.n, total=pbar.total,
-                                                                                    start_time=start_time)),
-                    int((pbar.n / urls_len) * 100),
-                )
+                mark_disabled(source_url, disable_reason)
+            if not cancelled:
+                advance_progress()
 
-    with ThreadPoolExecutor(max_workers=config.performance_settings.fetch_workers) as executor:
-        for entry in configured_entries:
-            executor.submit(process_run, entry)
-    with ThreadPoolExecutor(max_workers=config.performance_settings.fetch_workers) as executor:
-        for entry in discovered_entries:
-            executor.submit(process_run, entry)
-    session.close()
-    pbar.close()
-    active_count = len(configured_entries)
-    disabled_count = 0
-    if disabled_urls:
-        counts = disable_urls_in_file(constants.epg_path, disabled_urls)
-        active_count = counts["active"]
-        disabled_count = counts["disabled"]
-    print(t("msg.auto_disable_source_done").format(name=t("name.epg"), active_count=active_count,
-                                                   disabled_count=disabled_count), flush=True)
-    return result
+    async def run_batch(session, batch):
+        tasks = [asyncio.create_task(process_run(session, entry)) for entry in batch]
+        try:
+            if tasks:
+                await asyncio.gather(*tasks)
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+
+    try:
+        async with ClientSession(
+                connector=TCPConnector(limit=fetch_workers),
+                trust_env=True,
+        ) as session:
+            await run_batch(session, configured_entries)
+            await run_batch(session, discovered_entries)
+
+        active_count = len(configured_entries)
+        disabled_count = 0
+        if disabled_urls:
+            counts = disable_urls_in_file(constants.epg_path, disabled_urls)
+            active_count = counts["active"]
+            disabled_count = counts["disabled"]
+        print(
+            t("msg.auto_disable_source_done").format(
+                name=t("name.epg"),
+                active_count=active_count,
+                disabled_count=disabled_count,
+            ),
+            flush=True,
+        )
+        return result
+    finally:
+        pbar.close()

@@ -129,6 +129,7 @@
   "desktop.service": "Local service",
   "desktop.idle": "Idle",
   "desktop.running": "Running",
+  "desktop.stopping": "Stopping…",
   "desktop.ready": "Ready",
   "desktop.unknown": "Unknown",
   "desktop.run_once": "Update now",
