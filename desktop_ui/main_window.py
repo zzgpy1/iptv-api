@@ -67,8 +67,11 @@ class MainWindow(FluentWindow):
         self.setWindowTitle(str(info.get("name") or "IPTV-API"))
         icon_path = "static/images/macos_app_icon.icns" if sys.platform == "darwin" else "favicon.ico"
         self.setWindowIcon(QIcon(resource_path(icon_path)))
-        self.resize(1280, 800)
-        self.setMinimumSize(960, 640)
+        self._window_geometry_timer = QTimer(self)
+        self._window_geometry_timer.setSingleShot(True)
+        self._window_geometry_timer.setInterval(300)
+        self._window_geometry_timer.timeout.connect(self._save_window_geometry)
+        self._configure_initial_geometry()
         self.navigationInterface.setReturnButtonVisible(False)
         if sys.platform == "darwin":
             self.setSystemTitleBarButtonVisible(True)
@@ -198,9 +201,38 @@ class MainWindow(FluentWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._position_navigation_resize_handle()
+        if self.isVisible():
+            self._window_geometry_timer.start()
         if sys.platform == "darwin":
             self.titleBar.move(90, 0)
             self.titleBar.resize(max(0, self.width() - 90), self.titleBar.height())
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        if self.isVisible():
+            self._window_geometry_timer.start()
+
+    def _configure_initial_geometry(self):
+        screen = QApplication.primaryScreen()
+        available = screen.availableGeometry()
+        minimum_width = min(960, available.width())
+        minimum_height = min(640, available.height())
+        self.setMinimumSize(minimum_width, minimum_height)
+
+        saved_geometry = QSettings().value("appearance/window_geometry")
+        if saved_geometry is not None and self.restoreGeometry(saved_geometry):
+            return
+
+        width = max(minimum_width, min(1280, round(available.width() * 0.9)))
+        height = max(minimum_height, min(800, round(available.height() * 0.9)))
+        self.resize(width, height)
+        self.move(
+            available.x() + (available.width() - width) // 2,
+            available.y() + (available.height() - height) // 2,
+        )
+
+    def _save_window_geometry(self):
+        QSettings().setValue("appearance/window_geometry", self.saveGeometry())
 
     def toggle_theme(self):
         self.set_dark_theme(not isDarkTheme())
@@ -472,6 +504,7 @@ class MainWindow(FluentWindow):
             )
 
     def shutdown(self):
+        self._save_window_geometry()
         self.rtmp_controller.shutdown()
         self.service_controller.stop()
         self.operation_controller.shutdown()

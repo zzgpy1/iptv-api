@@ -306,7 +306,6 @@ class RtmpPage(QWidget):
         self.table.setMinimumHeight(300)
         self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         configure_table_columns(self.table, [150, 60, 110, 125, 90, 90], "rtmp.streams.compact.v2")
-        self.table.horizontalHeader().setStretchLastSection(True)
 
         self.empty_card = CardWidget(self)
         self.empty_card.setBorderRadius(10)

@@ -1,4 +1,4 @@
-from PySide6.QtCore import QPointF, QSettings, QTimer, Qt
+from PySide6.QtCore import QEvent, QObject, QPointF, QSettings, QTimer, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import QHeaderView, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, SubtitleLabel, isDarkTheme, qconfig, setCustomStyleSheet
@@ -18,6 +18,137 @@ def apply_input_border_style(widget, selector):
     setCustomStyleSheet(widget, light, dark)
 
 
+class _AdaptiveTableColumns(QObject):
+    """Keep interactive table columns fitted to the viewport."""
+
+    def __init__(self, table, widths: list[int], state_key: str):
+        super().__init__(table)
+        self.table = table
+        self.viewport = table.viewport()
+        self.header = table.horizontalHeader()
+        self.state_key = state_key
+        self._applying = False
+        self._weights = self._load_weights(widths)
+        self._save_timer = QTimer(self)
+        self._save_timer.setSingleShot(True)
+        self._save_timer.setInterval(250)
+        self._save_timer.timeout.connect(self._save)
+        self._fit_timer = QTimer(self)
+        self._fit_timer.setSingleShot(True)
+        self._fit_timer.timeout.connect(self.fit)
+
+        self.viewport.installEventFilter(self)
+        self.header.sectionMoved.connect(self._schedule_save)
+        self.header.sectionResized.connect(self._section_resized)
+        QTimer.singleShot(0, self.fit)
+
+    def _load_weights(self, widths: list[int]) -> list[float]:
+        count = self.header.count()
+        defaults = [float(width) for width in widths[:count]]
+        if len(defaults) < count:
+            defaults.extend([100.0] * (count - len(defaults)))
+
+        settings = QSettings()
+        saved_state = settings.value(f"appearance/table_headers/{self.state_key}")
+        if saved_state is not None:
+            self.header.restoreState(saved_state)
+        else:
+            for column, width in enumerate(defaults):
+                self.header.resizeSection(column, int(width))
+
+        saved_weights = settings.value(f"appearance/table_column_weights/{self.state_key}")
+        if isinstance(saved_weights, (list, tuple)) and len(saved_weights) == count:
+            try:
+                parsed = [max(1.0, float(value)) for value in saved_weights]
+                if all(value > 0 for value in parsed):
+                    return parsed
+            except (TypeError, ValueError):
+                pass
+        if saved_state is not None:
+            return [float(max(1, self.header.sectionSize(column))) for column in range(count)]
+        return defaults
+
+    def eventFilter(self, watched, event):
+        if watched is self.viewport and event.type() in {
+            QEvent.Type.Resize,
+            QEvent.Type.Show,
+        }:
+            self._fit_timer.start(0)
+        return super().eventFilter(watched, event)
+
+    def fit(self):
+        visible = [
+            column
+            for column in range(self.header.count())
+            if not self.header.isSectionHidden(column)
+        ]
+        available = self.viewport.width()
+        if not visible or available <= 0:
+            return
+
+        minimum = self.header.minimumSectionSize()
+        usable = max(available, minimum * len(visible))
+        sizes = {}
+        pending = list(visible)
+        remaining = usable
+        while pending:
+            weight_total = sum(self._weights[column] for column in pending)
+            constrained = [
+                column
+                for column in pending
+                if remaining * self._weights[column] / weight_total < minimum
+            ]
+            if not constrained:
+                break
+            for column in constrained:
+                sizes[column] = minimum
+                remaining -= minimum
+                pending.remove(column)
+
+        pending_weight = sum(self._weights[column] for column in pending)
+        for position, column in enumerate(pending):
+            if position == len(pending) - 1:
+                sizes[column] = remaining
+            else:
+                size = round(remaining * self._weights[column] / pending_weight)
+                sizes[column] = size
+                remaining -= size
+                pending_weight -= self._weights[column]
+
+        self._applying = True
+        self.header.blockSignals(True)
+        try:
+            for column in visible:
+                self.header.resizeSection(column, sizes[column])
+        finally:
+            self.header.blockSignals(False)
+            self._applying = False
+
+    def _section_resized(self, *_):
+        if self._applying:
+            return
+        self._weights = [
+            float(max(1, self.header.sectionSize(column)))
+            for column in range(self.header.count())
+        ]
+        self._fit_timer.start(150)
+        self._schedule_save()
+
+    def _schedule_save(self, *_):
+        self._save_timer.start()
+
+    def _save(self):
+        settings = QSettings()
+        settings.setValue(
+            f"appearance/table_headers/{self.state_key}",
+            self.header.saveState(),
+        )
+        settings.setValue(
+            f"appearance/table_column_weights/{self.state_key}",
+            self._weights,
+        )
+
+
 def configure_table_columns(table, widths: list[int], state_key: str):
     header = table.horizontalHeader()
     header.setCascadingSectionResizes(False)
@@ -25,22 +156,10 @@ def configure_table_columns(table, widths: list[int], state_key: str):
     header.setStretchLastSection(False)
     header.setSectionsMovable(True)
     header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-    for column, width in enumerate(widths[:header.count()]):
-        header.resizeSection(column, width)
-    saved_state = QSettings().value(f"appearance/table_headers/{state_key}")
-    if saved_state is not None:
-        header.restoreState(saved_state)
-    if getattr(header, "_column_state_key", None) == state_key:
+    existing = getattr(header, "_adaptive_columns", None)
+    if existing is not None and existing.state_key == state_key:
         return
-    header._column_state_key = state_key
-    header._column_state_timer = QTimer(header)
-    header._column_state_timer.setSingleShot(True)
-    header._column_state_timer.setInterval(250)
-    header._column_state_timer.timeout.connect(
-        lambda: QSettings().setValue(f"appearance/table_headers/{state_key}", header.saveState())
-    )
-    header.sectionMoved.connect(lambda *_: header._column_state_timer.start())
-    header.sectionResized.connect(lambda *_: header._column_state_timer.start())
+    header._adaptive_columns = _AdaptiveTableColumns(table, widths, state_key)
 
 
 class AppLineEdit(LineEdit):
