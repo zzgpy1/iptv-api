@@ -227,9 +227,14 @@ class ConfigValueDelegate(QStyledItemDelegate):
         elif kind == "timezone":
             editor.setCurrentText(str(value))
         else:
-            editor.setText(str(value or ""))
-            editor.setCursorPosition(0)
-            editor.deselect()
+            text = str(value or "")
+            # textChanged writes through to the model immediately.  That emits
+            # dataChanged and calls setEditorData again, so replacing identical
+            # text here would reset the cursor to the beginning after every key.
+            if editor.text() != text:
+                editor.setText(text)
+                editor.setCursorPosition(0)
+                editor.deselect()
 
     def setModelData(self, editor, model, index):
         kind = index.data(ConfigTableModel.KindRole)

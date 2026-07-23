@@ -1,11 +1,17 @@
 import asyncio
+import ssl
 
+import certifi
 from aiohttp import ClientSession, ClientTimeout
 
 from utils.config import config
 from utils.i18n import t
 from utils.requests.tools import headers as default_headers
 from utils.retry import max_retries
+
+
+SSL_CONTEXT = ssl.create_default_context()
+SSL_CONTEXT.load_verify_locations(cafile=certifi.where())
 
 
 def merge_headers(headers_override=None):
@@ -35,6 +41,7 @@ async def fetch_first(
                         url,
                         headers=headers,
                         proxy=config.http_proxy or None,
+                        ssl=SSL_CONTEXT,
                         timeout=request_timeout,
                 ) as response:
                     if raise_for_status:
@@ -65,6 +72,7 @@ async def check_ipv6_support_async():
             async with session.get(
                     url,
                     proxy=config.http_proxy or None,
+                    ssl=SSL_CONTEXT,
                     timeout=ClientTimeout(total=10),
             ) as response:
                 if response.status == 200:
