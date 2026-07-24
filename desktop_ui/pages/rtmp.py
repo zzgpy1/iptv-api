@@ -11,7 +11,7 @@ from qfluentwidgets import BodyLabel, CaptionLabel, CardWidget, CheckBox, ComboB
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, PageTitle, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, configure_table_columns
 from utils.channel_repository import list_streamable_results
 from utils.config import config
 from utils.i18n import t
@@ -214,11 +214,6 @@ class RtmpPage(QWidget):
         self._active_result_keys = set()
         self._starting_result_keys = set()
 
-        self.title = PageTitle(FluentIcon.PLAY, t("desktop.play_streaming"), self)
-        self.help_button = ToolButton(FluentIcon.INFO, self)
-        self.help_button.setToolTip(t("desktop.play_streaming_help").format(limit=config.rtmp_max_streams))
-        self.title.addWidget(self.help_button)
-
         self.quick_card = CardWidget(self)
         self.quick_card.setBorderRadius(10)
         quick_layout = QVBoxLayout(self.quick_card)
@@ -372,9 +367,8 @@ class RtmpPage(QWidget):
         main_row.addWidget(self.chart_card, 0, Qt.AlignmentFlag.AlignTop)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 20, 28, 20)
+        layout.setContentsMargins(16, 12, 16, 16)
         layout.setSpacing(10)
-        layout.addWidget(self.title)
         layout.addWidget(self.quick_card)
         layout.addWidget(self.error_label)
         layout.addLayout(monitor_header)
@@ -508,8 +502,6 @@ class RtmpPage(QWidget):
         )
 
     def retranslate(self):
-        self.title.setText(t("desktop.play_streaming"))
-        self.help_button.setToolTip(t("desktop.play_streaming_help").format(limit=config.rtmp_max_streams))
         self.channel_picker_button.setText(t("desktop.choose_stream_channels"))
         self.source_label.setText(t("desktop.select_output_source"))
         self.start_button.setText(t("desktop.start_selected_streams"))

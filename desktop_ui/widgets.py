@@ -1,7 +1,7 @@
 from PySide6.QtCore import QEvent, QObject, QPointF, QSettings, QTimer, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import QHeaderView, QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, SubtitleLabel, isDarkTheme, qconfig, setCustomStyleSheet
+from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, isDarkTheme, qconfig, setCustomStyleSheet
 
 
 def apply_input_border_style(widget, selector):
@@ -245,27 +245,6 @@ def play_circle_icon(color="#FFFFFF"):
     painter.drawPolygon(QPolygonF([QPointF(13, 10), QPointF(13, 22), QPointF(23, 16)]))
     painter.end()
     return QIcon(pixmap)
-
-
-class PageTitle(QWidget):
-    def __init__(self, icon, text: str, parent=None):
-        super().__init__(parent)
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
-        self.icon_widget = IconWidget(icon, self)
-        self.icon_widget.setFixedSize(26, 26)
-        self.label = SubtitleLabel(text, self)
-        layout.addWidget(self.icon_widget)
-        layout.addWidget(self.label)
-        layout.addStretch(1)
-        self.layout = layout
-
-    def setText(self, text: str):
-        self.label.setText(text)
-
-    def addWidget(self, widget):
-        self.layout.addWidget(widget)
 
 
 class MetricCard(CardWidget):

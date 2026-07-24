@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, HyperlinkButton, InfoBar, InfoBarPosition, ProgressBar, PushButton, StrongBodyLabel, SubtitleLabel
 
 from desktop_ui.update_manager import REPOSITORY_URL, UpdateManager
-from desktop_ui.widgets import AccentPushButton, PageTitle
+from desktop_ui.widgets import AccentPushButton
 from utils.config import resource_path
 from utils.i18n import t
 from utils.tools import get_version_info
@@ -69,10 +69,8 @@ class AboutPage(QWidget):
         links.addStretch(1)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(16)
-        self.title = PageTitle(FluentIcon.INFO, t("desktop.about"), self)
-        layout.addWidget(self.title)
+        layout.setContentsMargins(16, 12, 16, 16)
+        layout.setSpacing(10)
         layout.addLayout(hero)
         layout.addWidget(self.version_card)
         layout.addLayout(links)
@@ -134,7 +132,6 @@ class AboutPage(QWidget):
         InfoBar.error(t("desktop.update_check_failed"), message, parent=self, position=InfoBarPosition.TOP)
 
     def retranslate(self):
-        self.title.setText(t("desktop.about"))
         self.version_label.setText(t("desktop.version_value").format(version=self.info.get("version") or "--"))
         self.author_label.setText(t("desktop.author_value").format(author="Guovin"))
         self.check_button.setText(t("desktop.check_updates"))

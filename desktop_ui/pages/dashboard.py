@@ -2,7 +2,7 @@ import datetime
 import os
 
 import pytz
-from PySide6.QtCore import QEvent, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import QEvent, QRectF, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QPainter
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, InfoBar, MessageBox, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableView, isDarkTheme
@@ -11,11 +11,37 @@ import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
 from desktop_ui.stream_status import StreamingStatusDelegate, apply_channel_stream_state, build_channel_stream_states
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, PageTitle, configure_table_columns, metric_row, play_circle_icon
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, configure_table_columns, metric_row, play_circle_icon
 from utils.channel_repository import latest_successful_run, list_categories, list_channel_results, list_channels, set_channel_logo
 from utils.config import config
 from utils.i18n import t
 from utils.tools import get_public_url, parse_times, resource_path
+
+
+class DashboardProgressBar(ProgressBar):
+    """Compact pill-shaped progress track with theme-safe idle colors."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(6)
+
+    def paintEvent(self, _event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        radius = self.height() / 2
+        painter.setBrush(QColor("#3F3F46" if isDarkTheme() else "#E2E8F0"))
+        painter.drawRoundedRect(QRectF(0, 0, self.width(), self.height()), radius, radius)
+
+        total = self.maximum() - self.minimum()
+        if total <= 0:
+            return
+        ratio = max(0.0, min(1.0, (self.getVal() - self.minimum()) / total))
+        if ratio <= 0:
+            return
+        width = max(float(self.height()), self.width() * ratio)
+        painter.setBrush(self.barColor())
+        painter.drawRoundedRect(QRectF(0, 0, width, self.height()), radius, radius)
 
 
 def _speed(value, _):
@@ -116,13 +142,12 @@ class DashboardPage(QWidget):
         for card in (self.status_card, self.channel_card, self.valid_card, self.service_card):
             card.set_clickable()
 
-        self.title = PageTitle(FluentIcon.HOME, t("desktop.dashboard"), self)
         self.progress_card = CardWidget(self)
         progress_layout = QVBoxLayout(self.progress_card)
         progress_layout.setContentsMargins(18, 16, 18, 16)
         progress_layout.setSpacing(10)
         self.progress_title = BodyLabel(t("desktop.ready"), self.progress_card)
-        self.progress = ProgressBar(self.progress_card)
+        self.progress = DashboardProgressBar(self.progress_card)
         self.progress.setValue(0)
         actions = QHBoxLayout()
         self.run_button = AccentPushButton(FluentIcon.POWER_BUTTON, t("desktop.run_once"), self.progress_card)
@@ -191,9 +216,8 @@ class DashboardPage(QWidget):
         channel_layout.addWidget(self.channel_stack, 1)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(16)
-        layout.addWidget(self.title)
+        layout.setContentsMargins(16, 12, 16, 16)
+        layout.setSpacing(10)
         layout.addWidget(metric_row([self.status_card, self.channel_card, self.valid_card, self.service_card]))
         layout.addWidget(self.progress_card)
         layout.addWidget(self.channels_card, 1)
@@ -293,6 +317,7 @@ class DashboardPage(QWidget):
         self._cancelling = False
         if running:
             self.setFocus(Qt.FocusReason.OtherFocusReason)
+        self.run_button.setVisible(not running)
         self.run_button.setEnabled(not running)
         self.cancel_button.setVisible(running)
         self.cancel_button.setEnabled(running)
@@ -490,7 +515,6 @@ class DashboardPage(QWidget):
             self.status_card.detail_label.setText(t("desktop.schedule_unavailable"))
 
     def retranslate(self):
-        self.title.setText(t("desktop.dashboard"))
         self.status_card.title_label.setText(t("desktop.run_status"))
         self.channel_card.title_label.setText(t("desktop.channels"))
         self.valid_card.title_label.setText(t("desktop.valid_results"))

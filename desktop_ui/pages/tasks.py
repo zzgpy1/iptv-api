@@ -7,7 +7,7 @@ from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, Tab
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
-from desktop_ui.widgets import AccentPushButton, PageTitle, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, configure_table_columns
 from utils.channel_repository import list_channels, list_operations, list_runs, result_metadata_map
 from utils.diagnostics import export_diagnostics
 from utils.i18n import t
@@ -48,10 +48,8 @@ class TasksPage(QWidget):
         actions.addWidget(self.refresh_button)
         actions.addWidget(self.export_button)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(12)
-        self.title = PageTitle(FluentIcon.HISTORY, t("desktop.task_history"), self)
-        layout.addWidget(self.title)
+        layout.setContentsMargins(16, 12, 16, 16)
+        layout.setSpacing(10)
         layout.addLayout(actions)
         layout.addWidget(self.table, 1)
         self.refresh_button.clicked.connect(self.refresh)
@@ -121,7 +119,6 @@ class TasksPage(QWidget):
             InfoBar.error(t("desktop.diagnostics_failed"), str(exc), parent=self, position=InfoBarPosition.TOP)
 
     def retranslate(self):
-        self.title.setText(t("desktop.task_history"))
         self.refresh_button.setText(t("desktop.refresh"))
         self.export_button.setText(t("desktop.export_diagnostics"))
         self.model.set_columns(self._columns())

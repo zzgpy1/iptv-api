@@ -93,7 +93,7 @@ class MainWindow(FluentWindow):
         self.dashboard_item = self.addSubInterface(self.dashboard, FluentIcon.HOME, t("desktop.dashboard"))
         self.channels_item = self.addSubInterface(self.channels, FluentIcon.LIBRARY, t("desktop.channel_center"))
         self.rtmp_item = self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.play_streaming"))
-        self.sources_item = self.addSubInterface(self.sources, FluentIcon.CLOUD_DOWNLOAD, t("desktop.sources"))
+        self.sources_item = self.addSubInterface(self.sources, FluentIcon.FOLDER, t("desktop.sources"))
         self.logs_item = self.addSubInterface(self.logs, FluentIcon.COMMAND_PROMPT, t("desktop.logs"))
         self.tasks_item = self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
         self.settings_item = self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)

@@ -1,13 +1,13 @@
 import os
 from collections import defaultdict
 
-from PySide6.QtCore import QIODevice, QSaveFile, Signal, Qt
-from PySide6.QtGui import QTextCursor
+from PySide6.QtCore import QIODevice, QSaveFile, QTimer, Signal, Qt
+from PySide6.QtGui import QColor, QPalette, QTextCursor
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QStackedWidget, QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PushButton, ToolButton, isDarkTheme
+from qfluentwidgets import BodyLabel, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PushButton, ToolButton, isDarkTheme, qconfig
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, AppPlainTextEdit, AppSearchLineEdit, DangerPushButton, PageTitle, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppPlainTextEdit, AppSearchLineEdit, DangerPushButton, configure_table_columns
 from utils.config import config, resource_path
 from utils.i18n import t
 
@@ -18,8 +18,12 @@ class AliasTagsEditor(QWidget):
 
     def __init__(self, aliases=None, parent=None):
         super().__init__(parent)
+        self.setObjectName("aliasTagsEditor")
+        self.setStyleSheet("QWidget#aliasTagsEditor { background-color: transparent; }")
         self.aliases = list(aliases or [])
         self.tags = QWidget(self)
+        self.tags.setObjectName("aliasTags")
+        self.tags.setStyleSheet("QWidget#aliasTags { background-color: transparent; }")
         self.flow = FlowLayout(self.tags, isTight=True)
         self.flow.setContentsMargins(0, 0, 0, 0)
         self.flow.setHorizontalSpacing(5)
@@ -79,6 +83,7 @@ class AliasTagsEditor(QWidget):
 class SourceEditor(QWidget):
     def __init__(self, kind: str, path_provider, parent=None):
         super().__init__(parent)
+        self.setObjectName("sourceEditor")
         self.kind = kind
         self.path_provider = path_provider
         self.rows = []
@@ -125,6 +130,61 @@ class SourceEditor(QWidget):
         self.delete_button.clicked.connect(self.delete_items)
         self.mode_button.clicked.connect(self.toggle_mode)
         self.search.textChanged.connect(self._filter_rows)
+        qconfig.themeChangedFinished.connect(self._schedule_theme_refresh)
+        self._apply_theme()
+
+    def _schedule_theme_refresh(self):
+        QTimer.singleShot(0, self._apply_theme)
+
+    def _apply_theme(self, *_):
+        dark = isDarkTheme()
+        background = "#202020" if dark else "#FFFFFF"
+        alternate = "#262626" if dark else "#F8FAFC"
+        foreground = "#E2E8F0" if dark else "#1F2937"
+        border = "#3F3F46" if dark else "#E2E8F0"
+        header = "#27272A" if dark else "#F8FAFC"
+        header_text = "#CBD5E1" if dark else "#475569"
+        selected = "#1E3A5F" if dark else "#DBEAFE"
+        selected_text = "#F8FAFC" if dark else "#0F172A"
+
+        palette = self.table.palette()
+        palette.setColor(QPalette.ColorRole.Base, QColor(background))
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(alternate))
+        palette.setColor(QPalette.ColorRole.Text, QColor(foreground))
+        palette.setColor(QPalette.ColorRole.Highlight, QColor(selected))
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(selected_text))
+        self.table.setPalette(palette)
+        self.table.viewport().setPalette(palette)
+        self.table.viewport().setAutoFillBackground(True)
+        self.table.setStyleSheet(
+            f"""
+            QTableWidget {{
+                color: {foreground};
+                background-color: {background};
+                alternate-background-color: {alternate};
+                border: 1px solid {border};
+                gridline-color: {border};
+            }}
+            QTableWidget::item {{
+                color: {foreground};
+                background-color: {background};
+            }}
+            QTableWidget::item:selected {{
+                color: {selected_text};
+                background-color: {selected};
+            }}
+            QHeaderView::section, QTableCornerButton::section {{
+                color: {header_text};
+                background-color: {header};
+                border: none;
+                border-right: 1px solid {border};
+                border-bottom: 1px solid {border};
+                padding: 6px;
+            }}
+            """
+        )
+        self.setStyleSheet(f"QWidget#sourceEditor {{ background-color: {background}; }}")
+        self.stack.setStyleSheet(f"QStackedWidget {{ background-color: {background}; border: none; }}")
 
     def path(self):
         return resource_path(self.path_provider(), persistent=True)
@@ -448,8 +508,11 @@ class SourcesPage(QWidget):
             ("desktop.alias", "alias", lambda: constants.alias_path, FluentIcon.TAG),
         ]
         self.tabs = QTabWidget(self)
+        self.tabs.setObjectName("sourcesTabs")
         self.tabs.setDocumentMode(True)
+        self.tabs.tabBar().setObjectName("sourcesTabBar")
         self.tabs.tabBar().setUsesScrollButtons(True)
+        self.tabs.tabBar().setDrawBase(False)
         self.editors = []
         for key, kind, provider, icon in self.path_specs:
             editor = SourceEditor(kind, provider, self)
@@ -458,17 +521,83 @@ class SourcesPage(QWidget):
         self.save_button = AccentPushButton(FluentIcon.SAVE, t("desktop.save"), self)
         self.reload_button = PushButton(FluentIcon.SYNC, t("desktop.reload"), self)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(12)
-        self.title = PageTitle(FluentIcon.CLOUD_DOWNLOAD, t("desktop.sources"), self)
-        self.title.addWidget(self.reload_button)
-        self.title.addWidget(self.save_button)
-        layout.addWidget(self.title)
+        layout.setContentsMargins(16, 12, 16, 16)
+        layout.setSpacing(10)
+        actions = QHBoxLayout()
+        actions.addStretch(1)
+        actions.addWidget(self.reload_button)
+        actions.addWidget(self.save_button)
+        layout.addLayout(actions)
         layout.addWidget(self.tabs, 1)
         self.reload_button.clicked.connect(self.load)
         self.save_button.clicked.connect(self.save)
         self.tabs.currentChanged.connect(self._tab_changed)
+        qconfig.themeChangedFinished.connect(self._schedule_theme_refresh)
+        self._apply_theme()
         self.load()
+
+    def _schedule_theme_refresh(self):
+        QTimer.singleShot(0, self._apply_theme)
+
+    def _apply_theme(self, *_):
+        dark = isDarkTheme()
+        background = "#202020" if dark else "#FFFFFF"
+        tab_background = "#27272A" if dark else "#F1F5F9"
+        tab_selected = "#323232" if dark else "#FFFFFF"
+        foreground = "#CBD5E1" if dark else "#475569"
+        selected_text = "#F8FAFC" if dark else "#0F172A"
+        border = "#3F3F46" if dark else "#E2E8F0"
+
+        self.tabs.setStyleSheet(
+            f"""
+            QTabWidget#sourcesTabs {{
+                background-color: {background};
+            }}
+            QTabWidget#sourcesTabs::pane {{
+                background-color: {background};
+                border: 1px solid {border};
+            }}
+            """
+        )
+        palette = self.tabs.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(background))
+        palette.setColor(QPalette.ColorRole.Base, QColor(background))
+        palette.setColor(QPalette.ColorRole.Button, QColor(tab_background))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(foreground))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(foreground))
+        self.tabs.setPalette(palette)
+        self.tabs.setAutoFillBackground(True)
+        tab_bar = self.tabs.tabBar()
+        tab_palette = tab_bar.palette()
+        tab_palette.setColor(QPalette.ColorRole.Window, QColor(background))
+        tab_palette.setColor(QPalette.ColorRole.Base, QColor(background))
+        tab_bar.setPalette(tab_palette)
+        tab_bar.setAutoFillBackground(True)
+        tab_bar.setStyleSheet(
+            f"""
+            QTabBar#sourcesTabBar {{
+                background-color: {background};
+            }}
+            QTabBar#sourcesTabBar::tab {{
+                color: {foreground};
+                background-color: {tab_background};
+                border: 1px solid {border};
+                padding: 7px 14px;
+            }}
+            QTabBar#sourcesTabBar::tab:selected {{
+                color: {selected_text};
+                background-color: {tab_selected};
+                border-bottom-color: {tab_selected};
+            }}
+            """
+        )
+        page_palette = self.palette()
+        page_palette.setColor(QPalette.ColorRole.Window, QColor(background))
+        self.setPalette(page_palette)
+        self.setAutoFillBackground(True)
+        self.setStyleSheet(f"QWidget#sourcesPage {{ background-color: {background}; }}")
+        for index, (_, _, _, icon) in enumerate(self.path_specs):
+            self.tabs.setTabIcon(index, icon.icon())
 
     def current_editor(self):
         return self.editors[max(0, self.tabs.currentIndex())]
@@ -488,7 +617,6 @@ class SourcesPage(QWidget):
             InfoBar.error(t("name.error"), error, parent=self, position=InfoBarPosition.TOP)
 
     def retranslate(self):
-        self.title.setText(t("desktop.sources"))
         self.save_button.setText(t("desktop.save"))
         self.reload_button.setText(t("desktop.reload"))
         for index, ((key, _, _, _), editor) in enumerate(zip(self.path_specs, self.editors)):

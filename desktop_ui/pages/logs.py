@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import ComboBox, FluentIcon, InfoBar, InfoBarPosition, PushButton, SwitchButton
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, PageTitle
+from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit
 from utils.diagnostics import export_logs
 from utils.i18n import t
 
@@ -44,10 +44,8 @@ class LogsPage(QWidget):
         actions.addWidget(self.clear_button)
         actions.addWidget(self.export_button)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(12)
-        self.title = PageTitle(FluentIcon.COMMAND_PROMPT, t("desktop.logs"), self)
-        layout.addWidget(self.title)
+        layout.setContentsMargins(16, 12, 16, 16)
+        layout.setSpacing(10)
         layout.addLayout(actions)
         layout.addWidget(self.viewer, 1)
         self.timer = QTimer(self)
@@ -113,7 +111,6 @@ class LogsPage(QWidget):
         self.selector.addItems([item[0] for item in self.paths])
         self.selector.setCurrentIndex(index)
         self.selector.blockSignals(False)
-        self.title.setText(t("desktop.logs"))
         self.search.setPlaceholderText(t("desktop.search_logs"))
         self.autoscroll.setText(t("desktop.auto_scroll"))
         self.refresh_button.setText(t("desktop.refresh"))

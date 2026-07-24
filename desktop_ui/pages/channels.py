@@ -9,7 +9,7 @@ import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
 from desktop_ui.stream_status import StreamingStatusDelegate, apply_channel_stream_state, build_channel_stream_states
-from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, PageTitle, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, configure_table_columns
 from utils.channel_repository import add_manual_result, delete_channel_records, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, set_channel_logo, upsert_manual_channel
 from utils.config import config
 from utils.i18n import t
@@ -220,10 +220,8 @@ class ChannelCenterPage(QWidget):
         toolbar.addWidget(self.stream_selected_button)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(12)
-        self.title = PageTitle(FluentIcon.LIBRARY, t("desktop.channel_center"), self)
-        layout.addWidget(self.title)
+        layout.setContentsMargins(16, 12, 16, 16)
+        layout.setSpacing(10)
         layout.addLayout(toolbar)
         task_row = QHBoxLayout()
         task_row.addWidget(self.task_label, 1)
@@ -801,7 +799,6 @@ class ChannelCenterPage(QWidget):
         self.reload()
 
     def retranslate(self):
-        self.title.setText(t("desktop.channel_center"))
         self.search.setPlaceholderText(t("desktop.search_channels"))
         self.refresh_button.setToolTip(t("desktop.refresh"))
         self.add_channel_button.setText(t("desktop.add_channel"))

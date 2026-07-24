@@ -4,7 +4,7 @@ from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, Tab
 
 from desktop_ui.delegates import ConfigValueDelegate, ElidedDescriptionDelegate
 from desktop_ui.models import ConfigTableModel
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, PageTitle, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, configure_table_columns
 from utils.i18n import t
 
 
@@ -38,10 +38,8 @@ class SettingsPage(QWidget):
         actions.addWidget(self.reload_button)
         actions.addWidget(self.save_button)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(12)
-        self.title = PageTitle(FluentIcon.SETTING, t("desktop.settings"), self)
-        layout.addWidget(self.title)
+        layout.setContentsMargins(16, 12, 16, 16)
+        layout.setSpacing(10)
         layout.addLayout(actions)
         layout.addWidget(self.table, 1)
         self.search.textChanged.connect(self.model.filter)
@@ -51,7 +49,6 @@ class SettingsPage(QWidget):
         QTimer.singleShot(0, self._open_editors)
 
     def retranslate(self):
-        self.title.setText(t("desktop.settings"))
         self.search.setPlaceholderText(t("desktop.search_settings"))
         self.save_button.setText(t("desktop.save_settings"))
         self.reload_button.setText(t("desktop.reload"))
