@@ -36,21 +36,28 @@ def check_latest_release(current_version: str, timeout: float = 4.0) -> dict:
     return parse_release(response.json(), current_version)
 
 
-def log_new_version_if_available(current_version: str, checker: Callable = check_latest_release):
+def log_new_version_if_available(current_version: str, checker: Callable = check_latest_release, reporter=None):
     try:
         result = checker(current_version)
     except Exception:
         return None
     if result.get("newer"):
         from utils.i18n import t
-        print(
-            t("msg.new_version_available_log").format(
+        message = t("msg.new_version_available_log").format(
+            current=result.get("current") or current_version,
+            latest=result.get("latest") or "",
+            url=result.get("release_url") or REPOSITORY_URL + "/releases/latest",
+        )
+        if reporter:
+            reporter.info(
+                "version.available",
+                message,
                 current=result.get("current") or current_version,
                 latest=result.get("latest") or "",
                 url=result.get("release_url") or REPOSITORY_URL + "/releases/latest",
-            ),
-            flush=True,
-        )
+            )
+        else:
+            print(message, flush=True)
     return result
 
 
@@ -58,12 +65,13 @@ def start_version_log_monitor(
         current_version: str,
         interval: float = VERSION_CHECK_INTERVAL_SECONDS,
         checker: Callable = check_latest_release,
+        reporter=None,
 ) -> threading.Event:
     stop_event = threading.Event()
 
     def monitor():
         while not stop_event.wait(interval):
-            log_new_version_if_available(current_version, checker=checker)
+            log_new_version_if_available(current_version, checker=checker, reporter=reporter)
 
     threading.Thread(target=monitor, name="version-check-monitor", daemon=True).start()
     return stop_event

@@ -5,15 +5,14 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
-import sys
 
 from aiohttp import ClientSession, TCPConnector
-from tqdm.asyncio import tqdm_asyncio
 
 import utils.constants as constants
 from utils.channel import format_channel_name
 from utils.config import config
 from utils.i18n import t
+from utils.reporting import Reporter
 from utils.requests.async_tools import fetch_first
 from utils.tools import (
     get_pbar_remaining,
@@ -44,17 +43,21 @@ def _normalize_epg_content(content, request_url=None, response=None):
     return content
 
 
-def parse_epg(epg_content):
+def parse_epg(epg_content, reporter=None, request_url=None):
     try:
         parser = ET.XMLParser(encoding='UTF-8')
         root = ET.fromstring(epg_content, parser=parser)
     except ET.ParseError as exc:
-        print(f"Error parsing XML: {exc}")
-        if isinstance(epg_content, (bytes, bytearray)):
-            preview = bytes(epg_content[:500]).decode("utf-8", errors="replace")
+        if reporter:
+            reporter.warning(
+                "epg.xml_invalid",
+                t("log.epg_xml_invalid").format(info=exc),
+                phase="fetch",
+                url=request_url,
+                error_type=type(exc).__name__,
+            )
         else:
-            preview = epg_content[:500]
-        print(f"Problematic content: {preview}")
+            print(f"Error parsing XML: {exc}")
         return {}, defaultdict(list)
 
     channels = {}
@@ -101,7 +104,9 @@ def _epg_dedup_key(url) -> str:
     return key.lower()
 
 
-async def get_epg(names=None, callback=None, extra_entries=None, pause_wait=None):
+async def get_epg(names=None, callback=None, extra_entries=None, pause_wait=None, reporter: Reporter | None = None):
+    owned_reporter = reporter is None
+    reporter = reporter or Reporter()
     normalized_names = {format_channel_name(name) for name in (names or []) if name}
     whitelist_entries, default_entries = get_subscribe_entries(constants.epg_path)
     configured_entries = whitelist_entries + default_entries
@@ -116,26 +121,33 @@ async def get_epg(names=None, callback=None, extra_entries=None, pause_wait=None
                 seen_keys.add(key)
 
     disabled_count = count_disabled_urls(constants.epg_path)
-    print(
+    reporter.info(
+        "sources.epg.summary",
         t("msg.epg_urls_whitelist_total").format(
             default_count=len(default_entries),
             whitelist_count=len(whitelist_entries),
             disabled_count=disabled_count,
             total=len(configured_entries),
-        )
+        ),
+        phase="fetch",
+        default_count=len(default_entries),
+        whitelist_count=len(whitelist_entries),
+        disabled_count=disabled_count,
+        discovered_count=len(discovered_entries),
+        total=len(configured_entries) + len(discovered_entries),
     )
     entries = configured_entries + discovered_entries
     if not entries:
+        if owned_reporter:
+            reporter.close()
         return {}
 
     urls_len = len(entries)
-    pbar = tqdm_asyncio(
-        total=urls_len,
-        desc=t("pbar.getting_name").format(name=t("name.epg")),
-        file=sys.stdout,
-        mininterval=1.0,
-        miniters=1,
-        dynamic_ncols=False,
+    reporter.start_progress(
+        "epg",
+        t("pbar.getting_name").format(name=t("name.epg")),
+        urls_len,
+        phase="fetch",
     )
     start_time = time()
     result = defaultdict(list)
@@ -145,24 +157,42 @@ async def get_epg(names=None, callback=None, extra_entries=None, pause_wait=None
     disabled_urls = set()
     fetch_workers = config.performance_settings.fetch_workers
     semaphore = asyncio.Semaphore(fetch_workers)
+    completed_sources = 0
 
     def mark_disabled(source_url: str, reason: str):
         if not open_auto_disable_source or not source_url:
             return
         disabled_urls.add(source_url)
-        print(t("msg.auto_disable_source").format(name=t("name.epg"), url=source_url, reason=reason), flush=True)
+        reporter.warning(
+            "source.disabled",
+            t("msg.auto_disable_source").format(name=t("name.epg"), url=source_url, reason=reason),
+            phase="fetch",
+            source=t("name.epg"),
+            url=source_url,
+            reason=reason,
+        )
 
     def advance_progress():
-        pbar.update()
+        nonlocal completed_sources
+        completed_sources += 1
+        reporter.update_progress(
+            "epg",
+            completed=completed_sources,
+            status=t("log.remaining").format(count=max(0, urls_len - completed_sources)),
+        )
         if callback:
             callback(
                 t("msg.progress_desc").format(
                     name=f"{t('pbar.get')}{t('name.epg')}",
-                    remaining_total=urls_len - pbar.n,
+                    remaining_total=urls_len - completed_sources,
                     item_name=t("pbar.source"),
-                    remaining_time=get_pbar_remaining(n=pbar.n, total=pbar.total, start_time=start_time),
+                    remaining_time=get_pbar_remaining(
+                        n=completed_sources,
+                        total=urls_len,
+                        start_time=start_time,
+                    ),
                 ),
-                int((pbar.n / urls_len) * 100),
+                int((completed_sources / urls_len) * 100),
             )
 
     async def process_run(session: ClientSession, entry):
@@ -186,16 +216,28 @@ async def get_epg(names=None, callback=None, extra_entries=None, pause_wait=None
                         headers=headers,
                         timeout=config.request_timeout,
                         as_bytes=True,
+                        reporter=reporter,
                     )
                 content = _normalize_epg_content(payload, request_url=request_url)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
-                print(exc, flush=True)
+                reporter.warning(
+                    "source.request_failed",
+                    t("log.request_failed").format(name=t("name.epg"), info=exc),
+                    phase="fetch",
+                    url=request_url,
+                    error_type=type(exc).__name__,
+                )
                 disable_reason = t("msg.auto_disable_request_failed")
 
             if content:
-                channels, programmes = await asyncio.to_thread(parse_epg, content)
+                channels, programmes = await asyncio.to_thread(
+                    parse_epg,
+                    content,
+                    reporter,
+                    request_url,
+                )
                 entry_matched = False
                 for index, (channel_id, display_name) in enumerate(channels.items()):
                     if index % 250 == 0:
@@ -221,7 +263,13 @@ async def get_epg(names=None, callback=None, extra_entries=None, pause_wait=None
             cancelled = True
             raise
         except Exception as exc:
-            print(t("msg.error_name_info").format(name=request_url, info=exc), flush=True)
+            reporter.error(
+                "source.parse_failed",
+                t("msg.error_name_info").format(name=request_url, info=exc),
+                phase="fetch",
+                url=request_url,
+                error_type=type(exc).__name__,
+            )
             if not disable_reason:
                 disable_reason = t("msg.auto_disable_request_failed")
         finally:
@@ -256,14 +304,24 @@ async def get_epg(names=None, callback=None, extra_entries=None, pause_wait=None
             counts = disable_urls_in_file(constants.epg_path, disabled_urls)
             active_count = counts["active"]
             disabled_count = counts["disabled"]
-        print(
+        reporter.info(
+            "sources.epg.finished",
             t("msg.auto_disable_source_done").format(
                 name=t("name.epg"),
                 active_count=active_count,
                 disabled_count=disabled_count,
             ),
-            flush=True,
+            phase="fetch",
+            active_count=active_count,
+            disabled_count=disabled_count,
+            matched_channels=len(result),
         )
         return result
     finally:
-        pbar.close()
+        reporter.finish_progress(
+            "epg",
+            status=t("log.matched_channels").format(count=len(result)),
+            matched_channels=len(result),
+        )
+        if owned_reporter:
+            reporter.close()

@@ -154,7 +154,7 @@
 | sort_by                  | Result sorting dimensions, control the sorting priority of interfaces within each channel, compared in order from front to back, comma-separated. Optional values: `speed` (higher first), `delay` (lower first), `resolution` (higher first), e.g.: `resolution,speed`.                                                                    | speed                                    |
 | min_resolution           | Minimum interface resolution, takes effect only when `open_filter_resolution` is enabled.                                                                                                                                                                                                                                                   | 1280x720                                 |
 | max_resolution           | Maximum interface resolution, takes effect only when `open_filter_resolution` is enabled.                                                                                                                                                                                                                                                   | 3840x2160                                |
-| min_speed                | Minimum interface speed (unit: M/s), takes effect only when `open_filter_speed` is enabled.                                                                                                                                                                                                                                                 | 0.5                                      |
+| min_speed                | Minimum interface speed (unit: MiB/s), takes effect only when `open_filter_speed` is enabled.                                                                                                                                                                                                                                               | 0.5                                      |
 | resolution_speed_map     | Resolution and rate mapping relationship, used to control the minimum rate requirements for interfaces of different resolutions, the format is resolution:speed, multiple mapping relationships are separated by commas                                                                                                                     | 1280x720:0.2,1920x1080:0.5,3840x2160:1.0 |
 | performance_mode        | Performance mode. `auto` selects settings from device or container CPU and memory, `powersave` minimizes resource usage, `balance` balances resources and speed, and `fast` utilizes high-performance devices.                                                                 | auto                                     |
 | speed_test_limit         | Advanced network speed test concurrency override. `0` lets the performance mode decide automatically; a positive value overrides speed test concurrency without changing media probe or source fetch concurrency.                                                            | 0                                        |
@@ -206,10 +206,13 @@ iptv-api/                  # Project root directory
     └── result.m3u/txt     # m3u/txt result
     └── hls.m3u/txt        # RTMP hls stream result
     └── log                # Log files directory
+        └── log.log        # Runtime log with timestamps, levels, and run IDs
+        └── runtime.jsonl  # Structured runtime events
         └── result.log     # Valid result log
         └── speed_test.log # Speed test log
         └── statistic.log  # Statistics result log
         └── unmatch.log    # Unmatched channel records
+        └── *.jsonl        # Structured JSON Lines companions
 ```
 
 ### Workflow
@@ -339,6 +342,8 @@ generated result files directly on the host. Append the following options to the
 | /log/speed-test | Log of all interfaces involved in speed testing |
 | /log/statistic  | Log of statistics results                       |
 | /log/unmatch    | Log of unmatched channels                       |
+
+Log endpoints return the compatible plain-text format by default; add `?format=jsonl` for structured JSON Lines. The CLI uses a dynamic multi-task display in interactive terminals and automatically falls back to stable line-oriented output in Docker, CI, redirected output, or when `IPTV_API_PLAIN_OUTPUT=1` is set.
 
 **RTMP Streaming:**
 

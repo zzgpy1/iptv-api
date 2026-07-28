@@ -57,6 +57,16 @@ unmatch_log_path = os.path.join(output_dir, "log/unmatch.log")
 
 log_path = os.path.join(output_dir, "log/log.log")
 
+runtime_jsonl_path = os.path.join(output_dir, "log/runtime.jsonl")
+
+speed_test_jsonl_path = os.path.join(output_dir, "log/speed_test.jsonl")
+
+result_jsonl_path = os.path.join(output_dir, "log/result.jsonl")
+
+statistic_jsonl_path = os.path.join(output_dir, "log/statistic.jsonl")
+
+unmatch_jsonl_path = os.path.join(output_dir, "log/unmatch.jsonl")
+
 url_host_pattern = re.compile(r"((https?|rtmp|rtsp)://)?([^:@/]+(:[^:@/]*)?@)?(\[[0-9a-fA-F:]+]|([\w-]+\.)+[\w-]+)")
 
 url_pattern = re.compile(

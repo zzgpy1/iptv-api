@@ -28,8 +28,9 @@ async def fetch_first(
         headers=None,
         timeout: int | float | None = None,
         as_bytes: bool = False,
-        raise_for_status: bool = True,
-        require_content: bool = False,
+    raise_for_status: bool = True,
+    require_content: bool = False,
+    reporter=None,
 ):
     last_error = None
     request_timeout = ClientTimeout(total=timeout or config.request_timeout)
@@ -58,15 +59,28 @@ async def fetch_first(
             except Exception as exc:
                 last_error = exc
         if name and attempt < max_retries - 1:
-            print(t("msg.failed_retrying_count").format(name=name, count=attempt + 1), flush=True)
+            message = t("msg.failed_retrying_count").format(name=name, count=attempt + 1)
+            if reporter:
+                reporter.warning(
+                    "request.retrying",
+                    message,
+                    phase="fetch",
+                    url=name,
+                    attempt=attempt + 1,
+                )
+            else:
+                print(message, flush=True)
     if last_error:
         raise Exception(t("msg.failed_retry_max").format(name=name)) from last_error
     return b"" if as_bytes else ""
 
 
-async def check_ipv6_support_async():
+async def check_ipv6_support_async(reporter=None):
     url = "https://ipv6.tokyo.test-ipv6.com/ip/?callback=?&testdomain=test-ipv6.com&testname=test_aaaa"
-    print(t("msg.check_ipv6_support"))
+    if reporter:
+        reporter.info("network.ipv6.checking", t("msg.check_ipv6_support"), phase="prepare")
+    else:
+        print(t("msg.check_ipv6_support"))
     try:
         async with ClientSession(trust_env=True) as session:
             async with session.get(
@@ -76,11 +90,17 @@ async def check_ipv6_support_async():
                     timeout=ClientTimeout(total=10),
             ) as response:
                 if response.status == 200:
-                    print(t("msg.ipv6_supported"))
+                    if reporter:
+                        reporter.info("network.ipv6.supported", t("msg.ipv6_supported"), phase="prepare")
+                    else:
+                        print(t("msg.ipv6_supported"))
                     return True
     except asyncio.CancelledError:
         raise
     except Exception:
         pass
-    print(t("msg.ipv6_not_supported"))
+    if reporter:
+        reporter.warning("network.ipv6.unsupported", t("msg.ipv6_not_supported"), phase="prepare")
+    else:
+        print(t("msg.ipv6_not_supported"))
     return False

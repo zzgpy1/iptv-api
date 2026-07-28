@@ -198,49 +198,34 @@ def show_epg_gz():
 
 @app.route("/log/result")
 def show_result_log():
-    if os.path.exists(constants.result_log_path):
-        with open(constants.result_log_path, "r", encoding="utf-8") as file:
-            content = file.read()
-    else:
-        content = constants.waiting_tip
-    response = make_response(content)
-    response.mimetype = "text/plain"
-    return response
+    return _show_log_file(constants.result_log_path, constants.result_jsonl_path)
 
 
 @app.route("/log/speed-test")
 def show_speed_log():
-    if os.path.exists(constants.speed_test_log_path):
-        with open(constants.speed_test_log_path, "r", encoding="utf-8") as file:
-            content = file.read()
-    else:
-        content = constants.waiting_tip
-    response = make_response(content)
-    response.mimetype = "text/plain"
-    return response
+    return _show_log_file(constants.speed_test_log_path, constants.speed_test_jsonl_path)
 
 
 @app.route("/log/statistic")
 def show_statistic_log():
-    if os.path.exists(constants.statistic_log_path):
-        with open(constants.statistic_log_path, "r", encoding="utf-8") as file:
-            content = file.read()
-    else:
-        content = constants.waiting_tip
-    response = make_response(content)
-    response.mimetype = "text/plain"
-    return response
+    return _show_log_file(constants.statistic_log_path, constants.statistic_jsonl_path)
 
 
 @app.route("/log/unmatch")
 def show_unmatch_log():
-    if os.path.exists(constants.unmatch_log_path):
-        with open(constants.unmatch_log_path, "r", encoding="utf-8") as file:
+    return _show_log_file(constants.unmatch_log_path, constants.unmatch_jsonl_path)
+
+
+def _show_log_file(text_path, jsonl_path):
+    use_jsonl = request.args.get("format", "").lower() in {"json", "jsonl", "ndjson"}
+    path = jsonl_path if use_jsonl else text_path
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as file:
             content = file.read()
     else:
         content = constants.waiting_tip
     response = make_response(content)
-    response.mimetype = "text/plain"
+    response.mimetype = "application/x-ndjson" if use_jsonl else "text/plain"
     return response
 
 

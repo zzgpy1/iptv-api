@@ -11,6 +11,9 @@ done
 
 . $APP_WORKDIR/.venv/bin/activate
 
+# Multiple processes share Docker stdout; use stable line-oriented progress there.
+export IPTV_API_PLAIN_OUTPUT=1
+
 : "${APP_PORT:=$APP_PORT}"
 : "${NGINX_HTTP_PORT:=$NGINX_HTTP_PORT}"
 : "${NGINX_RTMP_PORT:=$NGINX_RTMP_PORT}"

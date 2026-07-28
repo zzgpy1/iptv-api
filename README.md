@@ -150,7 +150,7 @@
 | sort_by                  | 结果排序维度，控制每个频道内接口的排序优先级，按从前到后的顺序依次比较，逗号分隔；可选值: speed（速率，高优先）、delay（延迟，低优先）、resolution（分辨率，高优先），例如: resolution,speed                                              | speed                                    |
 | min_resolution           | 接口最小分辨率，需要开启 open_filter_resolution 才能生效                                                                             | 1280x720                                 |
 | max_resolution           | 接口最大分辨率，需要开启 open_filter_resolution 才能生效                                                                             | 3840x2160                                |
-| min_speed                | 接口最小速率（单位 M/s），需要开启 open_filter_speed 才能生效                                                                           | 0.5                                      |
+| min_speed                | 接口最小速率（单位 MiB/s），需要开启 open_filter_speed 才能生效                                                                         | 0.5                                      |
 | resolution_speed_map     | 分辨率与速率映射关系，用于控制不同分辨率接口的最低速率要求，格式为 resolution:speed，多个映射关系逗号分隔                                                        | 1280x720:0.2,1920x1080:0.5,3840x2160:1.0 |
 | performance_mode        | 性能模式；`auto` 根据设备或容器的 CPU、内存自动选择，`powersave` 优先降低资源消耗，`balance` 平衡资源与速度，`fast` 充分利用高性能设备                                                | auto                                     |
 | speed_test_limit         | 测速网络并发高级覆盖值；`0` 表示由性能模式自动决定，大于 `0` 时覆盖自动测速并发，不影响媒体探测和源抓取并发                                                                        | 0                                        |
@@ -202,10 +202,13 @@ iptv-api/                  # 项目根目录
     └── result.m3u/txt     # m3u/txt结果
     └── hls.m3u/txt        # RTMP hls推流结果
     └── log                # 日志文件目录
+        └── log.log        # 带时间、级别和运行 ID 的运行日志
+        └── runtime.jsonl  # 结构化运行事件
         └── result.log     # 有效结果日志
         └── speed_test.log # 测速日志
         └── statistic.log  # 统计结果日志
         └── unmatch.log    # 未匹配频道记录
+        └── *.jsonl        # 对应日志的结构化 JSON Lines 版本
 ```
 
 ### 工作流
@@ -331,6 +334,8 @@ docker run -d -p 80:8080 guovern/iptv-api
 | /log/speed-test | 所有参与测速接口的日志 |
 | /log/statistic  | 统计结果的日志     |
 | /log/unmatch    | 未匹配频道的日志    |
+
+日志接口默认返回兼容的纯文本格式；添加 `?format=jsonl` 可获取结构化 JSON Lines。CLI 在交互式终端使用动态多任务进度，Docker、CI、重定向输出或设置 `IPTV_API_PLAIN_OUTPUT=1` 时自动使用稳定的逐行输出。
 
 **RTMP 推流：**
 

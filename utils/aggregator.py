@@ -1,14 +1,20 @@
 import asyncio
 import copy
 from collections import defaultdict
-from logging import INFO
 from typing import Any, Dict, Optional, Set, Tuple
 
 import utils.constants as constants
-from utils.channel import sort_channel_result, generate_channel_statistic, write_channel_to_file, retain_origin
+from utils.artifacts import ArtifactWriter
+from utils.channel import (
+    build_channel_statistic,
+    format_channel_statistic,
+    retain_origin,
+    sort_channel_result,
+    write_channel_to_file,
+)
 from utils.channel_repository import sync_channel_snapshot
 from utils.config import config
-from utils.tools import get_logger, close_logger_handlers
+from utils.i18n import t
 
 
 class ResultAggregator:
@@ -27,6 +33,7 @@ class ResultAggregator:
             stat_logger=None,
             result: Optional[Dict[str, Dict[str, list]]] = None,
             channel_catalog: Optional[Dict[str, Dict[str, list]]] = None,
+            reporter=None,
     ):
         self.base_data = base_data
         self.channel_catalog = channel_catalog or {}
@@ -45,7 +52,13 @@ class ResultAggregator:
         self.write_interval = write_interval
         self.first_channel_name = first_channel_name
         self.ipv6_support = ipv6_support
-        self.stat_logger = stat_logger or get_logger(constants.statistic_log_path, level=INFO, init=True)
+        self.reporter = reporter
+        self.stat_writer = ArtifactWriter(
+            constants.statistic_log_path,
+            constants.statistic_jsonl_path,
+            format_channel_statistic,
+            limit=10000,
+        )
         self.is_last = False
         self._lock = asyncio.Lock()
         self._write_lock = asyncio.Lock()
@@ -65,11 +78,7 @@ class ResultAggregator:
         self._pending_channels.add((cate, name))
 
         if is_channel_last:
-            try:
-                self._finished_channels.add((cate, name))
-                generate_channel_statistic(self.stat_logger, cate, name, self.test_results[cate][name])
-            except Exception:
-                pass
+            self._finished_channels.add((cate, name))
 
         if is_valid and self.realtime_write:
             self._dirty = True
@@ -146,7 +155,14 @@ class ResultAggregator:
                         partial_base, result=partial_result, filter_host=speed_test_filter_host,
                         ipv6_support=self.ipv6_support
                     )
-            except Exception:
+            except Exception as exc:
+                if self.reporter:
+                    self.reporter.error(
+                        "result.sort_failed",
+                        t("msg.error_name_info").format(name="result sort", info=exc),
+                        phase="output",
+                        error_type=type(exc).__name__,
+                    )
                 new_sorted = defaultdict(lambda: defaultdict(list))
         else:
             try:
@@ -154,7 +170,14 @@ class ResultAggregator:
                     self.base_data, result=test_copy, filter_host=speed_test_filter_host,
                     ipv6_support=self.ipv6_support
                 )
-            except Exception:
+            except Exception as exc:
+                if self.reporter:
+                    self.reporter.error(
+                        "result.sort_failed",
+                        t("msg.error_name_info").format(name="result sort", info=exc),
+                        phase="output",
+                        error_type=type(exc).__name__,
+                    )
                 new_sorted = defaultdict(lambda: defaultdict(list))
 
         merged = defaultdict(lambda: defaultdict(list))
@@ -179,6 +202,7 @@ class ResultAggregator:
             self.first_channel_name,
             True,
             is_last,
+            self.reporter,
         )
 
         self.result = merged
@@ -236,8 +260,14 @@ class ResultAggregator:
                 finished=finished_for_flush,
                 is_last=is_last_for_flush,
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            if self.reporter:
+                self.reporter.error(
+                    "output.flush_failed",
+                    t("msg.write_error").format(info=exc),
+                    phase="output",
+                    error_type=type(exc).__name__,
+                )
 
     async def _run_loop(self):
         """
@@ -299,8 +329,32 @@ class ResultAggregator:
             if flush:
                 try:
                     await self.flush_once(force=True)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    if self.reporter:
+                        self.reporter.error(
+                            "output.final_flush_failed",
+                            t("msg.write_error").format(info=exc),
+                            phase="output",
+                            error_type=type(exc).__name__,
+                        )
+                total_tested = 0
+                total_valid = 0
+                for category, channels in self.test_results.items():
+                    for name, values in channels.items():
+                        record = build_channel_statistic(category, name, values)
+                        if self.reporter:
+                            record["run_id"] = self.reporter.run_id
+                        self.stat_writer.write(record)
+                        total_tested += record["tested"]
+                        total_valid += record["valid"]
+                if self.reporter:
+                    self.reporter.info(
+                        "statistics.finished",
+                        t("log.statistics_finished").format(tested=total_tested, valid=total_valid),
+                        phase="statistics",
+                        tested=total_tested,
+                        valid=total_valid,
+                        channels=sum(len(channels) for channels in self.test_results.values()),
+                    )
         finally:
-            if self.stat_logger:
-                close_logger_handlers(self.stat_logger)
+            self.stat_writer.close()

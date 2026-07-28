@@ -40,7 +40,7 @@ class UpdateWorker(QObject):
     def run(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        self.task = self.loop.create_task(self.source.run_once(self._progress))
+        self.task = self.loop.create_task(self.source.run_once(self._progress, self._report_event))
         if self._cancel_requested.is_set():
             self.task.cancel()
         stream = SignalLogStream(constants.log_path, self.output.emit, sys.stdout)
@@ -52,7 +52,7 @@ class UpdateWorker(QObject):
         except Exception:
             self.failed.emit(traceback.format_exc())
         finally:
-            stream.flush()
+            stream.close()
             self.task = None
             self.loop.close()
             self.loop = None
@@ -76,6 +76,14 @@ class UpdateWorker(QObject):
             return
         self._last_progress_emit = timestamp
         self.progress.emit(str(title), int(progress), bool(finished), url, now)
+
+    def _report_event(self, payload):
+        message = str(payload.get("message") or "").strip()
+        if not message:
+            return
+        level = str(payload.get("level") or "INFO").upper()
+        prefix = {"WARNING": "! ", "ERROR": "× ", "CRITICAL": "× "}.get(level, "• ")
+        self.output.emit(prefix + message)
 
 
 class UpdateController(QObject):

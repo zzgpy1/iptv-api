@@ -1,7 +1,10 @@
 import io
 import os
+import re
 import threading
 import time
+
+_ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 class SignalLogStream(io.TextIOBase):
@@ -13,7 +16,9 @@ class SignalLogStream(io.TextIOBase):
         self.pending = ""
         self.display_pending = []
         self.last_emit = 0.0
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        self._file = open(self.path, "a", encoding="utf-8", buffering=1)
 
     def writable(self):
         return True
@@ -25,10 +30,9 @@ class SignalLogStream(io.TextIOBase):
         with self.lock:
             if self.original:
                 self.original.write(text)
-            os.makedirs(os.path.dirname(self.path), exist_ok=True)
-            with open(self.path, "a", encoding="utf-8") as file:
-                file.write(text)
-            self.pending += text.replace("\r", "\n")
+            clean_text = _ANSI_ESCAPE.sub("", text).replace("\r", "\n")
+            self._file.write(clean_text)
+            self.pending += clean_text
             parts = self.pending.split("\n")
             self.pending = parts.pop()
             for line in parts:
@@ -51,7 +55,15 @@ class SignalLogStream(io.TextIOBase):
         with self.lock:
             if self.original:
                 self.original.flush()
+            self._file.flush()
             if self.pending.strip():
                 self.display_pending.append(self.pending)
                 self.pending = ""
             self._emit_ready(force=True)
+
+    def close(self):
+        if self.closed:
+            return
+        with self.lock:
+            super().close()
+            self._file.close()

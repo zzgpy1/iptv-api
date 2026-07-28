@@ -4,13 +4,11 @@ import datetime
 import gzip
 import os
 import pickle
-import sys
 import threading
 from time import time
 from typing import Callable, Optional, Any
 
 import pytz
-from tqdm import tqdm
 
 import utils.constants as constants
 import utils.frozen as frozen
@@ -18,14 +16,14 @@ from updates.epg import get_epg
 from updates.epg.tools import write_to_xml, compress_to_gz
 from updates.subscribe import get_channels_by_subscribe_urls
 from utils.aggregator import ResultAggregator
-from utils.channel import get_channel_items, append_total_data, test_speed
+from utils.channel import get_channel_items, append_total_data, get_speed_test_status, test_speed
 from utils.channel_repository import finish_run, start_run
 from utils.config import config
 from utils.i18n import t
 from utils.requests.async_tools import check_ipv6_support_async
+from utils.reporting import Reporter
 from utils.speed import clear_cache
 from utils.tools import (
-    get_pbar_remaining,
     process_nested_dict,
     format_interval,
     get_urls_from_file,
@@ -46,7 +44,7 @@ ProgressCallback = Callable[..., Any]
 
 
 class UpdateSource:
-    def __init__(self):
+    def __init__(self, reporter: Reporter | None = None):
         self.whitelist_maps = None
         self.blacklist = None
 
@@ -63,9 +61,11 @@ class UpdateSource:
 
         self.channel_data: CategoryChannelData = {}
 
-        self.pbar: Optional[tqdm] = None
         self.total = 0
         self.start_time = None
+        self.reporter = reporter
+        self._owns_reporter = reporter is None
+        self.run_metrics = {}
 
         self.stop_event: Optional[asyncio.Event] = None
         self.ipv6_support = False
@@ -123,27 +123,6 @@ class UpdateSource:
         return self._pause_requested.is_set()
 
     # ----------------------------
-    # progress / pbar
-    # ----------------------------
-    def pbar_update(self, name: str = "", item_name: str = "", count: int = 1):
-        if not self.pbar:
-            return
-        if self.pbar.n < self.total:
-            self.pbar.update(min(max(1, count), self.total - self.pbar.n))
-            remaining_total = self.total - self.pbar.n
-            remaining_time = get_pbar_remaining(n=self.pbar.n, total=self.total, start_time=self.start_time)
-            if self.update_progress:
-                self.update_progress(
-                    t("msg.progress_desc").format(
-                        name=name,
-                        remaining_total=remaining_total,
-                        item_name=item_name,
-                        remaining_time=remaining_time,
-                    ),
-                    int((self.pbar.n / self.total) * 100),
-                )
-
-    # ----------------------------
     # IO: cache
     # ----------------------------
     def _load_cache(self) -> dict:
@@ -169,7 +148,7 @@ class UpdateSource:
     def _prepare_channel_data(self):
         self.whitelist_maps = load_whitelist_maps(constants.whitelist_path)
         self.blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
-        self.channel_items = get_channel_items(self.whitelist_maps, self.blacklist)
+        self.channel_items = get_channel_items(self.whitelist_maps, self.blacklist, reporter=self.reporter)
         self.channel_data = {}
 
         self.channel_names = [
@@ -195,18 +174,27 @@ class UpdateSource:
             seen.add(url)
             subscribe_entries.append(e)
 
-        print(
+        self.reporter.info(
+            "sources.subscribe.summary",
             t("msg.subscribe_urls_whitelist_total").format(
                 default_count=len(default_entries),
                 whitelist_count=len(whitelist_entries),
                 disabled_count=disabled_count,
                 total=len(subscribe_entries),
             ),
-            flush=True,
+            phase="fetch",
+            default_count=len(default_entries),
+            whitelist_count=len(whitelist_entries),
+            disabled_count=disabled_count,
+            total=len(subscribe_entries),
         )
 
         if not subscribe_entries:
-            print(t("msg.no_subscribe_urls").format(file=constants.subscribe_path), flush=True)
+            self.reporter.warning(
+                "sources.subscribe.empty",
+                t("msg.no_subscribe_urls").format(file=constants.subscribe_path),
+                phase="fetch",
+            )
             return {}
 
         whitelist_urls = [e['url'] for e in whitelist_entries]
@@ -218,6 +206,7 @@ class UpdateSource:
             callback=self.update_progress,
             epg_urls_out=epg_urls_out,
             pause_wait=self.wait_if_paused,
+            reporter=self.reporter,
         )
 
     async def _fetch_epg(self, channel_names: list[str], extra_entries: list = None):
@@ -226,6 +215,7 @@ class UpdateSource:
             callback=self.update_progress,
             extra_entries=extra_entries,
             pause_wait=self.wait_if_paused,
+            reporter=self.reporter,
         )
 
     async def visit_page(self, channel_names: list[str] = None):
@@ -241,12 +231,22 @@ class UpdateSource:
             try:
                 self.subscribe_result = await self._fetch_subscribe(channel_names, epg_urls_out=discovered_epg_urls)
             except Exception as e:
-                print(f"subscribe_result failed: {e}", flush=True)
+                self.reporter.error(
+                    "sources.subscribe.failed",
+                    t("log.source_process_failed").format(name=t("name.subscribe"), info=e),
+                    phase="fetch",
+                    error_type=type(e).__name__,
+                )
                 self.subscribe_result = {}
             try:
                 self.epg_result = await self._fetch_epg(channel_names, extra_entries=sorted(discovered_epg_urls))
             except Exception as e:
-                print(f"epg_result failed: {e}", flush=True)
+                self.reporter.error(
+                    "sources.epg.failed",
+                    t("log.source_process_failed").format(name=t("name.epg"), info=e),
+                    phase="fetch",
+                    error_type=type(e).__name__,
+                )
                 self.epg_result = {}
             return
 
@@ -262,7 +262,12 @@ class UpdateSource:
         results = await asyncio.gather(*(c for _, c in cors), return_exceptions=True)
         for (attr, _), res in zip(cors, results):
             if isinstance(res, Exception):
-                print(f"{attr} failed: {res}", flush=True)
+                self.reporter.error(
+                    f"sources.{attr}.failed",
+                    t("log.source_process_failed").format(name=attr, info=res),
+                    phase="fetch",
+                    error_type=type(res).__name__,
+                )
                 setattr(self, attr, {})
             else:
                 setattr(self, attr, res)
@@ -286,6 +291,7 @@ class UpdateSource:
             min_items_before_flush=max(25, config.urls_limit),
             result=cache,
             channel_catalog=self.channel_items,
+            reporter=self.reporter,
         )
         await self.aggregator.start()
 
@@ -321,7 +327,13 @@ class UpdateSource:
         )
         self.total = get_urls_len(test_data)
 
-        print(t("msg.total_urls_need_test_speed").format(total=urls_total, speed_total=self.total))
+        self.reporter.info(
+            "speed_test.planned",
+            t("msg.total_urls_need_test_speed").format(total=urls_total, speed_total=self.total),
+            phase="speed_test",
+            discovered=urls_total,
+            total=self.total,
+        )
 
         if self.total <= 0:
             self.aggregator.is_last = True
@@ -334,6 +346,8 @@ class UpdateSource:
 
         self.start_time = time()
         completed_items = 0
+        invalid_items = 0
+        status_counts = {}
         valid_counts = {}
         playable_results = {}
 
@@ -359,7 +373,7 @@ class UpdateSource:
             }
 
         def handle_task_complete(cate, name, item, is_channel_last=False, is_last=False, is_valid=True):
-            nonlocal completed_items
+            nonlocal completed_items, invalid_items
             self.aggregator.add_item(cate, name, item, is_channel_last, is_last, is_valid)
             completed_items += 1
             key = (cate, name)
@@ -370,6 +384,10 @@ class UpdateSource:
                     "speed": item.get("speed"),
                     "resolution": item.get("resolution"),
                 })
+            else:
+                invalid_items += 1
+            test_status = get_speed_test_status(item, is_valid)
+            status_counts[test_status] = status_counts.get(test_status, 0) + 1
             if self.update_progress:
                 self.update_progress(
                     name,
@@ -383,33 +401,58 @@ class UpdateSource:
                         **channel_metadata(cate, name),
                     },
                 )
+            valid_total = sum(valid_counts.values())
+            channel_suffix = f"  {name}" if name else ""
+            self.reporter.update_progress(
+                "speed_test",
+                completed=completed_items,
+                status=t("log.speed_progress_status").format(
+                    valid=valid_total,
+                    invalid=invalid_items,
+                    channel=channel_suffix,
+                ),
+                valid=valid_total,
+                invalid=invalid_items,
+                channel=name,
+                category=cate,
+            )
 
-        self.pbar = tqdm(
-            total=self.total,
-            desc=t("pbar.speed_test"),
-            file=sys.stdout,
-            mininterval=1.0,
-            miniters=1,
-            dynamic_ncols=False,
+        self.reporter.start_progress(
+            "speed_test",
+            t("pbar.speed_test"),
+            self.total,
+            phase="speed_test",
         )
         try:
             result = await test_speed(
                 test_data,
                 ipv6=self.ipv6_support,
                 pause_wait=self.wait_if_paused,
-                callback=lambda count=1: self.pbar_update(
-                    name=t("pbar.speed_test"),
-                    item_name=t("pbar.url"),
-                    count=count,
-                ),
                 on_task_complete=handle_task_complete,
+                reporter=self.reporter,
             )
             self.aggregator.is_last = True
             return result
         finally:
-            if self.pbar:
-                self.pbar.close()
-                self.pbar = None
+            self.run_metrics = {
+                "channels": len(self.channel_names),
+                "planned": self.total,
+                "completed": completed_items,
+                "valid": sum(valid_counts.values()),
+                "invalid": invalid_items,
+                "skipped": max(0, self.total - completed_items),
+                "status_counts": dict(status_counts),
+            }
+            self.reporter.finish_progress(
+                "speed_test",
+                status=t("log.speed_progress_status").format(
+                    valid=sum(valid_counts.values()),
+                    invalid=invalid_items,
+                    channel="",
+                ),
+                valid=sum(valid_counts.values()),
+                invalid=invalid_items,
+            )
 
     # ----------------------------
     # stage 5: ui final notify
@@ -444,12 +487,14 @@ class UpdateSource:
     # ----------------------------
     async def main(self):
         run_id = start_run(constants.channel_results_path)
+        self.reporter.bind_run(run_id)
         run_status = "failed"
         run_error = None
         try:
             main_start_time = time()
             performance = config.performance_settings
-            print(
+            self.reporter.info(
+                "run.started",
                 t("msg.performance_settings").format(
                     mode=performance.requested_mode,
                     resolved=performance.resolved_mode,
@@ -459,14 +504,25 @@ class UpdateSource:
                     probe=performance.probe_concurrency,
                     fetch=performance.fetch_workers,
                 ),
-                flush=True,
+                phase="prepare",
+                performance_mode=performance.requested_mode,
+                resolved_mode=performance.resolved_mode,
+                cpu=performance.cpu_count,
+                memory_gb=performance.memory_gb,
+                speed_concurrency=performance.speed_test_concurrency,
+                probe_concurrency=performance.probe_concurrency,
+                fetch_workers=performance.fetch_workers,
             )
 
             self._prepare_channel_data()
             await self.wait_if_paused()
 
             if not self.channel_names:
-                print(t("msg.no_channel_names").format(file=config.source_file), flush=True)
+                self.reporter.warning(
+                    "channels.empty",
+                    t("msg.no_channel_names").format(file=config.source_file),
+                    phase="prepare",
+                )
                 self._notify_ui_finished(main_start_time)
                 run_status = "success"
                 return
@@ -482,6 +538,7 @@ class UpdateSource:
                 self.subscribe_result,
                 self.whitelist_maps,
                 self.blacklist,
+                reporter=self.reporter,
             )
 
             cache = self._load_cache()
@@ -551,79 +608,149 @@ class UpdateSource:
                     self._save_cache(final_result)
                     frozen.save(constants.frozen_path)
 
-            print(
-                t("msg.update_completed").format(
+            completed_message = t("msg.update_completed").format(
                     time=format_interval(time() - main_start_time),
                     service_tip="",
-                ),
-                flush=True,
+            )
+            self.reporter.stop_progress()
+            if config.open_speed_test:
+                summary_metrics = [
+                    (t("summary.channels"), self.run_metrics.get("channels", len(self.channel_names))),
+                    (t("summary.planned"), self.run_metrics.get("planned", 0)),
+                    (t("summary.completed"), self.run_metrics.get("completed", 0)),
+                    (t("summary.valid"), self.run_metrics.get("valid", 0)),
+                    (t("summary.invalid"), self.run_metrics.get("invalid", 0)),
+                    (
+                        t("summary.timeouts"),
+                        self.run_metrics.get("status_counts", {}).get("timeout", 0),
+                    ),
+                    (
+                        t("summary.filtered"),
+                        sum(
+                            self.run_metrics.get("status_counts", {}).get(key, 0)
+                            for key in ("filtered_speed", "filtered_resolution")
+                        ),
+                    ),
+                    (t("summary.skipped"), self.run_metrics.get("skipped", 0)),
+                    (t("summary.duration"), format_interval(time() - main_start_time)),
+                ]
+            else:
+                summary_metrics = [
+                    (t("summary.channels"), len(self.channel_names)),
+                    (t("summary.retained"), get_urls_len(self.channel_data)),
+                    (t("summary.speed_test"), t("summary.disabled")),
+                    (t("summary.duration"), format_interval(time() - main_start_time)),
+                ]
+            self.reporter.summary(
+                t("summary.title"),
+                summary_metrics,
+                outputs=[
+                    (t("summary.result_file"), config.final_file),
+                    (t("summary.speed_log"), constants.speed_test_log_path),
+                    (t("summary.statistic_log"), constants.statistic_log_path),
+                ],
+            )
+            self.reporter.info(
+                "run.finished",
+                completed_message,
+                phase="complete",
+                status="success",
+                duration_seconds=round(time() - main_start_time, 3),
+                channels=len(self.channel_names),
             )
             self._notify_ui_finished(main_start_time)
             run_status = "success"
 
         except asyncio.exceptions.CancelledError:
             run_status = "cancelled"
-            print(t("msg.update_cancelled"), flush=True)
+            self.reporter.stop_progress()
+            self.reporter.warning("run.cancelled", t("msg.update_cancelled"), phase="complete")
         except Exception as exc:
             run_error = str(exc)
+            self.reporter.stop_progress()
+            self.reporter.error(
+                "run.failed",
+                f"{t('name.error')}: {exc}",
+                phase="complete",
+                error_type=type(exc).__name__,
+            )
             raise
         finally:
             finish_run(constants.channel_results_path, run_id, run_status, run_error)
+            self.reporter.bind_run(None)
 
     # ----------------------------
     # lifecycle control
     # ----------------------------
-    async def run_once(self, callback=None):
+    async def run_once(self, callback=None, event_callback=None):
         def default_callback(*args, **kwargs):
             pass
 
         self.update_progress = callback or default_callback
         self.run_ui = bool(callback)
         self._initialize_pause_control()
+        if self.reporter is None:
+            self.reporter = Reporter(
+                event_callback=event_callback,
+                enable_console=event_callback is None,
+            )
 
-        if not config.open_update:
+        try:
+            if not config.open_update:
+                if self.run_ui:
+                    self.update_progress(t("msg.update_disabled"), 0, finished=True)
+                self.reporter.warning("run.disabled", t("msg.update_disabled"))
+                return
+
             if self.run_ui:
-                self.update_progress(t("msg.update_disabled"), 0, finished=True)
-            return
+                self.update_progress(t("msg.check_ipv6_support"), 0)
 
-        if self.run_ui:
-            self.update_progress(t("msg.check_ipv6_support"), 0)
+            self.ipv6_support = config.ipv6_support or await check_ipv6_support_async(reporter=self.reporter)
+            await self.main()
+        finally:
+            if self._owns_reporter:
+                self.reporter.close()
+                self.reporter = None
 
-        self.ipv6_support = config.ipv6_support or await check_ipv6_support_async()
-        await self.main()
-
-    async def start(self, callback=None):
+    async def start(self, callback=None, event_callback=None):
         def default_callback(*args, **kwargs):
             pass
 
         self.update_progress = callback or default_callback
         self.run_ui = True if callback else False
         self._initialize_pause_control()
+        if self.reporter is None:
+            self.reporter = Reporter(
+                event_callback=event_callback,
+                enable_console=event_callback is None,
+            )
 
-        if not config.open_update:
+        try:
+            if not config.open_update:
+                if self.run_ui:
+                    self.update_progress(t("msg.update_disabled"), 0, finished=True)
+                self.reporter.warning("run.disabled", t("msg.update_disabled"))
+                return
+
             if self.run_ui:
-                self.update_progress(t("msg.update_disabled"), 0, finished=True)
-            return
+                self.update_progress(t("msg.check_ipv6_support"), 0)
 
-        if self.run_ui:
-            self.update_progress(t("msg.check_ipv6_support"), 0)
+            self.ipv6_support = config.ipv6_support or await check_ipv6_support_async(reporter=self.reporter)
 
-        self.ipv6_support = config.ipv6_support or await check_ipv6_support_async()
-
-        if not os.getenv("GITHUB_ACTIONS") and (config.update_interval or config.update_times):
-            await self.scheduler(asyncio.Event())
-        elif config.update_startup:
-            await self.main()
+            if not os.getenv("GITHUB_ACTIONS") and (config.update_interval or config.update_times):
+                await self.scheduler(asyncio.Event())
+            elif config.update_startup:
+                await self.main()
+        finally:
+            if self._owns_reporter:
+                self.reporter.close()
+                self.reporter = None
 
     def stop(self):
         self.resume()
         for task in self.tasks:
             task.cancel()
         self.tasks = []
-
-        if self.pbar:
-            self.pbar.close()
-            self.pbar = None
 
         if self.stop_event:
             self.stop_event.set()
@@ -652,7 +779,12 @@ class UpdateSource:
 
                     next_time = min(candidates)
                     wait_seconds = (next_time - self.now).total_seconds()
-                    print(t("msg.schedule_update_time").format(time=next_time.strftime("%Y-%m-%d %H:%M:%S")), flush=True)
+                    self.reporter.info(
+                        "schedule.next_run",
+                        t("msg.schedule_update_time").format(time=next_time.strftime("%Y-%m-%d %H:%M:%S")),
+                        phase="schedule",
+                        scheduled_at=next_time.isoformat(),
+                    )
 
                     try:
                         await asyncio.wait_for(stop_event.wait(), timeout=wait_seconds)
@@ -663,7 +795,12 @@ class UpdateSource:
                         await self.main()
                 else:
                     next_time = self.now + datetime.timedelta(hours=config.update_interval)
-                    print(t("msg.schedule_update_time").format(time=next_time.strftime("%Y-%m-%d %H:%M:%S")), flush=True)
+                    self.reporter.info(
+                        "schedule.next_run",
+                        t("msg.schedule_update_time").format(time=next_time.strftime("%Y-%m-%d %H:%M:%S")),
+                        phase="schedule",
+                        scheduled_at=next_time.isoformat(),
+                    )
 
                     try:
                         await asyncio.wait_for(stop_event.wait(), timeout=config.update_interval * 3600)
@@ -672,18 +809,24 @@ class UpdateSource:
                         await self.main()
 
         except asyncio.CancelledError:
-            print(t("msg.schedule_cancelled"), flush=True)
+            self.reporter.warning("schedule.cancelled", t("msg.schedule_cancelled"), phase="schedule")
 
 
 if __name__ == "__main__":
     info = get_version_info()
-    print(t("msg.version_info").format(name=info["name"], version=info["version"], build_time=info["build_time"]), flush=True)
-    log_new_version_if_available(info["version"])
-    start_version_log_monitor(info["version"])
-    if not config.open_update:
-        print(t("msg.update_disabled"), flush=True)
-    else:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        update_source = UpdateSource()
+    cli_reporter = Reporter()
+    cli_reporter.info(
+        "application.started",
+        t("msg.version_info").format(name=info["name"], version=info["version"], build_time=info["build_time"]),
+        version=info["version"],
+        build_time=info["build_time"],
+    )
+    log_new_version_if_available(info["version"], reporter=cli_reporter)
+    start_version_log_monitor(info["version"], reporter=cli_reporter)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    update_source = UpdateSource(reporter=cli_reporter)
+    try:
         loop.run_until_complete(update_source.start())
+    finally:
+        cli_reporter.close()
