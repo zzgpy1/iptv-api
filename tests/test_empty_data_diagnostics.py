@@ -1,0 +1,119 @@
+import os
+import unittest
+from time import time
+from unittest.mock import patch
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtWidgets import QApplication
+
+from desktop_ui.pages.dashboard import DashboardPage
+from main import UpdateSource
+from utils.i18n import t
+from utils.reporting import Reporter
+
+
+class EmptyDataDiagnosticsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def _source(self, **metrics):
+        events = []
+        reporter = Reporter(
+            event_callback=events.append,
+            enable_console=False,
+            enable_runtime_file=False,
+        )
+        source = UpdateSource(reporter=reporter)
+        source.source_metrics = {
+            "template_channels": 10,
+            "prepared_items": 0,
+            "subscription_urls": 0,
+            "subscription_channels": 0,
+            "subscription_items": 0,
+            "aggregated_items": 0,
+            "output_items": 0,
+            **metrics,
+        }
+        source.channel_data = {}
+        return source, reporter, events
+
+    def test_no_configured_sources_has_actionable_warning(self):
+        source, reporter, events = self._source()
+        try:
+            source._diagnose_aggregated_data()
+        finally:
+            reporter.close()
+
+        self.assertEqual(source.run_outcome["reason"], "no_source_configured")
+        event = next(item for item in events if item["event"] == "run.empty_data")
+        self.assertEqual(event["level"], "WARNING")
+        self.assertEqual(event["data"]["template_channels"], 10)
+        self.assertIn("config/subscribe.txt", event["message"])
+        self.assertIn("/iptv-api/config/subscribe.txt", event["message"])
+
+    def test_configured_but_empty_subscriptions_are_distinguished(self):
+        source, reporter, _ = self._source(subscription_urls=2)
+        try:
+            source._diagnose_aggregated_data()
+        finally:
+            reporter.close()
+
+        self.assertEqual(source.run_outcome["reason"], "sources_unavailable")
+
+    def test_unmatched_subscription_results_are_distinguished(self):
+        source, reporter, _ = self._source(
+            subscription_urls=1,
+            subscription_channels=3,
+            subscription_items=8,
+        )
+        try:
+            source._diagnose_aggregated_data()
+        finally:
+            reporter.close()
+
+        self.assertEqual(source.run_outcome["reason"], "no_matching_channels")
+
+    def test_ui_completion_metadata_marks_empty_run(self):
+        source, reporter, _ = self._source()
+        updates = []
+        source.run_ui = True
+        source.update_progress = lambda *args, **kwargs: updates.append((args, kwargs))
+        source._diagnose_aggregated_data()
+        try:
+            source._notify_ui_finished(time())
+        finally:
+            reporter.close()
+
+        args, kwargs = updates[-1]
+        self.assertTrue(kwargs["finished"])
+        self.assertEqual(kwargs["url"]["status"], "empty")
+        self.assertEqual(kwargs["url"]["reason"], "no_source_configured")
+
+    def test_dashboard_shows_empty_result_guidance_and_source_action(self):
+        with (
+            patch.object(DashboardPage, "refresh_metrics"),
+            patch.object(DashboardPage, "refresh_schedule"),
+        ):
+            page = DashboardPage()
+        destinations = []
+        page.destination_requested.connect(destinations.append)
+        page._runtime_rows = []
+
+        page.set_progress(
+            "finished",
+            100,
+            finished=True,
+            metadata={"status": "empty", "reason": "no_source_configured"},
+        )
+        page.configure_sources_button.click()
+
+        self.assertEqual(page.progress_title.text(), t("desktop.update_empty_gui"))
+        self.assertEqual(page.empty_title.text(), t("desktop.channel_results_empty_after_run"))
+        self.assertEqual(destinations, ["sources"])
+        page.deleteLater()
+
+
+if __name__ == "__main__":
+    unittest.main()

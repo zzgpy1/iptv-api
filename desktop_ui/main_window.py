@@ -422,6 +422,7 @@ class MainWindow(FluentWindow):
         page = {
             "channels": self.channels,
             "rtmp": self.rtmp,
+            "sources": self.sources,
             "tasks": self.tasks,
         }.get(destination)
         if page:
@@ -456,10 +457,27 @@ class MainWindow(FluentWindow):
         )
 
     def _update_finished(self):
+        outcome = self.dashboard.last_update_outcome or {}
         if self._update_activity_state == "failed":
             self._set_update_navigation_status("failed")
         elif self._update_activity_state == "stopping":
             self._set_update_navigation_status("cancelled")
+        elif outcome.get("status") == "empty":
+            self._set_update_navigation_status("warning")
+            detail = " ".join(
+                part for part in (
+                    str(outcome.get("message") or "").strip(),
+                    t("desktop.update_needs_sources_detail"),
+                )
+                if part
+            )
+            InfoBar.warning(
+                t("desktop.update_needs_sources"),
+                detail,
+                parent=self,
+                position=InfoBarPosition.TOP,
+                duration=10000,
+            )
         else:
             self._set_update_navigation_status("completed")
         self.dashboard.set_running(False)
@@ -662,6 +680,7 @@ class MainWindow(FluentWindow):
             "paused": (FluentIcon.PAUSE, "#D97706", "desktop.nav_update_paused", False),
             "stopping": (FluentIcon.CLOSE, "#DC2626", "desktop.nav_update_stopping", False),
             "completed": (FluentIcon.COMPLETED, "#059669", "desktop.nav_update_completed", True),
+            "warning": (FluentIcon.INFO, "#D97706", "desktop.nav_update_needs_sources", True),
             "cancelled": (FluentIcon.CANCEL, "#64748B", "desktop.nav_update_cancelled", True),
             "failed": (FluentIcon.CANCEL, "#DC2626", "desktop.nav_update_failed", True),
         }[state]

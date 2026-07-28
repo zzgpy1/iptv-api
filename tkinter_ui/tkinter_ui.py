@@ -134,6 +134,8 @@ class TkinterUI:
             self.loop.call_soon_threadsafe(self.loop.stop)
 
     def update_progress(self, title, progress, finished=False, url=None, now=None):
+        if isinstance(url, dict):
+            url = url.get("service_url")
         self.progress_bar["value"] = progress
         self.now = now
         if finished and now:

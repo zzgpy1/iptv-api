@@ -66,6 +66,8 @@ class UpdateSource:
         self.reporter = reporter
         self._owns_reporter = reporter is None
         self.run_metrics = {}
+        self.source_metrics = {}
+        self.run_outcome = None
 
         self.stop_event: Optional[asyncio.Event] = None
         self.ipv6_support = False
@@ -146,6 +148,8 @@ class UpdateSource:
     # stage 1: prepare
     # ----------------------------
     def _prepare_channel_data(self):
+        self.run_metrics = {}
+        self.run_outcome = None
         self.whitelist_maps = load_whitelist_maps(constants.whitelist_path)
         self.blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
         self.channel_items = get_channel_items(self.whitelist_maps, self.blacklist, reporter=self.reporter)
@@ -154,9 +158,81 @@ class UpdateSource:
         self.channel_names = [
             name for channel_obj in self.channel_items.values() for name in channel_obj.keys()
         ]
+        self.source_metrics = {
+            "template_channels": len(self.channel_names),
+            "prepared_items": get_urls_len(self.channel_items),
+            "subscription_urls": 0,
+            "subscription_channels": 0,
+            "subscription_items": 0,
+            "aggregated_items": 0,
+            "output_items": 0,
+        }
 
         if config.open_history and os.path.exists(constants.frozen_path):
             frozen.load(constants.frozen_path)
+
+    def _set_empty_outcome(self, reason: str, phase: str):
+        if self.run_outcome:
+            return
+        metrics = dict(self.source_metrics)
+        message_key = {
+            "template_empty": "msg.empty_template_diagnostic",
+            "no_source_configured": "msg.empty_no_source_configured",
+            "sources_unavailable": "msg.empty_sources_unavailable",
+            "no_matching_channels": "msg.empty_no_matching_channels",
+            "all_results_filtered": "msg.empty_all_results_filtered",
+        }.get(reason, "msg.empty_no_usable_data")
+        message = t(message_key).format(
+            channels=metrics.get("template_channels", 0),
+            prepared=metrics.get("prepared_items", 0),
+            subscriptions=metrics.get("subscription_urls", 0),
+            discovered=metrics.get("subscription_items", 0),
+            aggregated=metrics.get("aggregated_items", 0),
+        )
+        if reason == "template_empty":
+            guidance = t("msg.empty_template_guidance").format(
+                template_file=config.source_file,
+                docs_url=t("msg.empty_data_docs_url"),
+            )
+        else:
+            guidance = t("msg.empty_data_guidance").format(
+                subscribe_file=constants.subscribe_path,
+                local_file=constants.local_path,
+                docs_url=t("msg.empty_data_docs_url"),
+            )
+        self.run_outcome = {
+            "status": "empty",
+            "reason": reason,
+            "message": message,
+            "guidance": guidance,
+            **metrics,
+        }
+        self.reporter.warning(
+            "run.empty_data",
+            f"{message}\n{guidance}",
+            phase=phase,
+            outcome="empty",
+            reason=reason,
+            **metrics,
+        )
+
+    def _diagnose_aggregated_data(self):
+        aggregated = get_urls_len(self.channel_data)
+        self.source_metrics["aggregated_items"] = aggregated
+        if aggregated:
+            return
+        prepared = self.source_metrics.get("prepared_items", 0)
+        subscriptions = self.source_metrics.get("subscription_urls", 0)
+        discovered = self.source_metrics.get("subscription_items", 0)
+        if not prepared and not subscriptions:
+            reason = "no_source_configured"
+        elif subscriptions and not discovered and not prepared:
+            reason = "sources_unavailable"
+        elif discovered:
+            reason = "no_matching_channels"
+        else:
+            reason = "no_usable_data"
+        self._set_empty_outcome(reason, "aggregate")
 
     # ----------------------------
     # stage 2: fetch subscribe/epg (concurrent)
@@ -188,6 +264,7 @@ class UpdateSource:
             disabled_count=disabled_count,
             total=len(subscribe_entries),
         )
+        self.source_metrics["subscription_urls"] = len(subscribe_entries)
 
         if not subscribe_entries:
             self.reporter.warning(
@@ -199,7 +276,7 @@ class UpdateSource:
 
         whitelist_urls = [e['url'] for e in whitelist_entries]
 
-        return await get_channels_by_subscribe_urls(
+        result = await get_channels_by_subscribe_urls(
             subscribe_entries,
             names=channel_names,
             whitelist=whitelist_urls,
@@ -208,6 +285,9 @@ class UpdateSource:
             pause_wait=self.wait_if_paused,
             reporter=self.reporter,
         )
+        self.source_metrics["subscription_channels"] = len(result)
+        self.source_metrics["subscription_items"] = sum(len(items) for items in result.values())
+        return result
 
     async def _fetch_epg(self, channel_names: list[str], extra_entries: list = None):
         return await get_epg(
@@ -464,21 +544,28 @@ class UpdateSource:
         open_service = config.open_service
         service_tip = t("msg.service_tip") if open_service else ""
 
-        tip = (
-            t("msg.service_run_success").format(service_tip=service_tip)
-            if open_service and config.open_update is False
-            else t("msg.update_completed").format(
-                time=format_interval(time() - main_start_time),
-                service_tip=service_tip,
+        if self.run_outcome:
+            tip = t("msg.update_completed_empty")
+        else:
+            tip = (
+                t("msg.service_run_success").format(service_tip=service_tip)
+                if open_service and config.open_update is False
+                else t("msg.update_completed").format(
+                    time=format_interval(time() - main_start_time),
+                    service_tip=service_tip,
+                )
             )
-        )
+        metadata = {
+            **(self.run_outcome or {"status": "success"}),
+            "service_url": f"{get_public_url()}" if open_service else None,
+        }
 
         if self.update_progress:
             self.update_progress(
                 tip,
                 100,
                 finished=True,
-                url=f"{get_public_url()}" if open_service else None,
+                url=metadata,
                 now=self.now,
             )
 
@@ -518,10 +605,14 @@ class UpdateSource:
             await self.wait_if_paused()
 
             if not self.channel_names:
+                self._set_empty_outcome("template_empty", "prepare")
                 self.reporter.warning(
-                    "channels.empty",
-                    t("msg.no_channel_names").format(file=config.source_file),
-                    phase="prepare",
+                    "run.finished",
+                    t("msg.update_completed_empty"),
+                    phase="complete",
+                    status="success",
+                    outcome="empty",
+                    reason="template_empty",
                 )
                 self._notify_ui_finished(main_start_time)
                 run_status = "success"
@@ -540,6 +631,7 @@ class UpdateSource:
                 self.blacklist,
                 reporter=self.reporter,
             )
+            self._diagnose_aggregated_data()
 
             cache = self._load_cache()
 
@@ -604,13 +696,24 @@ class UpdateSource:
                 raise
             else:
                 final_result = await self._stop_aggregator(flush=True)
+                self.source_metrics["output_items"] = get_urls_len(final_result)
+                if (
+                    not self.run_outcome
+                    and self.source_metrics["aggregated_items"] > 0
+                    and self.source_metrics["output_items"] <= 0
+                ):
+                    self._set_empty_outcome("all_results_filtered", "complete")
                 if config.open_history:
                     self._save_cache(final_result)
                     frozen.save(constants.frozen_path)
 
-            completed_message = t("msg.update_completed").format(
+            completed_message = (
+                t("msg.update_completed_empty")
+                if self.run_outcome
+                else t("msg.update_completed").format(
                     time=format_interval(time() - main_start_time),
                     service_tip="",
+                )
             )
             self.reporter.stop_progress()
             if config.open_speed_test:
@@ -650,14 +753,17 @@ class UpdateSource:
                     (t("summary.statistic_log"), constants.statistic_log_path),
                 ],
             )
-            self.reporter.info(
-                "run.finished",
-                completed_message,
-                phase="complete",
-                status="success",
-                duration_seconds=round(time() - main_start_time, 3),
-                channels=len(self.channel_names),
-            )
+            finish_data = {
+                "status": "success",
+                "outcome": "empty" if self.run_outcome else "success",
+                "duration_seconds": round(time() - main_start_time, 3),
+                "channels": len(self.channel_names),
+            }
+            if self.run_outcome:
+                finish_data["reason"] = self.run_outcome["reason"]
+                self.reporter.warning("run.finished", completed_message, phase="complete", **finish_data)
+            else:
+                self.reporter.info("run.finished", completed_message, phase="complete", **finish_data)
             self._notify_ui_finished(main_start_time)
             run_status = "success"
 

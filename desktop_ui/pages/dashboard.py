@@ -138,6 +138,7 @@ class DashboardPage(QWidget):
         self._stream_snapshot = {"streams": []}
         self._stream_states = {}
         self._active_channel = None
+        self.last_update_outcome = None
         self.status_card = MetricCard(t("desktop.run_status"), t("desktop.idle"), icon=FluentIcon.POWER_BUTTON, accent="#64748B")
         self.channel_card = MetricCard(t("desktop.channels"), "0", icon=FluentIcon.LIBRARY, accent="#7C3AED")
         self.valid_card = MetricCard(t("desktop.valid_results"), "0", icon=FluentIcon.COMPLETED, accent="#059669")
@@ -205,12 +206,18 @@ class DashboardPage(QWidget):
         self.empty_icon.setFixedSize(46, 46)
         self.empty_title = StrongBodyLabel(t("desktop.channel_results_empty"), self.empty_state)
         self.empty_hint = BodyLabel(t("desktop.channel_results_empty_hint"), self.empty_state)
+        self.configure_sources_button = PushButton(
+            FluentIcon.FOLDER,
+            t("desktop.configure_sources"),
+            self.empty_state,
+        )
         self.empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_hint.setStyleSheet(f"color: {'#94A3B8' if isDarkTheme() else '#64748B'}")
         empty_layout.addWidget(self.empty_icon, 0, Qt.AlignmentFlag.AlignHCenter)
         empty_layout.addWidget(self.empty_title)
         empty_layout.addWidget(self.empty_hint)
+        empty_layout.addWidget(self.configure_sources_button, 0, Qt.AlignmentFlag.AlignHCenter)
         empty_layout.addStretch(1)
         self.channel_stack.addWidget(self.empty_state)
         channel_header = QHBoxLayout()
@@ -234,6 +241,7 @@ class DashboardPage(QWidget):
         self.output_button.clicked.connect(self.open_output)
         self.channel_search.textChanged.connect(self._apply_runtime_rows)
         self.channel_table.clicked.connect(self._channel_clicked)
+        self.configure_sources_button.clicked.connect(lambda: self.destination_requested.emit("sources"))
         self.status_card.clicked.connect(lambda: self.destination_requested.emit("tasks"))
         self.channel_card.clicked.connect(lambda: self.destination_requested.emit("channels"))
         self.valid_card.clicked.connect(lambda: self.destination_requested.emit("channels"))
@@ -301,8 +309,18 @@ class DashboardPage(QWidget):
         ]
         self.channel_model.set_rows(rows)
         self.channel_stack.setCurrentWidget(self.channel_table if rows else self.empty_state)
-        self.empty_title.setText(t("desktop.channel_results_no_match" if term else "desktop.channel_results_empty"))
-        self.empty_hint.setText(t("desktop.channel_results_no_match_hint" if term else "desktop.channel_results_empty_hint"))
+        if term:
+            title_key = "desktop.channel_results_no_match"
+            hint_key = "desktop.channel_results_no_match_hint"
+        elif self.last_update_outcome and self.last_update_outcome.get("status") == "empty":
+            title_key = "desktop.channel_results_empty_after_run"
+            hint_key = "desktop.channel_results_empty_after_run_hint"
+        else:
+            title_key = "desktop.channel_results_empty"
+            hint_key = "desktop.channel_results_empty_hint"
+        self.empty_title.setText(t(title_key))
+        self.empty_hint.setText(t(hint_key))
+        self.configure_sources_button.setVisible(not term)
         self._scroll_to_active()
 
     def _scroll_to_active(self):
@@ -324,6 +342,7 @@ class DashboardPage(QWidget):
         self._cancelling = False
         self._paused = False
         if running:
+            self.last_update_outcome = None
             self.setFocus(Qt.FocusReason.OtherFocusReason)
         self.run_button.setVisible(not running)
         self.run_button.setEnabled(not running)
@@ -390,7 +409,10 @@ class DashboardPage(QWidget):
         elif not self._paused and (not self._active_channel or not self._running):
             self.progress_title.setText(title)
         if finished:
-            self.progress_title.setText(t("desktop.update_completed_gui"))
+            self.last_update_outcome = metadata if isinstance(metadata, dict) else None
+            empty = self.last_update_outcome and self.last_update_outcome.get("status") == "empty"
+            self.progress_title.setText(t("desktop.update_empty_gui" if empty else "desktop.update_completed_gui"))
+            self._apply_runtime_rows()
 
     def _update_runtime_row(self, key, metadata):
         if metadata.get("status") != "completed":
@@ -566,6 +588,7 @@ class DashboardPage(QWidget):
         self.channel_search.setPlaceholderText(t("desktop.search_channels"))
         self.empty_title.setText(t("desktop.channel_results_empty"))
         self.empty_hint.setText(t("desktop.channel_results_empty_hint"))
+        self.configure_sources_button.setText(t("desktop.configure_sources"))
         self.channel_model.set_columns(self._channel_columns())
         for action, key in self.service_actions:
             action.setText(t(key))
