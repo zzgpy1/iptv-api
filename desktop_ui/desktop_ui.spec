@@ -1,6 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
+import gzip
 import json
 import os
+import shutil
 import sys
 
 
@@ -8,6 +10,29 @@ with open("version.json", encoding="utf-8") as file:
     version_data = json.load(file)
 
 name = f"{version_data['name']}-GUI-v{version_data['version']}"
+
+
+def compress_ip_database():
+    source = os.path.abspath(
+        os.path.join(SPECPATH, "..", "utils", "ip_checker", "data", "qqwry.ipdb")
+    )
+    output_dir = os.path.abspath(
+        os.path.join(SPECPATH, "..", "build", "desktop_ui-assets")
+    )
+    output = os.path.join(output_dir, "qqwry.ipdb.gz")
+    os.makedirs(output_dir, exist_ok=True)
+    with open(source, "rb") as source_file, open(output, "wb") as output_file:
+        with gzip.GzipFile(
+            filename="",
+            mode="wb",
+            compresslevel=9,
+            fileobj=output_file,
+            mtime=0,
+        ) as compressed_file:
+            shutil.copyfileobj(source_file, compressed_file)
+    return output
+
+
 config_files = [
     "config.ini",
     "demo.txt",
@@ -22,7 +47,7 @@ datas = [(os.path.join("..", "config", item), "config") for item in config_files
 datas.extend([
     ("../config/logo", "config/logo"),
     ("../locales", "locales"),
-    ("../utils/ip_checker/data/qqwry.ipdb", "utils/ip_checker/data"),
+    (compress_ip_database(), "utils/ip_checker/data"),
     ("../favicon.ico", "."),
     ("../version.json", "."),
     ("../service/nginx.conf.template", "service"),
@@ -38,10 +63,10 @@ a = Analysis(
     binaries=[],
     datas=datas,
     hiddenimports=[],
-    hookspath=[],
+    hookspath=[os.path.join(SPECPATH, "hooks")],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["tkinter"],
+    excludes=["tkinter", "PIL"],
     noarchive=False,
     optimize=0,
 )
