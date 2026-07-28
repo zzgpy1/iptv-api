@@ -63,6 +63,12 @@ class UpdateWorker(QObject):
         if self.loop and self.task:
             self.loop.call_soon_threadsafe(self.task.cancel)
 
+    def pause(self):
+        self.source.pause()
+
+    def resume(self):
+        self.source.resume()
+
     def _progress(self, title, progress, finished=False, url=None, now=None):
         timestamp = time.monotonic()
         channel_completed = isinstance(url, dict) and url.get("status") == "completed"
@@ -104,6 +110,14 @@ class UpdateController(QObject):
     def cancel(self):
         if self.worker:
             self.worker.cancel()
+
+    def pause(self):
+        if self.worker:
+            self.worker.pause()
+
+    def resume(self):
+        if self.worker:
+            self.worker.resume()
 
     def shutdown(self):
         self.cancel()
@@ -423,6 +437,9 @@ class ServiceProcessController(QObject):
         else:
             self.process.setProgram(sys.executable)
             self.process.setArguments([os.path.abspath("service/app.py")])
+        environment = self.process.processEnvironment()
+        environment.insert("IPTV_API_SKIP_VERSION_CHECK", "1")
+        self.process.setProcessEnvironment(environment)
         self.process.readyReadStandardOutput.connect(self._read_output)
         self.process.started.connect(lambda: self.status_changed.emit("running"))
         self.process.errorOccurred.connect(lambda _: self.status_changed.emit("failed"))

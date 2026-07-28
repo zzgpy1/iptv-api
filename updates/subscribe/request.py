@@ -51,6 +51,7 @@ async def get_channels_by_subscribe_urls(
         whitelist=None,
         callback=None,
         epg_urls_out=None,
+        pause_wait=None,
 ):
     normalized_names = {format_channel_name(name) for name in (names or []) if name}
     if whitelist:
@@ -125,7 +126,11 @@ async def get_channels_by_subscribe_urls(
         try:
             content = ""
             try:
+                if pause_wait:
+                    await pause_wait()
                 async with semaphore:
+                    if pause_wait:
+                        await pause_wait()
                     content = await fetch_first(
                         session,
                         get_request_url_candidates(subscribe_url),
@@ -157,7 +162,10 @@ async def get_channels_by_subscribe_urls(
                 )
                 for index, item in enumerate(data):
                     if index % 1000 == 0:
-                        await asyncio.sleep(0)
+                        if pause_wait:
+                            await pause_wait()
+                        else:
+                            await asyncio.sleep(0)
                     data_name = item.get("name", "").strip()
                     url = item.get("value", "").strip()
                     if not data_name or not url:

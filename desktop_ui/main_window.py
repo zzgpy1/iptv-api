@@ -17,6 +17,7 @@ from desktop_ui.pages.settings import SettingsPage
 from desktop_ui.pages.sources import SourcesPage
 from desktop_ui.pages.tasks import TasksPage
 from desktop_ui.models import ChannelLogoLoader
+from desktop_ui.widgets import NavigationStatusIndicator
 from desktop_ui.platform_integration import set_macos_activation_policy
 import utils.constants as constants
 from utils.config import config, resource_path
@@ -98,6 +99,22 @@ class MainWindow(FluentWindow):
         self.tasks_item = self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
         self.settings_item = self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)
         self.about_item = self.addSubInterface(self.about, FluentIcon.INFO, t("desktop.about"), NavigationItemPosition.BOTTOM)
+        self._navigation_items = {
+            "dashboard": (self.dashboard_item, "desktop.dashboard", self.dashboard),
+            "channels": (self.channels_item, "desktop.channel_center", self.channels),
+            "rtmp": (self.rtmp_item, "desktop.play_streaming", self.rtmp),
+            "sources": (self.sources_item, "desktop.sources", self.sources),
+            "logs": (self.logs_item, "desktop.logs", self.logs),
+            "tasks": (self.tasks_item, "desktop.task_history", self.tasks),
+            "settings": (self.settings_item, "desktop.settings", self.settings),
+            "about": (self.about_item, "desktop.about", self.about),
+        }
+        self._navigation_statuses = {}
+        self._navigation_indicators = {}
+        for name, (item, _, _) in self._navigation_items.items():
+            indicator = NavigationStatusIndicator(item)
+            indicator.move(24, 3)
+            self._navigation_indicators[name] = indicator
         self.language_item = self.navigationInterface.addItem(
             "languageToggle",
             FluentIcon.LANGUAGE,
@@ -126,16 +143,19 @@ class MainWindow(FluentWindow):
         self._update_theme_item()
         self._position_navigation_resize_handle()
         self.controller = UpdateController(self)
+        self._update_activity_state = "idle"
         self.operation_controller = ChannelOperationController(self)
         self.rtmp_controller = RtmpMonitorController(self)
         self.service_controller = ServiceProcessController(self)
         self.dashboard.run_requested.connect(self._start_update)
-        self.dashboard.cancel_requested.connect(self.controller.cancel)
+        self.dashboard.pause_requested.connect(self._pause_update)
+        self.dashboard.resume_requested.connect(self._resume_update)
+        self.dashboard.cancel_requested.connect(self._cancel_update)
         self.dashboard.destination_requested.connect(self._navigate_from_dashboard)
         self.settings.settings_saved.connect(self.dashboard.refresh_schedule)
         self.controller.started.connect(self._update_started)
         self.controller.progress.connect(self.dashboard.set_progress)
-        self.controller.output.connect(self.logs.append_runtime)
+        self.controller.output.connect(self._on_runtime_output)
         self.controller.finished.connect(self._update_finished)
         self.controller.failed.connect(self._update_failed)
         self.channels.retest_channel_requested.connect(
@@ -148,12 +168,14 @@ class MainWindow(FluentWindow):
             )
         )
         self.operation_controller.task_started.connect(self.channels.set_task_started)
+        self.operation_controller.task_started.connect(self._operation_started)
         self.operation_controller.task_progress.connect(self.channels.set_task_progress)
         self.operation_controller.task_succeeded.connect(self._operation_succeeded)
         self.operation_controller.task_failed.connect(self._operation_failed)
         self.rtmp_controller.snapshot.connect(self.rtmp.set_snapshot)
         self.rtmp_controller.snapshot.connect(self.dashboard.set_stream_snapshot)
         self.rtmp_controller.snapshot.connect(self.channels.set_stream_snapshot)
+        self.rtmp_controller.snapshot.connect(self._update_rtmp_navigation_status)
         self.rtmp.stream_control_requested.connect(self.rtmp_controller.control)
         self.rtmp.stream_control_many_requested.connect(self.rtmp_controller.control_many)
         self.dashboard.stream_control_many_requested.connect(self.rtmp_controller.control_many)
@@ -166,10 +188,12 @@ class MainWindow(FluentWindow):
         self.channels.stream_monitor_requested.connect(lambda: self.switchTo(self.rtmp))
         self.rtmp_controller.control_finished.connect(self._stream_control_finished)
         self.rtmp_controller.batch_control_finished.connect(self._stream_batch_control_finished)
-        self.service_controller.status_changed.connect(self.dashboard.set_service_status)
-        self.service_controller.output.connect(self.logs.append_runtime)
+        self.service_controller.status_changed.connect(self._service_status_changed)
+        self.service_controller.output.connect(self._on_runtime_output)
+        self.about.status_changed.connect(self._update_about_navigation_status)
         self.rtmp_install_finished.connect(self._finish_rtmp_install)
         self.rtmp_install_output.connect(self._append_runtime_log)
+        self.stackedWidget.currentChanged.connect(self._navigation_page_changed)
         if config.open_service:
             self._start_service()
         self.rtmp_controller.start()
@@ -296,6 +320,68 @@ class MainWindow(FluentWindow):
             self.quit_action.setText(t("desktop.quit"))
         self._update_language_item()
         self._update_theme_item()
+        self._refresh_navigation_statuses()
+
+    def _set_navigation_status(
+            self,
+            name: str,
+            icon,
+            color: str,
+            status_key: str,
+            status_args: dict | None = None,
+            dismiss_on_visit: bool = False,
+    ):
+        if name not in self._navigation_items:
+            return
+        _, _, page = self._navigation_items[name]
+        if dismiss_on_visit and self.stackedWidget.currentWidget() is page:
+            self._clear_navigation_status(name)
+            return
+        self._navigation_statuses[name] = {
+            "icon": icon,
+            "color": color,
+            "status_key": status_key,
+            "status_args": status_args or {},
+            "dismiss_on_visit": dismiss_on_visit,
+        }
+        self._refresh_navigation_status(name)
+
+    def _clear_navigation_status(self, name: str):
+        self._navigation_statuses.pop(name, None)
+        indicator = self._navigation_indicators.get(name)
+        if indicator:
+            indicator.hide()
+        if name in self._navigation_items:
+            item, title_key, _ = self._navigation_items[name]
+            title = t(title_key)
+            item.setToolTip(title)
+
+    def _refresh_navigation_status(self, name: str):
+        status = self._navigation_statuses.get(name)
+        if not status:
+            return
+        item, title_key, _ = self._navigation_items[name]
+        title = t(title_key)
+        detail = t(status["status_key"]).format(**status["status_args"])
+        item.setToolTip(f"{title} · {detail}")
+        indicator = self._navigation_indicators[name]
+        indicator.setToolTip(detail)
+        if self.stackedWidget.currentWidget() is self._navigation_items[name][2]:
+            indicator.hide()
+        else:
+            indicator.set_status(status["icon"], status["color"])
+
+    def _refresh_navigation_statuses(self):
+        for name in self._navigation_statuses:
+            self._refresh_navigation_status(name)
+
+    def _navigation_page_changed(self, _index: int):
+        current = self.stackedWidget.currentWidget()
+        for name, (_, _, page) in self._navigation_items.items():
+            status = self._navigation_statuses.get(name)
+            if page is current and status and status.get("dismiss_on_visit"):
+                self._clear_navigation_status(name)
+        self._refresh_navigation_statuses()
 
     def _position_navigation_resize_handle(self):
         if not hasattr(self, "navigation_resize_handle"):
@@ -370,6 +456,12 @@ class MainWindow(FluentWindow):
         )
 
     def _update_finished(self):
+        if self._update_activity_state == "failed":
+            self._set_update_navigation_status("failed")
+        elif self._update_activity_state == "stopping":
+            self._set_update_navigation_status("cancelled")
+        else:
+            self._set_update_navigation_status("completed")
         self.dashboard.set_running(False)
         self.dashboard.refresh_metrics()
         self.channels.reload()
@@ -433,6 +525,7 @@ class MainWindow(FluentWindow):
                 position=InfoBarPosition.TOP,
             )
         else:
+            self._mark_logs_error()
             info = result.get("output") or t(
                 f"msg.rtmp_{result.get('error_code')}", result.get("error_code")
             ) or t("desktop.unknown")
@@ -453,10 +546,86 @@ class MainWindow(FluentWindow):
             self.service_controller.start()
 
     def _append_runtime_log(self, content: str):
-        self.logs.append_runtime(content)
+        self._on_runtime_output(content)
         os.makedirs(os.path.dirname(constants.log_path), exist_ok=True)
         with open(constants.log_path, "a", encoding="utf-8") as file:
             file.write(content)
+
+    def _on_runtime_output(self, content: str):
+        self.logs.append_runtime(content)
+
+    def _mark_logs_error(self):
+        self._set_navigation_status(
+            "logs",
+            FluentIcon.CANCEL,
+            "#DC2626",
+            "desktop.nav_runtime_error",
+            dismiss_on_visit=True,
+        )
+
+    def _service_status_changed(self, status: str):
+        self.dashboard.set_service_status(status)
+        if status == "failed":
+            self._mark_logs_error()
+
+    def _update_rtmp_navigation_status(self, snapshot: dict):
+        active_count = max(0, int(snapshot.get("active_count") or 0))
+        starting_count = max(0, int(snapshot.get("starting_count") or 0))
+        if active_count:
+            self._set_navigation_status(
+                "rtmp",
+                FluentIcon.PLAY,
+                "#059669",
+                "desktop.nav_streaming",
+                {"count": active_count},
+            )
+        elif starting_count:
+            self._set_navigation_status(
+                "rtmp",
+                FluentIcon.SYNC,
+                "#2563EB",
+                "desktop.nav_stream_starting",
+                {"count": starting_count},
+            )
+        else:
+            self._clear_navigation_status("rtmp")
+
+    def _update_about_navigation_status(self, state: str, payload):
+        payload = payload if isinstance(payload, dict) else {}
+        if state == "checking":
+            self._set_navigation_status(
+                "about", FluentIcon.SYNC, "#2563EB", "desktop.nav_checking_version",
+            )
+        elif state == "available":
+            self._set_navigation_status(
+                "about",
+                FluentIcon.DOWNLOAD,
+                "#D97706",
+                "desktop.nav_version_available",
+                {"version": payload.get("version", "")},
+            )
+        elif state == "downloading":
+            self._set_navigation_status(
+                "about", FluentIcon.DOWNLOAD, "#2563EB", "desktop.nav_downloading_update",
+            )
+        elif state == "downloaded":
+            self._set_navigation_status(
+                "about",
+                FluentIcon.COMPLETED,
+                "#059669",
+                "desktop.nav_update_downloaded",
+                dismiss_on_visit=True,
+            )
+        elif state == "failed":
+            self._set_navigation_status(
+                "about",
+                FluentIcon.CANCEL,
+                "#DC2626",
+                "desktop.nav_version_check_failed",
+                dismiss_on_visit=True,
+            )
+        else:
+            self._clear_navigation_status("about")
 
     def _start_update(self):
         if self.operation_controller.is_busy:
@@ -465,18 +634,67 @@ class MainWindow(FluentWindow):
         self.controller.start()
 
     def _update_started(self):
+        self._set_update_navigation_status("running")
         self.operation_controller.suspend()
         self.dashboard.set_running(True)
 
     def _update_failed(self, message: str):
+        self._set_update_navigation_status("failed")
+        self._mark_logs_error()
         InfoBar.error(t("desktop.update_failed"), message.splitlines()[-1] if message else t("name.error"), parent=self, position=InfoBarPosition.TOP, duration=8000)
 
+    def _pause_update(self):
+        self.controller.pause()
+        self._set_update_navigation_status("paused")
+
+    def _resume_update(self):
+        self.controller.resume()
+        self._set_update_navigation_status("running")
+
+    def _cancel_update(self):
+        self.controller.cancel()
+        self._set_update_navigation_status("stopping")
+
+    def _set_update_navigation_status(self, state: str):
+        self._update_activity_state = state
+        icon, color, key, dismiss = {
+            "running": (FluentIcon.SYNC, "#2563EB", "desktop.nav_update_running", False),
+            "paused": (FluentIcon.PAUSE, "#D97706", "desktop.nav_update_paused", False),
+            "stopping": (FluentIcon.CLOSE, "#DC2626", "desktop.nav_update_stopping", False),
+            "completed": (FluentIcon.COMPLETED, "#059669", "desktop.nav_update_completed", True),
+            "cancelled": (FluentIcon.CANCEL, "#64748B", "desktop.nav_update_cancelled", True),
+            "failed": (FluentIcon.CANCEL, "#DC2626", "desktop.nav_update_failed", True),
+        }[state]
+        self._set_navigation_status("dashboard", icon, color, key, dismiss_on_visit=dismiss)
+        self._clear_navigation_status("tasks")
+
+    def _operation_started(self, operation: str):
+        self._set_navigation_status(
+            "channels",
+            FluentIcon.SYNC,
+            "#7C3AED",
+            "desktop.nav_channel_task_running",
+            {"operation": t(f"desktop.{operation}", operation)},
+        )
+        self._clear_navigation_status("tasks")
+
     def _operation_succeeded(self, operation: str, _):
+        args = {"operation": t(f"desktop.{operation}", operation)}
+        self._set_navigation_status(
+            "channels", FluentIcon.COMPLETED, "#059669",
+            "desktop.nav_channel_task_completed", args, dismiss_on_visit=True,
+        )
         self.channels.set_task_finished()
         self.dashboard.refresh_metrics()
         InfoBar.success(t("desktop.task_completed"), t(f"desktop.{operation}", operation), parent=self, position=InfoBarPosition.TOP)
 
     def _operation_failed(self, operation: str, message: str):
+        self._mark_logs_error()
+        args = {"operation": t(f"desktop.{operation}", operation)}
+        self._set_navigation_status(
+            "channels", FluentIcon.CANCEL, "#DC2626",
+            "desktop.nav_channel_task_failed", args, dismiss_on_visit=True,
+        )
         self.channels.set_task_finished()
         InfoBar.error(t("desktop.task_failed"), message.splitlines()[-1] if message else operation, parent=self, position=InfoBarPosition.TOP, duration=8000)
 
@@ -484,6 +702,7 @@ class MainWindow(FluentWindow):
         if success:
             InfoBar.success(t("desktop.stream_action_sent"), t(f"desktop.{action}_stream", action), parent=self, position=InfoBarPosition.TOP)
         else:
+            self._mark_logs_error()
             InfoBar.error(t("desktop.stream_action_failed"), message or action, parent=self, position=InfoBarPosition.TOP)
 
     def _stream_batch_control_finished(self, action: str, success: int, total: int, message: str):
@@ -495,6 +714,7 @@ class MainWindow(FluentWindow):
                 position=InfoBarPosition.TOP,
             )
         else:
+            self._mark_logs_error()
             InfoBar.error(
                 t("desktop.stream_action_failed"),
                 t("desktop.batch_stream_action_partial").format(success=success, total=total, info=message),

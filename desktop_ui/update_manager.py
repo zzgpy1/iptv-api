@@ -1,20 +1,13 @@
 import json
 import os
 import platform
-import re
 import sys
 
 from PySide6.QtCore import QObject, QSaveFile, QStandardPaths, QUrl, Signal
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 
-REPOSITORY_URL = "https://github.com/Guovin/iptv-api"
-LATEST_RELEASE_API = "https://api.github.com/repos/Guovin/iptv-api/releases/latest"
-
-
-def _version_tuple(value: str) -> tuple[int, ...]:
-    numbers = [int(part) for part in re.findall(r"\d+", value or "")]
-    return tuple(numbers or [0])
+from utils.version_check import LATEST_RELEASE_API, REPOSITORY_URL, parse_release
 
 
 def _asset_for_platform(assets: list[dict]) -> dict | None:
@@ -39,6 +32,7 @@ def _asset_for_platform(assets: list[dict]) -> dict | None:
 class UpdateManager(QObject):
     check_started = Signal()
     check_finished = Signal(dict)
+    check_failed = Signal(str)
     failed = Signal(str)
     download_progress = Signal(int)
     download_finished = Signal(str)
@@ -47,14 +41,23 @@ class UpdateManager(QObject):
         super().__init__(parent)
         self.current_version = current_version
         self.network = QNetworkAccessManager(self)
+        self.check_reply = None
         self.download_reply = None
         self.download_file = None
 
+    @property
+    def is_checking(self) -> bool:
+        return self.check_reply is not None
+
     def check(self):
+        if self.is_checking:
+            return False
         self.check_started.emit()
         request = self._request(LATEST_RELEASE_API)
         reply = self.network.get(request)
+        self.check_reply = reply
         reply.finished.connect(lambda: self._check_finished(reply))
+        return True
 
     def download(self, url: str, name: str):
         if self.download_reply:
@@ -88,19 +91,19 @@ class UpdateManager(QObject):
             if reply.error() != QNetworkReply.NetworkError.NoError:
                 raise RuntimeError(reply.errorString())
             data = json.loads(bytes(reply.readAll()).decode("utf-8"))
-            latest = str(data.get("tag_name") or data.get("name") or "").lstrip("v")
+            release = parse_release(data, self.current_version)
+            latest = release["latest"]
             asset = _asset_for_platform(data.get("assets") or [])
             self.check_finished.emit({
-                "current": self.current_version,
+                **release,
                 "latest": latest,
-                "newer": _version_tuple(latest) > _version_tuple(self.current_version),
-                "release_url": data.get("html_url") or REPOSITORY_URL + "/releases/latest",
                 "asset_url": asset.get("browser_download_url") if asset else "",
                 "asset_name": asset.get("name") if asset else "",
             })
         except Exception as exc:
-            self.failed.emit(str(exc))
+            self.check_failed.emit(str(exc))
         finally:
+            self.check_reply = None
             reply.deleteLater()
 
     def _download_progress(self, received: int, total: int):

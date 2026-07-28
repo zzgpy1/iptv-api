@@ -6,7 +6,7 @@ import threading
 
 sys.path.append(os.path.dirname(sys.path[0]))
 from flask import Flask, send_from_directory, make_response, request, jsonify, Response
-from utils.tools import get_result_file_content, resource_path, get_public_url
+from utils.tools import get_result_file_content, resource_path, get_public_url, get_version_info
 from utils.config import config
 import utils.constants as constants
 import atexit
@@ -16,12 +16,28 @@ from service.rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hl
 import logging
 from utils.i18n import t
 from utils.rtmp_runtime import install_rtmp_runtime, rtmp_runtime_status
+from utils.version_check import log_new_version_if_available, start_version_log_monitor
 from werkzeug.utils import secure_filename
 import mimetypes
 
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+
+
+def _start_version_check():
+    if os.getenv("IPTV_API_SKIP_VERSION_CHECK"):
+        return
+    version = str(get_version_info().get("version") or "0")
+
+    def check_and_monitor():
+        log_new_version_if_available(version)
+        start_version_log_monitor(version)
+
+    threading.Thread(target=check_and_monitor, name="service-version-check", daemon=True).start()
+
+
+_start_version_check()
 
 
 @app.route("/")

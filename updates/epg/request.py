@@ -101,7 +101,7 @@ def _epg_dedup_key(url) -> str:
     return key.lower()
 
 
-async def get_epg(names=None, callback=None, extra_entries=None):
+async def get_epg(names=None, callback=None, extra_entries=None, pause_wait=None):
     normalized_names = {format_channel_name(name) for name in (names or []) if name}
     whitelist_entries, default_entries = get_subscribe_entries(constants.epg_path)
     configured_entries = whitelist_entries + default_entries
@@ -174,7 +174,11 @@ async def get_epg(names=None, callback=None, extra_entries=None):
         try:
             content = None
             try:
+                if pause_wait:
+                    await pause_wait()
                 async with semaphore:
+                    if pause_wait:
+                        await pause_wait()
                     payload = await fetch_first(
                         session,
                         get_request_url_candidates(request_url),
@@ -195,7 +199,10 @@ async def get_epg(names=None, callback=None, extra_entries=None):
                 entry_matched = False
                 for index, (channel_id, display_name) in enumerate(channels.items()):
                     if index % 250 == 0:
-                        await asyncio.sleep(0)
+                        if pause_wait:
+                            await pause_wait()
+                        else:
+                            await asyncio.sleep(0)
                     display_name = format_channel_name(display_name)
                     if not open_unmatch_category and normalized_names and display_name not in normalized_names:
                         continue

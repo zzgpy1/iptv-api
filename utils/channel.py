@@ -752,7 +752,7 @@ def is_valid_speed_result(info) -> bool:
         return False
 
 
-async def test_speed(data, ipv6=False, callback=None, on_task_complete=None):
+async def test_speed(data, ipv6=False, callback=None, on_task_complete=None, pause_wait=None):
     """
     Test speed of channel data
     """
@@ -850,6 +850,8 @@ async def test_speed(data, ipv6=False, callback=None, on_task_complete=None):
         async def worker():
             nonlocal skipped
             while True:
+                if pause_wait:
+                    await pause_wait()
                 try:
                     cate, name, info = next(item_iterator)
                 except StopIteration:
@@ -876,6 +878,8 @@ async def test_speed(data, ipv6=False, callback=None, on_task_complete=None):
                     result = {}
                 except Exception:
                     result = {}
+                if pause_wait:
+                    await pause_wait()
                 handle_result(cate, name, info, result)
 
         workers = [

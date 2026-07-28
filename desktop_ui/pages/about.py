@@ -1,6 +1,6 @@
 import os
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, HyperlinkButton, InfoBar, InfoBarPosition, ProgressBar, PushButton, StrongBodyLabel, SubtitleLabel
@@ -13,6 +13,10 @@ from utils.tools import get_version_info
 
 
 class AboutPage(QWidget):
+    status_changed = Signal(str, object)
+    AUTO_CHECK_INITIAL_DELAY_MS = 5_000
+    AUTO_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1_000
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("aboutPage")
@@ -23,6 +27,7 @@ class AboutPage(QWidget):
         self.info = info
         self._update_state = "not_checked"
         self._update_result = None
+        self._automatic_check = False
         self.manager = UpdateManager(str(info.get("version") or "0"), self)
 
         logo = QLabel(self)
@@ -76,20 +81,38 @@ class AboutPage(QWidget):
         layout.addLayout(links)
         layout.addStretch(1)
 
-        self.check_button.clicked.connect(self.manager.check)
+        self.check_button.clicked.connect(lambda: self.check_for_updates(automatic=False))
         self.download_button.clicked.connect(self._download)
         self.manager.check_started.connect(self._checking)
         self.manager.check_finished.connect(self._checked)
+        self.manager.check_failed.connect(self._check_failed)
         self.manager.failed.connect(self._failed)
         self.manager.download_progress.connect(self._download_progress)
         self.manager.download_finished.connect(self._download_finished)
+        self.auto_check_timer = QTimer(self)
+        self.auto_check_timer.setInterval(self.AUTO_CHECK_INTERVAL_MS)
+        self.auto_check_timer.timeout.connect(lambda: self.check_for_updates(automatic=True))
+        self.auto_check_timer.start()
+        QTimer.singleShot(
+            self.AUTO_CHECK_INITIAL_DELAY_MS,
+            lambda: self.check_for_updates(automatic=True),
+        )
+
+    def check_for_updates(self, automatic: bool = False):
+        if self.manager.is_checking:
+            return False
+        self._automatic_check = automatic
+        return self.manager.check()
 
     def _checking(self):
-        self._update_state = "checking"
         self.check_button.setEnabled(False)
-        self.version_status.setText(t("desktop.checking_updates"))
+        if not self._automatic_check:
+            self._update_state = "checking"
+            self.status_changed.emit("checking", {})
+            self.version_status.setText(t("desktop.checking_updates"))
 
     def _checked(self, result: dict):
+        self._automatic_check = False
         self._update_state = "available" if result["newer"] else "current"
         self._update_result = result
         self.check_button.setEnabled(True)
@@ -98,16 +121,26 @@ class AboutPage(QWidget):
         self.asset_url = result["asset_url"]
         self.asset_name = result["asset_name"]
         if result["newer"]:
+            self.status_changed.emit("available", {"version": result["latest"]})
             self.version_status.setText(t("desktop.update_available").format(version=result["latest"]))
             self.version_detail.setText(t("desktop.update_available_desc"))
             self.download_button.setVisible(bool(self.asset_url))
         else:
+            self.status_changed.emit("current", {})
             self.version_status.setText(t("desktop.up_to_date"))
             self.version_detail.setText(t("desktop.current_version_latest").format(version=result["current"]))
             self.download_button.hide()
 
+    def _check_failed(self, message: str):
+        automatic = self._automatic_check
+        self._automatic_check = False
+        self.check_button.setEnabled(True)
+        if not automatic:
+            self._failed(message)
+
     def _download(self):
         if self.asset_url and self.asset_name:
+            self.status_changed.emit("downloading", {})
             self.progress.setValue(0)
             self.progress.show()
             self.download_button.setEnabled(False)
@@ -118,6 +151,7 @@ class AboutPage(QWidget):
 
     def _download_finished(self, path: str):
         self._update_state = "downloaded"
+        self.status_changed.emit("downloaded", {})
         self.download_button.setEnabled(True)
         self.version_status.setText(t("desktop.update_downloaded"))
         self.version_detail.setText(path)
@@ -126,6 +160,7 @@ class AboutPage(QWidget):
 
     def _failed(self, message: str):
         self._update_state = "failed"
+        self.status_changed.emit("failed", {})
         self.check_button.setEnabled(True)
         self.download_button.setEnabled(True)
         self.version_status.setText(t("desktop.update_check_failed"))

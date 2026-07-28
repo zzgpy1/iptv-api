@@ -5,6 +5,7 @@ import gzip
 import os
 import pickle
 import sys
+import threading
 from time import time
 from typing import Callable, Optional, Any
 
@@ -39,6 +40,7 @@ from utils.tools import (
 )
 from utils.types import CategoryChannelData
 from utils.whitelist import load_whitelist_maps
+from utils.version_check import log_new_version_if_available, start_version_log_monitor
 
 ProgressCallback = Callable[..., Any]
 
@@ -70,6 +72,55 @@ class UpdateSource:
         self.now = None
 
         self.aggregator: Optional[ResultAggregator] = None
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._resume_event: Optional[asyncio.Event] = None
+        self._pause_requested = threading.Event()
+
+    # ----------------------------
+    # pause / resume control
+    # ----------------------------
+    def _initialize_pause_control(self):
+        self._loop = asyncio.get_running_loop()
+        self._resume_event = asyncio.Event()
+        if not self._pause_requested.is_set():
+            self._resume_event.set()
+
+    async def wait_if_paused(self):
+        """Cooperatively wait until a paused update is resumed."""
+        if self._resume_event is None:
+            self._initialize_pause_control()
+        while self._pause_requested.is_set():
+            self._resume_event.clear()
+            await self._resume_event.wait()
+
+    def _set_resume_event(self, resumed: bool):
+        event = self._resume_event
+        if event is None:
+            return
+        if resumed:
+            event.set()
+        else:
+            event.clear()
+
+    def pause(self):
+        self._pause_requested.set()
+        loop = self._loop
+        if loop and loop.is_running():
+            loop.call_soon_threadsafe(self._set_resume_event, False)
+        else:
+            self._set_resume_event(False)
+
+    def resume(self):
+        self._pause_requested.clear()
+        loop = self._loop
+        if loop and loop.is_running():
+            loop.call_soon_threadsafe(self._set_resume_event, True)
+        else:
+            self._set_resume_event(True)
+
+    @property
+    def is_paused(self) -> bool:
+        return self._pause_requested.is_set()
 
     # ----------------------------
     # progress / pbar
@@ -166,10 +217,16 @@ class UpdateSource:
             whitelist=whitelist_urls,
             callback=self.update_progress,
             epg_urls_out=epg_urls_out,
+            pause_wait=self.wait_if_paused,
         )
 
     async def _fetch_epg(self, channel_names: list[str], extra_entries: list = None):
-        return await get_epg(channel_names, callback=self.update_progress, extra_entries=extra_entries)
+        return await get_epg(
+            channel_names,
+            callback=self.update_progress,
+            extra_entries=extra_entries,
+            pause_wait=self.wait_if_paused,
+        )
 
     async def visit_page(self, channel_names: list[str] = None):
         """
@@ -339,6 +396,7 @@ class UpdateSource:
             result = await test_speed(
                 test_data,
                 ipv6=self.ipv6_support,
+                pause_wait=self.wait_if_paused,
                 callback=lambda count=1: self.pbar_update(
                     name=t("pbar.speed_test"),
                     item_name=t("pbar.url"),
@@ -405,6 +463,7 @@ class UpdateSource:
             )
 
             self._prepare_channel_data()
+            await self.wait_if_paused()
 
             if not self.channel_names:
                 print(t("msg.no_channel_names").format(file=config.source_file), flush=True)
@@ -413,6 +472,7 @@ class UpdateSource:
                 return
 
             await self.visit_page(self.channel_names)
+            await self.wait_if_paused()
             self.tasks = []
             self._write_epg_files_if_needed()
 
@@ -438,6 +498,7 @@ class UpdateSource:
                     channel_total = sum(len(channels) for channels in self.channel_data.values())
                     for category, channels in self.channel_data.items():
                         for name, items in channels.items():
+                            await self.wait_if_paused()
                             completed_channels += 1
                             if self.update_progress:
                                 self.update_progress(
@@ -518,6 +579,7 @@ class UpdateSource:
 
         self.update_progress = callback or default_callback
         self.run_ui = bool(callback)
+        self._initialize_pause_control()
 
         if not config.open_update:
             if self.run_ui:
@@ -536,6 +598,7 @@ class UpdateSource:
 
         self.update_progress = callback or default_callback
         self.run_ui = True if callback else False
+        self._initialize_pause_control()
 
         if not config.open_update:
             if self.run_ui:
@@ -553,6 +616,7 @@ class UpdateSource:
             await self.main()
 
     def stop(self):
+        self.resume()
         for task in self.tasks:
             task.cancel()
         self.tasks = []
@@ -614,6 +678,8 @@ class UpdateSource:
 if __name__ == "__main__":
     info = get_version_info()
     print(t("msg.version_info").format(name=info["name"], version=info["version"], build_time=info["build_time"]), flush=True)
+    log_new_version_if_available(info["version"])
+    start_version_log_monitor(info["version"])
     if not config.open_update:
         print(t("msg.update_disabled"), flush=True)
     else:

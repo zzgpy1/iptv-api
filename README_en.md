@@ -99,6 +99,7 @@
 | **Advanced preferences**      |    ✅    | Rate, resolution, blacklist/whitelist, location and ISP custom filters                                                                                      |
 | **Results management**        |    ✅    | Categorized storage and access of results, log recording, unmatched channel records, statistical analysis, freeze filtering/unfreeze rollback, data caching |
 | **Scheduled tasks**           |    ✅    | Scheduled or interval updates                                                                                                                               |
+| **Pause and resume**          |    ✅    | Pause a desktop update and continue from its current progress                                                                                               |
 | **Multi-platform deployment** |    ✅    | Workflows, CLI, GUI, Docker (amd64/arm64/arm v7)                                                                                                            |
 | **More features**             |    ✨    | See [Configuration](#Config) section for details                                                                                                            |
 

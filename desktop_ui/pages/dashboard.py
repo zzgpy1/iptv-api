@@ -121,6 +121,8 @@ class ChannelNamePlayDelegate(StreamingStatusDelegate):
 class DashboardPage(QWidget):
     run_requested = Signal()
     cancel_requested = Signal()
+    pause_requested = Signal()
+    resume_requested = Signal()
     destination_requested = Signal(str)
     stream_control_many_requested = Signal(str, list)
 
@@ -130,12 +132,13 @@ class DashboardPage(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._running = False
         self._cancelling = False
+        self._paused = False
         self._service_status = "unknown"
         self._runtime_rows = []
         self._stream_snapshot = {"streams": []}
         self._stream_states = {}
         self._active_channel = None
-        self.status_card = MetricCard(t("desktop.run_status"), t("desktop.idle"), icon=FluentIcon.UPDATE, accent="#2563EB")
+        self.status_card = MetricCard(t("desktop.run_status"), t("desktop.idle"), icon=FluentIcon.POWER_BUTTON, accent="#64748B")
         self.channel_card = MetricCard(t("desktop.channels"), "0", icon=FluentIcon.LIBRARY, accent="#7C3AED")
         self.valid_card = MetricCard(t("desktop.valid_results"), "0", icon=FluentIcon.COMPLETED, accent="#059669")
         self.service_card = MetricCard(t("desktop.service"), t("desktop.unknown"), get_public_url(), FluentIcon.GLOBE, accent="#EA580C")
@@ -151,12 +154,15 @@ class DashboardPage(QWidget):
         self.progress.setValue(0)
         actions = QHBoxLayout()
         self.run_button = AccentPushButton(FluentIcon.POWER_BUTTON, t("desktop.run_once"), self.progress_card)
+        self.pause_button = PushButton(FluentIcon.PAUSE, t("desktop.pause"), self.progress_card)
+        self.pause_button.hide()
         self.cancel_button = DangerPushButton(FluentIcon.CLOSE, t("desktop.cancel"), self.progress_card)
         self.cancel_button.hide()
         self.output_button = PushButton(FluentIcon.FOLDER, t("desktop.open_output"), self.progress_card)
         self.service_button = DropDownPushButton(FluentIcon.GLOBE, t("desktop.browse_results"), self.progress_card)
         self._create_service_menu()
         actions.addWidget(self.run_button)
+        actions.addWidget(self.pause_button)
         actions.addWidget(self.cancel_button)
         actions.addStretch(1)
         actions.addWidget(self.output_button)
@@ -223,6 +229,7 @@ class DashboardPage(QWidget):
         layout.addWidget(self.channels_card, 1)
 
         self.run_button.clicked.connect(self.run_requested)
+        self.pause_button.clicked.connect(self._toggle_paused)
         self.cancel_button.clicked.connect(self._request_cancel)
         self.output_button.clicked.connect(self.open_output)
         self.channel_search.textChanged.connect(self._apply_runtime_rows)
@@ -315,14 +322,19 @@ class DashboardPage(QWidget):
         was_cancelling = self._cancelling
         self._running = running
         self._cancelling = False
+        self._paused = False
         if running:
             self.setFocus(Qt.FocusReason.OtherFocusReason)
         self.run_button.setVisible(not running)
         self.run_button.setEnabled(not running)
+        self.pause_button.setVisible(running)
+        self.pause_button.setEnabled(running)
+        self.pause_button.setIcon(FluentIcon.PAUSE)
+        self.pause_button.setText(t("desktop.pause"))
         self.cancel_button.setVisible(running)
         self.cancel_button.setEnabled(running)
         self.cancel_button.setText(t("desktop.cancel"))
-        self.status_card.set_value(t("desktop.running") if running else t("desktop.idle"))
+        self._set_run_status("running" if running else "idle")
         if running:
             self._active_channel = None
             self._apply_runtime_rows()
@@ -331,15 +343,39 @@ class DashboardPage(QWidget):
                 self.progress_title.setText(t("desktop.status_cancelled"))
             self.refresh_metrics()
 
+    def _toggle_paused(self):
+        if not self._running or self._cancelling:
+            return
+        self._paused = not self._paused
+        self.pause_button.setIcon(FluentIcon.PLAY if self._paused else FluentIcon.PAUSE)
+        self.pause_button.setText(t("desktop.resume" if self._paused else "desktop.pause"))
+        self._set_run_status("paused" if self._paused else "running")
+        self.progress_title.setText(t("desktop.paused" if self._paused else "desktop.resumed"))
+        if self._paused:
+            self.pause_requested.emit()
+        else:
+            self.resume_requested.emit()
+
     def _request_cancel(self):
         if not self._running or self._cancelling:
             return
         self._cancelling = True
+        self.pause_button.setEnabled(False)
         self.cancel_button.setEnabled(False)
         self.cancel_button.setText(t("desktop.stopping"))
-        self.status_card.set_value(t("desktop.stopping"))
+        self._set_run_status("stopping")
         self.progress_title.setText(t("desktop.stopping"))
         self.cancel_requested.emit()
+
+    def _set_run_status(self, state: str):
+        value_key, icon, accent = {
+            "running": ("desktop.running", FluentIcon.SYNC, "#2563EB"),
+            "paused": ("desktop.paused", FluentIcon.PAUSE, "#D97706"),
+            "stopping": ("desktop.stopping", FluentIcon.CLOSE, "#DC2626"),
+            "idle": ("desktop.idle", FluentIcon.POWER_BUTTON, "#64748B"),
+        }.get(state, ("desktop.unknown", FluentIcon.INFO, "#64748B"))
+        self.status_card.set_visual(icon, accent)
+        self.status_card.set_value(t(value_key))
 
     def set_progress(self, title: str, value: int, finished: bool = False, metadata=None, _now=None):
         if self._cancelling:
@@ -348,9 +384,10 @@ class DashboardPage(QWidget):
         if isinstance(metadata, dict) and metadata.get("channel"):
             key = (metadata.get("category"), metadata["channel"])
             self._active_channel = key
-            self.progress_title.setText(t("desktop.testing_channel").format(name=metadata["channel"]))
+            if not self._paused:
+                self.progress_title.setText(t("desktop.testing_channel").format(name=metadata["channel"]))
             self._update_runtime_row(key, metadata)
-        elif not self._active_channel or not self._running:
+        elif not self._paused and (not self._active_channel or not self._running):
             self.progress_title.setText(title)
         if finished:
             self.progress_title.setText(t("desktop.update_completed_gui"))
@@ -520,6 +557,8 @@ class DashboardPage(QWidget):
         self.valid_card.title_label.setText(t("desktop.valid_results"))
         self.service_card.title_label.setText(t("desktop.service"))
         self.run_button.setText(t("desktop.run_once"))
+        self.pause_button.setIcon(FluentIcon.PLAY if self._paused else FluentIcon.PAUSE)
+        self.pause_button.setText(t("desktop.resume" if self._paused else "desktop.pause"))
         self.cancel_button.setText(t("desktop.cancel"))
         self.output_button.setText(t("desktop.open_output"))
         self.service_button.setText(t("desktop.browse_results"))
@@ -532,6 +571,15 @@ class DashboardPage(QWidget):
             action.setText(t(key))
         if not self._running and self.progress.value() == 0:
             self.progress_title.setText(t("desktop.ready"))
+        if self._cancelling:
+            self._set_run_status("stopping")
+        elif self._paused:
+            self._set_run_status("paused")
+            self.progress_title.setText(t("desktop.paused"))
+        elif self._running:
+            self._set_run_status("running")
+        else:
+            self._set_run_status("idle")
         self.set_service_status(self._service_status)
         self.refresh_metrics()
         self.set_stream_snapshot(self._stream_snapshot)

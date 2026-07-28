@@ -304,6 +304,44 @@ class MetricCard(CardWidget):
         if detail is not None:
             self.detail_label.setText(detail)
 
+    def set_visual(self, icon=None, accent=None):
+        """Update the card icon and accent colors without rebuilding its layout."""
+        if accent is not None:
+            self._accent = QColor(accent)
+        if self.icon_widget and icon is not None:
+            rendered_icon = icon.icon(color=self._accent) if hasattr(icon, "icon") else icon
+            self.icon_widget.setIcon(rendered_icon)
+        if self.icon_container:
+            color = self._accent
+            self.icon_container.setStyleSheet(
+                f"background-color: rgba({color.red()}, {color.green()}, {color.blue()}, 38); border-radius: 10px;"
+            )
+        self._apply_text_colors()
+
+
+class NavigationStatusIndicator(QWidget):
+    """Small status glyph overlaid on a navigation icon without affecting layout."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(14, 14)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+        self.icon_widget = IconWidget(self)
+        self.icon_widget.setFixedSize(8, 8)
+        self.icon_widget.move(3, 3)
+        self.hide()
+
+    def set_status(self, icon, color: str):
+        accent = QColor(color)
+        rendered_icon = icon.icon(color=QColor("#FFFFFF")) if hasattr(icon, "icon") else icon
+        self.icon_widget.setIcon(rendered_icon)
+        self.setStyleSheet(
+            f"background-color: {accent.name()}; border: 1px solid rgba(255, 255, 255, 190); border-radius: 7px;"
+        )
+        self.show()
+        self.raise_()
+
 
 def metric_row(cards: list[MetricCard]) -> QWidget:
     widget = QWidget()
