@@ -2,15 +2,17 @@
   <img src="./static/images/logo.svg" alt="IPTV-API logo"  width="120" height="120"/>
 </div>
 
-<p>
-  <br>
+<h1 align="center">IPTV-API</h1>
+
+<p align="center">
   ⚡️IPTV直播源自动更新工具，支持自动采集、多源聚合、可用性校验、测速筛选与播放列表生成。可通过丰富配置自定义频道结果，并以 M3U、TXT 或 API 接口形式输出，导入播放器即可观看。
 </p>
 
-[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/govin)
+<p align="center">
+  <a href="https://ko-fi.com/govin"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi"/></a>
+</p>
 
 <p align="center">
-  <br>
   <a href="https://trendshift.io/repositories/12327" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12327" alt="Guovin%2Fiptv-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>
 
@@ -41,20 +43,34 @@
 
 </div>
 
+<div align="center">
+  <a href="./docs/images/desktop-ui.png">
+    <img src="./docs/images/desktop-ui.png" alt="IPTV-API 新版桌面端界面" width="100%"/>
+  </a>
+  <br>
+  <sub><strong>Windows / macOS 桌面 GUI</strong> · 界面直观，操作更高效</sub>
+</div>
+
+<details open>
+<summary><strong>目录</strong></summary>
+
 - [✅ 核心特性](#核心特性)
 - [⚙️ 配置参数](#配置)
 - [🚀 快速上手](#快速上手)
     - [配置与结果目录](#配置与结果目录)
     - [工作流](#工作流)
     - [命令行](#命令行)
-    - [GUI软件](#GUI-软件)
-    - [Docker](#Docker)
+    - [GUI 软件](#gui-软件)
+    - [Docker](#docker)
+- [📚 文档中心](./docs/README.md)
 - [📖 详细教程](./docs/tutorial.md)
 - [🗓️ 更新日志](./CHANGELOG.md)
 - [👀 关注](#关注)
 - [❤️ 捐赠](#捐赠)
 - [⚠️ 免责声明](#免责声明)
 - [⚖️ 许可证](#许可证)
+
+</details>
 
 ## 赞助商
 
@@ -103,7 +119,7 @@
 ## 配置
 
 > [!NOTE]\
-> 以下配置项位于`config/config.ini`文件中，支持通过配置文件或环境变量进行修改，修改保存后重启即可生效
+> 以下配置项位于 `config/config.ini` 文件中，支持通过配置文件或环境变量修改，保存后重启即可生效。也可查看独立的[配置参数文档](./docs/config.md)。
 
 <details>
 <summary>点击展开查看配置参数</summary>
@@ -239,7 +255,7 @@ pipenv run service
 
 ### GUI 软件
 
-基于 PySide6 与 QFluentWidgets 的新版桌面端是当前唯一受支持的 GUI，支持 Windows 和 macOS。它可从导航栏实时切换中文/English 界面、直接修改配置、切换深浅色主题、查看实时进度与日志，并提供频道分类/频道/结果三级管理、单频道或单结果重新测速、RTMP 监控、任务历史与在线版本检查。后续 GUI 维护、问题修复和新功能均面向该桌面端。
+新版桌面 GUI 是 Windows 与 macOS 当前唯一受支持的图形界面，提供一键更新、实时进度、频道与结果管理、重新测速、RTMP 推流监控、数据源配置及任务历史。Docker 部署使用 Web 结果页，不包含此桌面界面。
 
 安装依赖并启动桌面端：
 
@@ -258,7 +274,7 @@ pipenv run ui_build
 
 ### Docker
 
-#### 1. Compose部署（推荐）
+#### 1. Compose 部署（推荐）
 
 下载[docker-compose.yml](./docker-compose.yml)或复制内容创建（内部参数可按需更改），在文件所在路径下运行以下命令即可部署：
 
@@ -290,7 +306,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 | 变量              | 描述                                | 默认值       |
 |:----------------|:----------------------------------|:----------|
-| PUBLIC_DOMAIN   | 公网域名或IP地址，决定外部访问或推流结果的Host地址      | 127.0.0.1 |
+| PUBLIC_DOMAIN   | 公网域名或 IP 地址，决定外部访问或推流结果的 Host 地址    | 127.0.0.1 |
 | PUBLIC_PORT     | 公网端口，设置为映射后的端口，决定外部访问地址和推流结果地址的端口 | 80        |
 | NGINX_HTTP_PORT | HTTP服务端口，外部访问需要映射该端口              | 8080      |
 
@@ -340,7 +356,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 **RTMP 推流：**
 
 > [!NOTE]
-> 1. 如果是服务器部署，请务必配置`PUBLIC_DOMAIN`环境变量为服务器域名或IP地址，`PUBLIC_PORT`环境变量为公网端口，否则推流地址无法访问
+> 1. 如果是服务器部署，请务必配置 `PUBLIC_DOMAIN` 环境变量为服务器域名或 IP 地址，`PUBLIC_PORT` 环境变量为公网端口，否则推流地址无法访问
 > 2. 开启推流后，默认会将获取到的接口（如订阅源）进行推流；请仅对你有明确授权、可合法分发或仅用于内部测试的内容启用该功能
 > 3. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹，将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
 > 4. 在中国大陆使用时，请特别确认内容授权、版权、网络视听与广播电视等相关合规要求；不要将本项目用于传播、转发或公开分发未经授权的直播源/节目源
@@ -366,9 +382,9 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 ## 关注
 
-### Github
+### GitHub
 
-关注我的Github账号[Guovin](https://github.com/Guovin)，获取更多实用项目
+关注我的 GitHub 账号 [Guovin](https://github.com/Guovin)，获取更多实用项目
 
 ### 微信公众号
 

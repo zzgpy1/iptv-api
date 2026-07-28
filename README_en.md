@@ -2,15 +2,17 @@
   <img src="./static/images/logo.svg" alt="IPTV-API logo"  width="120" height="120"/>
 </div>
 
-<p>
-    <br>
+<h1 align="center">IPTV-API</h1>
+
+<p align="center">
     ⚡️ IPTV live-source automatic update tool that supports automatic collection, multi-source aggregation, availability validation, speed-test filtering, and playlist generation. Customize channel results with rich configuration, then output them as M3U, TXT, or API endpoints and import them into a player to watch.
 </p>
 
-[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/govin)
+<p align="center">
+  <a href="https://ko-fi.com/govin"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi"/></a>
+</p>
 
 <p align="center">
-    <br>
     <a href="https://trendshift.io/repositories/12327" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12327" alt="Guovin%2Fiptv-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>
 
@@ -41,20 +43,34 @@
 
 </div>
 
+<div align="center">
+  <a href="./docs/images/desktop-ui-en.png">
+    <img src="./docs/images/desktop-ui-en.png" alt="IPTV-API desktop GUI in English" width="100%"/>
+  </a>
+  <br>
+  <sub><strong>Windows / macOS desktop GUI</strong> · An intuitive interface for a more efficient workflow</sub>
+</div>
+
+<details open>
+<summary><strong>Contents</strong></summary>
+
 - [✅ Core Features](#core-features)
-- [⚙️ Config parameter](#Config)
+- [⚙️ Configuration](#config)
 - [🚀 Quick Start](#quick-start)
     - [Configuration and Results Directory](#configuration-and-results-directory)
     - [Workflow](#workflow)
     - [Command Line](#command-line)
     - [GUI Software](#gui-software)
     - [Docker](#docker)
+- [📚 Documentation](./docs/README.md)
 - [📖 Detailed Tutorial](./docs/tutorial_en.md)
 - [🗓️ Changelog](./CHANGELOG.md)
 - [❤️ Donations](#donations)
 - [👀 Follow](#follow)
 - [⚠️ Disclaimer](#disclaimer)
 - [⚖️ License](#license)
+
+</details>
 
 ## Sponsors
 
@@ -76,12 +92,9 @@
 </p>
 
 > [!IMPORTANT]
-> 1. Go to the `Govin` WeChat public account and reply with `cdn` to get an acceleration address to improve access speed
-     for subscription sources and channel logos.
-> 2. This project does not provide data sources. Please add your own before generating
-     results. ([How to add data sources?](./docs/tutorial_en.md#Add-data-sources-and-more))
-> 3. The quality of generated results depends on the data sources and network conditions; please adjust
-     the [configuration](#Config) accordingly to obtain results that better meet your needs.
+> 1. Go to the `Govin` WeChat public account and reply with `cdn` to get an acceleration address for subscription sources and channel logos.
+> 2. This project does not provide data sources. Please add your own before generating results. ([How to add data sources?](./docs/tutorial_en.md#add-data-sources-and-more))
+> 3. Result quality depends on the data sources and network conditions; adjust the [configuration](#config) to suit your needs.
 
 ## Core Features
 
@@ -101,13 +114,14 @@
 | **Scheduled tasks**           |    ✅    | Scheduled or interval updates                                                                                                                               |
 | **Pause and resume**          |    ✅    | Pause a desktop update and continue from its current progress                                                                                               |
 | **Multi-platform deployment** |    ✅    | Workflows, CLI, GUI, Docker (amd64/arm64/arm v7)                                                                                                            |
-| **More features**             |    ✨    | See [Configuration](#Config) section for details                                                                                                            |
+| **More features**             |    ✨    | See [Configuration](#config) section for details                                                                                                            |
 
 ## Config
 
 > [!NOTE]\
 > The following configuration items are located in `config/config.ini` and can be modified via the configuration file or
-> environment variables. Save changes and restart to apply.
+> environment variables. Save changes and restart to apply. A standalone [configuration reference](./docs/config_en.md)
+> is also available.
 
 <details>
 <summary>Click to expand configuration parameters</summary>
@@ -244,7 +258,7 @@ pipenv run service
 
 ### GUI Software
 
-The new PySide6 and QFluentWidgets desktop app is the only supported GUI for Windows and macOS. Its navigation bar switches the interface between Chinese and English in real time, edits configuration with typed controls, switches between light and dark themes, displays live progress and logs, manages categories/channels/results, retests a channel or result, monitors RTMP, keeps task history, and checks for updates online. All future GUI maintenance, bug fixes, and new features target this desktop app.
+The desktop GUI is the only supported graphical interface for Windows and macOS. It provides one-click updates, live progress, channel and result management, retesting, RTMP monitoring, source configuration, and task history. Docker deployments use web result pages and do not include this desktop interface.
 
 Install dependencies and start the desktop app:
 
@@ -311,7 +325,7 @@ If you need to modify environment variables, add the following parameters after 
 -e PUBLIC_PORT=80
 ```
 
-In addition to the environment variables listed above, you can also override the [configuration items](#Config) in the
+In addition to the environment variables listed above, you can also override the [configuration items](#config) in the
 configuration file via environment variables.
 
 **Mounts:** used to synchronize files between the host and the container. You can edit templates, configs, and access
@@ -348,16 +362,10 @@ Log endpoints return the compatible plain-text format by default; add `?format=j
 **RTMP Streaming:**
 
 > [!NOTE]
-> 1. If deploying on a server, be sure to set the `PUBLIC_DOMAIN` environment variable to the server's domain name or IP
-     address and the `PUBLIC_PORT` environment variable to the public port; otherwise the streaming addresses will not
-     be accessible.
-> 2. When streaming is enabled, obtained interfaces (e.g., subscription sources) will be streamed by default; only use
-     this for content you own, are explicitly authorized to redistribute, or need for closed/internal testing.
-> 3. To stream local video sources, create an `hls` folder under the `config` directory and place video files named
-     after the channel; the program will automatically stream them to the corresponding channels.
-> 4. When using this project in Mainland China, make sure the content authorization, copyright, network-audiovisual,
-     and broadcasting-related compliance requirements are satisfied. Do not use it to distribute, relay, or publicly
-     expose unauthorized live streams or program sources.
+> 1. For server deployments, set `PUBLIC_DOMAIN` to the server domain or IP address and `PUBLIC_PORT` to the public port; otherwise streaming addresses will not be accessible.
+> 2. When streaming is enabled, obtained interfaces such as subscription sources are streamed by default. Use this only for content you own, are authorized to redistribute, or need for closed/internal testing.
+> 3. To stream local videos, create `config/hls` and place files named after their channels in it. The program streams them to the corresponding channels.
+> 4. In Mainland China, ensure that content authorization, copyright, network-audiovisual, and broadcasting requirements are satisfied. Do not distribute, relay, or publicly expose unauthorized live streams or program sources.
 
 | Streaming Endpoint | Description                          |
 |:-------------------|:-------------------------------------|
@@ -372,7 +380,7 @@ Log endpoints return the compatible plain-text format by default; add `?format=j
 | /hls/ipv6/m3u      | hls ipv6 m3u streaming endpoint      |
 | /stat              | Streaming status statistics endpoint |
 
-[How to use streaming?](./docs/tutorial_en.md#Streaming-Usage-Tutorial)
+[How to use streaming?](./docs/tutorial_en.md#streaming-usage-tutorial)
 
 ## Changelog
 

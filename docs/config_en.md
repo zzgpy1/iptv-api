@@ -1,3 +1,16 @@
+# Configuration
+
+<p align="center">
+  <a href="../README_en.md">Project home</a> ·
+  <a href="./README.md">Documentation</a> ·
+  <a href="./tutorial_en.md">Tutorial</a> ·
+  <a href="./config.md">中文</a> | English
+</p>
+
+> [!NOTE]
+> Configuration defaults live in `config/config.ini`. Keep only your overrides in `config/user_config.ini` and retain
+> the `[Settings]` section header. Matching environment variables can also override these values.
+
 | Configuration Item       | Description                                                                                                                                                                                                                                                                                                                                 | Default Value                            |
 |:-------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------|
 | open_update              | Enable updates, used to control whether to update interfaces. If disabled, all working modes (getting interfaces and speed tests) stop.                                                                                                                                                                                                     | True                                     |

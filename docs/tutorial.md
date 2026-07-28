@@ -1,24 +1,32 @@
 # 使用教程
 
-[English](./tutorial_en.md) | 中文
-
-<div align="center">
-  <img src="../static/images/logo.svg" alt="IPTV-API logo"  width="120" height="120"/>
-</div>
-
-<p>
-  <br>
-  ⚡️IPTV直播源自动更新工具，支持自动采集、多源聚合、可用性校验、测速筛选与播放列表生成。可通过丰富配置自定义频道结果，并以 M3U、TXT 或 API 接口形式输出，导入播放器即可观看。
+<p align="center">
+  <a href="../README.md">项目首页</a> ·
+  <a href="./README.md">文档中心</a> ·
+  <a href="./config.md">配置参数</a> ·
+  中文 | <a href="./tutorial_en.md">English</a>
 </p>
 
-以下一共4种安装运行方式（工作流、命令行、GUI、Docker），选择一种适合您的即可
+> [!TIP]
+> 项目支持工作流、命令行、GUI 和 Docker 共 4 种运行方式，请按使用环境选择。
+
+<details open>
+<summary><strong>目录</strong></summary>
+
+- [工作流部署](#工作流部署)
+- [命令行](#命令行)
+- [GUI 软件](#gui-软件)
+- [Docker](#docker)
+  - [推流使用教程](#推流使用教程)
+
+</details>
 
 ## 工作流部署
 
-使用Github工作流部署，手动执行更新接口
+使用 GitHub Actions 部署并手动执行更新。
 
 > [!IMPORTANT]
-> 因为Github资源有限，工作流更新只能手动触发，如果您需要频繁更新或定时执行，请使用其它方式部署
+> GitHub Actions 资源有限，工作流更新只能手动触发。如果需要频繁更新或定时执行，请使用其他方式部署。
 
 ### 进入IPTV-API项目
 
@@ -114,9 +122,8 @@
 [配置参数](./config.md)
 
 > [!NOTE]
-> 1. 对于开启显示接口信息，由于部分播放器（如`PotPlayer`）不支持解析接口补充信息，导致无法正常播放，可修改配置:`open_url_info
-=False`（GUI：取消勾选显示接口信息）关闭该功能
-> 2. 如果你的网络确定支持IPv6，可修改配置:`ipv6_support = True`(GUI：勾选`强制认为当前网络支持IPv6`）跳过支持性检查
+> 1. 部分播放器（如 `PotPlayer`）不支持解析接口补充信息，可能导致无法播放。可设置 `open_url_info = False`（GUI：取消勾选“显示接口信息”）关闭该功能
+> 2. 如果网络确定支持 IPv6，可设置 `ipv6_support = True`（GUI：勾选“强制认为当前网络支持 IPv6”）跳过支持性检查
 > 3. 如需为接口指定播放/测速请求头，可配置全局 `user_agent`（统一 UA），或在 `config/subscribe.txt` 的订阅地址后追加 `UA=值`（针对单个订阅源）；UA 会写入 `.m3u` 结果，无需开启 `open_headers`
 > 4. 配置 `location`（归属地）/`isp`（运营商）后，默认会直接过滤掉不匹配的接口；若开启 `open_supply = True`，不匹配的接口将不再丢弃，而是降权排到该频道结果末尾作为补充，避免可用接口被误删
 > 5. 通过 `sort_by` 自定义每个频道内接口的排序优先级，逗号分隔，可选 `speed`（速率）、`delay`（延迟）、`resolution`（分辨率），按从前到后依次比较，例如 `resolution,speed` 表示优先按分辨率、其次按速率排序
@@ -166,6 +173,9 @@
 - 白名单（`config/whitelist.txt`）
 
   白名单内的接口或订阅源获取的接口将不会参与测速，优先排序至结果最前。填写频道名称会直接保留该记录至最终结果，如：CCTV-1,接口地址，只填写接口地址则对所有频道生效，多条记录换行输入。
+
+> [!TIP]
+> 如果运行后没有频道数据，日志会区分“未配置数据源、订阅请求无数据、频道未匹配、结果全部被过滤”等原因。GUI 可从首页进入“配置数据源”；Docker 用户应确认容器内 `/iptv-api/config/subscribe.txt` 不是空文件。
 
 ### 运行更新
 
@@ -269,7 +279,13 @@ pipenv run service
 
 ## GUI 软件
 
-基于 PySide6 与 QFluentWidgets 的新版桌面端是当前唯一受支持的 GUI，支持 Windows 与 macOS。首页可启动或取消完整更新并查看阶段进度；频道中心按分类、频道、结果查看测速数据，并支持分类、单频道或单结果重新测速、复制/播放地址、加入黑白名单及启动推流；推流监控页显示自适应深浅色主题的带宽图表、客户端和媒体信息；设置页根据配置类型提供开关、选项和数值控件；更多信息页可检查并下载当前平台的新版本；任务页保留更新与操作历史并可导出脱敏诊断包。后续 GUI 维护、问题修复和新功能均面向该桌面端。
+新版桌面 GUI 面向 Windows 与 macOS，提供一键更新、实时进度、频道与结果管理、重新测速、RTMP 推流监控、数据源配置及任务历史。Docker 部署使用 Web 结果页，不包含此桌面界面。
+
+<p align="center">
+  <a href="./images/desktop-ui.png">
+    <img src="./images/desktop-ui.png" alt="IPTV-API 新版桌面端界面" width="100%"/>
+  </a>
+</p>
 
 在项目目录安装依赖并启动：
 
@@ -290,7 +306,7 @@ pipenv run ui_build
 
 ## Docker
 
-### 1. Compose部署（推荐）
+### 1. Compose 部署（推荐）
 
 下载[docker-compose.yml](../docker-compose.yml)或复制内容创建（内部参数可按需更改），在文件所在路径下运行以下命令即可部署：
 
@@ -322,7 +338,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 | 变量              | 描述                                | 默认值       |
 |:----------------|:----------------------------------|:----------|
-| PUBLIC_DOMAIN   | 公网域名或IP地址，决定外部访问或推流结果的Host地址      | 127.0.0.1 |
+| PUBLIC_DOMAIN   | 公网域名或 IP 地址，决定外部访问或推流结果的 Host 地址    | 127.0.0.1 |
 | PUBLIC_PORT     | 公网端口，设置为映射后的端口，决定外部访问地址和推流结果地址的端口 | 80        |
 | NGINX_HTTP_PORT | HTTP服务端口，外部访问需要映射该端口              | 8080      |
 
@@ -370,7 +386,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 **RTMP 推流：**
 
 > [!NOTE]
-> 1. 如果是服务器部署，请务必配置`PUBLIC_DOMAIN`环境变量为服务器域名或IP地址，`PUBLIC_PORT`环境变量为公网端口，否则推流地址无法访问
+> 1. 如果是服务器部署，请务必配置 `PUBLIC_DOMAIN` 环境变量为服务器域名或 IP 地址，`PUBLIC_PORT` 环境变量为公网端口，否则推流地址无法访问
 > 2. 开启推流后，默认会将获取到的接口（如订阅源）进行推流；请仅对你有明确授权、可合法分发或仅用于内部测试的内容启用该功能
 > 3. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹，将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
 > 4. 在中国大陆使用时，请特别确认内容授权、版权、网络视听与广播电视等相关合规要求；不要将本项目用于传播、转发或公开分发未经授权的直播源/节目源
@@ -388,14 +404,14 @@ docker run -d -p 80:8080 guovern/iptv-api
 | /hls/ipv6/m3u | 推流ipv6 m3u接口 |
 | /stat         | 推流状态统计接口     |
 
-##### 推流使用教程
+### 推流使用教程
 
 Docker 中启用推流很简单——只需做少量配置并将需要推流的频道或视频放到指定位置，程序会自动将这些源通过内置 RTMP/HTTP 推出为可播放的
 HLS 流。请仅用于你有明确授权的内容、个人自有内容或封闭环境的技术测试，不要用于未经授权的公开转播。
 
 下面以两种常见方式说明：订阅源推流（在线源）和本地视频推流（上传视频文件）。
 
-1) 启动前准备（以 docker compose 部署为例）
+#### 1. 启动前准备（以 Docker Compose 部署为例）
 
 - 使用本仓库提供的 `docker-compose.yml`，确认并根据需要修改下面的环境变量：
     - `PUBLIC_DOMAIN`：公网可访问的域名或公网 IP（用于推流地址中的 Host）。
@@ -428,12 +444,12 @@ services:
       HTTP_PROXY: ""
 ```
 
-2) 订阅源推流（在线源）
+#### 2. 订阅源推流（在线源）
 
 - 在 `config/subscribe.txt` 中添加订阅地址（支持 txt 和 m3u）。启动后，程序会读取订阅并对其中的频道进行推流。
 - 推流接口示例：访问 `/hls/txt`、`/hls/m3u` 或带 ipv4/ipv6 前缀的接口以查看当前推流的频道列表。
 
-3) 本地视频推流（服务器上的视频文件）
+#### 3. 本地视频推流（服务器上的视频文件）
 
 - 在挂载的 `config` 目录下创建 `hls` 文件夹（若使用容器挂载为 `/iptv-api/config/hls`），将需要推流的本地视频文件放入，文件名应与模板里的频道名称对应。
 
@@ -461,7 +477,7 @@ CCTV-1
 海洋
 ```
 
-4) 启动并验证
+#### 4. 启动并验证
 
 - 启动容器：
 
@@ -484,7 +500,7 @@ docker compose up -d
     - 在播放器中加载完整频道菜单（示例使用 PotPlayer）：
       ![PotPlayer](./images/potplayer.png 'PotPlayer')
 
-5) 监控与日志
+#### 5. 监控与日志
 
 - 推流状态统计页面 `/stat` 用于查看当前推流数、流量等：
   ![Rtmp-Stat](./images/rtmp-stat.png 'Rtmp Stat')
@@ -496,14 +512,14 @@ docker compose up -d
       ![hls-will-Stop-Log](./images/hls-will-stop-log.png 'Rtmp Will Stop Log')
       ![hls-Stop-Log](./images/hls-stop-log.png 'Rtmp Stop Log')
 
-6) 常见提示与调优建议
+#### 6. 常见提示与调优建议
 
 - 公网访问与防火墙：确保 `PUBLIC_PORT` 对外已放通（防火墙、云服务安全组等）。RTMP/HTTP 需要对应端口能够被外部访问。
 - 域名与证书：若使用域名并启用 HTTPS，请将 `PUBLIC_DOMAIN` 设置为域名，`PUBLIC_SCHEME` 设置为 `https`，并在外部配置好反向代理或证书。
 - 性能与并发：本地推流会消耗 CPU 和带宽，建议合理设置 `rtmp_max_streams` 限制并发推流数量，避免服务器过载。
 - 空闲停止：`rtmp_idle_timeout` 控制无人观看后自动停止推流的超时时间（秒），可根据服务器资源与使用场景调整。
 
-7) 推流常用相关配置项
+#### 7. 推流常用相关配置项
 
 ```ini
 # RTMP 频道接口空闲停止推流超时时长（秒）
