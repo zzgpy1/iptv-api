@@ -14,7 +14,7 @@ import utils.constants as constants
 from utils.config import config
 from utils.db import ensure_result_data_schema
 from utils.db import get_db_connection, return_db_connection
-from utils.ffmpeg import probe_url_sync
+from utils.ffmpeg import probe_url_sync, resolve_ffmpeg_executable
 from utils.i18n import t
 from utils.rtmp_runtime import rtmp_runtime_status
 from utils.tools import join_url, resource_path, render_nginx_conf
@@ -195,7 +195,10 @@ def _get_video_encoder_args():
     preferred = ['h264_nvenc', 'h264_qsv', 'h264_amf', 'libx264']
 
     try:
-        res = subprocess.run(['ffmpeg', '-hide_banner', '-encoders'],
+        executable = resolve_ffmpeg_executable()
+        if not executable:
+            raise FileNotFoundError("ffmpeg")
+        res = subprocess.run([executable, '-hide_banner', '-encoders'],
                              capture_output=True, text=True, timeout=10)
         enc_list = res.stdout
     except Exception:
@@ -227,7 +230,10 @@ def _get_video_encoder_candidates():
     preferred = ['h264_nvenc', 'h264_qsv', 'h264_amf', 'libx264']
     candidates = []
     try:
-        res = subprocess.run(['ffmpeg', '-hide_banner', '-encoders'], capture_output=True, text=True, timeout=10)
+        executable = resolve_ffmpeg_executable()
+        if not executable:
+            raise FileNotFoundError("ffmpeg")
+        res = subprocess.run([executable, '-hide_banner', '-encoders'], capture_output=True, text=True, timeout=10)
         enc_list = res.stdout or ''
     except Exception:
         enc_list = ''
@@ -341,7 +347,11 @@ def _start_reserved_hls_to_rtmp(host, channel_id, client_user_agent: str | None 
         client_forces_transcode = bool(
             client_user_agent and _client_needs_transcode_for_codec(client_user_agent, meta.get('video_codec')))
 
-    base_cmd = ['ffmpeg', '-loglevel', 'error', '-re']
+    executable = resolve_ffmpeg_executable()
+    if not executable:
+        print(t("msg.ffmpeg_not_installed"))
+        return None
+    base_cmd = [executable, '-loglevel', 'error', '-re']
 
     local_loop = False
     try:
