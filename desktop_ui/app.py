@@ -3,7 +3,7 @@ import sys
 
 from PySide6.QtCore import QCoreApplication, QSettings, QStandardPaths, Qt
 from PySide6.QtGui import QFontDatabase, QIcon
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 from qfluentwidgets import Theme, setFontFamilies, setTheme, setThemeColor
 
 
@@ -39,8 +39,8 @@ def _configure_fonts():
 
 def main():
     _prepare_runtime()
-    _copy_runtime_resources()
     if "--service" in sys.argv:
+        _copy_runtime_resources()
         from service.app import run_service
         run_service()
         return 0
@@ -49,10 +49,15 @@ def main():
     app.setApplicationDisplayName("IPTV API")
     app.setQuitOnLastWindowClosed(False)
     _configure_fonts()
-    from utils.config import resource_path
+    try:
+        _copy_runtime_resources()
+        from utils.config import resource_path
+        from desktop_ui.main_window import MainWindow
+    except ValueError as exc:
+        QMessageBox.critical(None, "配置错误", str(exc))
+        return 2
     icon_path = "static/images/macos_app_icon.icns" if sys.platform == "darwin" else "favicon.ico"
     app.setWindowIcon(QIcon(resource_path(icon_path)))
-    from desktop_ui.main_window import MainWindow
     theme = str(QSettings().value("appearance/theme", "system"))
     setTheme({"dark": Theme.DARK, "light": Theme.LIGHT}.get(theme, Theme.AUTO))
     setThemeColor("#0E5CAD")

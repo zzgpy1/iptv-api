@@ -5,6 +5,7 @@ from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, Tab
 from desktop_ui.delegates import ConfigValueDelegate, ElidedDescriptionDelegate
 from desktop_ui.models import ConfigTableModel
 from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, configure_table_columns
+from utils.config import ConfigValidationError
 from utils.i18n import t
 
 
@@ -70,7 +71,17 @@ class SettingsPage(QWidget):
         self.search.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def save(self):
-        self.model.save()
+        try:
+            self.model.save()
+        except ConfigValidationError as exc:
+            InfoBar.error(
+                t("name.error"),
+                str(exc),
+                parent=self,
+                position=InfoBarPosition.TOP,
+                duration=10000,
+            )
+            return
         self.settings_saved.emit()
         InfoBar.success(t("desktop.saved"), t("desktop.restart_hint"), parent=self, position=InfoBarPosition.TOP)
 
