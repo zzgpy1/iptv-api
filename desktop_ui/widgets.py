@@ -1,7 +1,7 @@
-from PySide6.QtCore import QEvent, QObject, QPointF, QSettings, QTimer, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
-from PySide6.QtWidgets import QHeaderView, QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, isDarkTheme, qconfig, setCustomStyleSheet
+from PySide6.QtCore import QEvent, QObject, QPointF, QRect, QSettings, QTimer, Signal, Qt
+from PySide6.QtGui import QBrush, QColor, QIcon, QMouseEvent, QPainter, QPen, QPixmap, QPolygonF
+from PySide6.QtWidgets import QHeaderView, QHBoxLayout, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, TableItemDelegate, isDarkTheme, qconfig, setCustomStyleSheet
 
 
 def apply_input_border_style(widget, selector):
@@ -18,15 +18,143 @@ def apply_input_border_style(widget, selector):
     setCustomStyleSheet(widget, light, dark)
 
 
+def _table_check_state(state):
+    if isinstance(state, Qt.CheckState):
+        return state
+    if isinstance(state, bool):
+        return Qt.CheckState.Checked if state else Qt.CheckState.Unchecked
+    try:
+        return Qt.CheckState(int(state))
+    except (TypeError, ValueError):
+        return Qt.CheckState.Unchecked
+
+
+def paint_table_checkbox(painter, rect, state):
+    state = _table_check_state(state)
+    size = min(16, rect.width(), rect.height())
+    box = QRect(rect.center().x() - size // 2, rect.center().y() - size // 2, size, size)
+    checked = state in (Qt.CheckState.Checked, Qt.CheckState.PartiallyChecked)
+    border = QColor("#60A5FA" if isDarkTheme() else "#2563EB") if checked else QColor(
+        "#94A3B8" if isDarkTheme() else "#64748B"
+    )
+    painter.save()
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(QPen(border, 1.6))
+    painter.setBrush(QBrush(border if checked else Qt.BrushStyle.NoBrush))
+    painter.drawRoundedRect(box.adjusted(1, 1, -1, -1), 3, 3)
+    painter.setPen(QPen(
+        QColor("#FFFFFF"),
+        1.8,
+        Qt.PenStyle.SolidLine,
+        Qt.PenCapStyle.RoundCap,
+        Qt.PenJoinStyle.RoundJoin,
+    ))
+    if state == Qt.CheckState.Checked:
+        painter.drawLine(box.left() + 4, box.center().y(), box.left() + 7, box.bottom() - 4)
+        painter.drawLine(box.left() + 7, box.bottom() - 4, box.right() - 3, box.top() + 4)
+    elif state == Qt.CheckState.PartiallyChecked:
+        painter.drawLine(box.left() + 4, box.center().y(), box.right() - 4, box.center().y())
+    painter.restore()
+
+
+class TableCheckBoxHeader(QHeaderView):
+    toggled = Signal(bool)
+
+    def __init__(self, parent=None):
+        super().__init__(Qt.Orientation.Horizontal, parent)
+        self._state = Qt.CheckState.Unchecked
+        self._resizing = False
+
+    def set_check_state(self, state):
+        if state != self._state:
+            self._state = state
+            self.viewport().update()
+
+    def paintSection(self, painter, rect, logical_index):
+        super().paintSection(painter, rect, logical_index)
+        if logical_index == 0:
+            paint_table_checkbox(painter, rect, self._state)
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if self._resizing:
+            self._resizing = False
+            super().mouseReleaseEvent(event)
+            return
+        if event.button() == Qt.MouseButton.LeftButton and self.logicalIndexAt(event.position().toPoint()) == 0:
+            self.toggled.emit(self._state != Qt.CheckState.Checked)
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton and self.logicalIndexAt(event.position().toPoint()) == 0:
+            boundary = self.sectionViewportPosition(0) + self.sectionSize(0)
+            if abs(event.position().x() - boundary) <= 6:
+                self._resizing = True
+                super().mousePressEvent(event)
+                return
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+
+class TableCheckBoxDelegate(TableItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        option.text = ""
+        option.features &= ~QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator
+
+    def paint(self, painter, option, index):
+        primary_delegate = getattr(self.parent(), "delegate", None)
+        if primary_delegate is None:
+            QStyledItemDelegate.paint(self, painter, option, index)
+            paint_table_checkbox(
+                painter,
+                option.rect,
+                index.data(Qt.ItemDataRole.CheckStateRole),
+            )
+            return
+        self.hoverRow = primary_delegate.hoverRow
+        self.pressedRow = primary_delegate.pressedRow
+        self.selectedRows = primary_delegate.selectedRows
+        super().paint(painter, option, index)
+
+    def _drawCheckBox(self, painter, option, index):
+        paint_table_checkbox(
+            painter,
+            option.rect,
+            index.data(Qt.ItemDataRole.CheckStateRole),
+        )
+
+    def editorEvent(self, event, model, option, index):
+        if event.type() == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
+            if option.rect.contains(event.position().toPoint()):
+                checked = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
+                return model.setData(
+                    index,
+                    Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked,
+                    Qt.ItemDataRole.CheckStateRole,
+                )
+        if event.type() == QEvent.Type.KeyPress and event.key() in (Qt.Key.Key_Space, Qt.Key.Key_Select):
+            checked = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
+            return model.setData(
+                index,
+                Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked,
+                Qt.ItemDataRole.CheckStateRole,
+            )
+        return False
+
+
 class _AdaptiveTableColumns(QObject):
     """Keep interactive table columns fitted to the viewport."""
 
-    def __init__(self, table, widths: list[int], state_key: str):
+    def __init__(self, table, widths: list[int], state_key: str, fixed_widths=None):
         super().__init__(table)
         self.table = table
         self.viewport = table.viewport()
         self.header = table.horizontalHeader()
         self.state_key = state_key
+        self.fixed_widths = dict(fixed_widths or {})
         self._applying = False
         self._weights = self._load_weights(widths)
         self._save_timer = QTimer(self)
@@ -87,10 +215,17 @@ class _AdaptiveTableColumns(QObject):
             return
 
         minimum = self.header.minimumSectionSize()
-        usable = max(available, minimum * len(visible))
-        sizes = {}
-        pending = list(visible)
-        remaining = usable
+        fixed = {
+            column: width
+            for column, width in self.fixed_widths.items()
+            if column in visible
+        }
+        sizes = dict(fixed)
+        pending = [column for column in visible if column not in fixed]
+        remaining = max(
+            available - sum(fixed.values()),
+            minimum * len(pending),
+        )
         while pending:
             weight_total = sum(self._weights[column] for column in pending)
             constrained = [
@@ -149,17 +284,29 @@ class _AdaptiveTableColumns(QObject):
         )
 
 
-def configure_table_columns(table, widths: list[int], state_key: str):
+def configure_table_columns(table, widths: list[int], state_key: str, fixed_widths=None):
     header = table.horizontalHeader()
     header.setCascadingSectionResizes(False)
     header.setMinimumSectionSize(40)
     header.setStretchLastSection(False)
     header.setSectionsMovable(True)
     header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+    for column, width in (fixed_widths or {}).items():
+        header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+        header.resizeSection(column, width)
     existing = getattr(header, "_adaptive_columns", None)
-    if existing is not None and existing.state_key == state_key:
+    if (
+        existing is not None
+        and existing.state_key == state_key
+        and existing.fixed_widths == dict(fixed_widths or {})
+    ):
         return
-    header._adaptive_columns = _AdaptiveTableColumns(table, widths, state_key)
+    header._adaptive_columns = _AdaptiveTableColumns(
+        table,
+        widths,
+        state_key,
+        fixed_widths=fixed_widths,
+    )
 
 
 class AppLineEdit(LineEdit):

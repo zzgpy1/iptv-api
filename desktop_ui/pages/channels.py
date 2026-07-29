@@ -1,17 +1,18 @@
 import datetime
+import re
 
-from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QSize, QSignalBlocker, Signal, Qt, QUrl
-from PySide6.QtGui import QBrush, QColor, QDesktopServices, QGuiApplication, QMouseEvent, QPainter, QPen
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QStyleOptionViewItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, FluentIcon, InfoBar, InfoBarPosition, MessageBox, ProgressBar, PushButton, RoundMenu, TableItemDelegate, TableView, ToolButton, isDarkTheme
+from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QSettings, QSize, QSignalBlocker, Signal, Qt, QUrl
+from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QPainter
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, FluentIcon, IconWidget, InfoBar, InfoBarPosition, MessageBox, ProgressBar, PushButton, RoundMenu, SegmentedWidget, StrongBodyLabel, TableView, ToolButton, TreeWidget, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
 from desktop_ui.stream_status import StreamingStatusDelegate, apply_channel_stream_state, build_channel_stream_states
-from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns
 from utils.channel_repository import add_manual_result, delete_channel_records, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, set_channel_logo, upsert_manual_channel
-from utils.config import config
+from utils.config import config, resource_path
 from utils.i18n import t
 from utils.tools import check_url_by_keywords, get_public_url, get_urls_from_file
 from utils.user_actions import add_channel, add_manual_channel_result, add_to_blacklist, add_to_whitelist, delete_channels
@@ -39,89 +40,28 @@ def _updated_at(value, _):
     return "--" if not value else datetime.datetime.fromtimestamp(float(value)).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _paint_checkbox(painter, rect, state):
-    size = min(16, rect.width(), rect.height())
-    box = QRect(rect.center().x() - size // 2, rect.center().y() - size // 2, size, size)
-    checked = state in (Qt.CheckState.Checked, Qt.CheckState.PartiallyChecked)
-    border = QColor("#60A5FA" if isDarkTheme() else "#2563EB") if checked else QColor("#94A3B8" if isDarkTheme() else "#64748B")
-    painter.save()
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setPen(QPen(border, 1.6))
-    painter.setBrush(QBrush(border if checked else Qt.BrushStyle.NoBrush))
-    painter.drawRoundedRect(box.adjusted(1, 1, -1, -1), 3, 3)
-    painter.setPen(QPen(QColor("#FFFFFF"), 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-    if state == Qt.CheckState.Checked:
-        painter.drawLine(box.left() + 4, box.center().y(), box.left() + 7, box.bottom() - 4)
-        painter.drawLine(box.left() + 7, box.bottom() - 4, box.right() - 3, box.top() + 4)
-    elif state == Qt.CheckState.PartiallyChecked:
-        painter.drawLine(box.left() + 4, box.center().y(), box.right() - 4, box.center().y())
-    painter.restore()
+def _category_label(value):
+    label = re.sub(r"^[^A-Za-z0-9\u4e00-\u9fff]+", "", str(value or "")).strip()
+    return label or str(value or "")
 
 
-class CheckBoxHeader(QHeaderView):
-    toggled = Signal(bool)
-
-    def __init__(self, parent=None):
-        super().__init__(Qt.Orientation.Horizontal, parent)
-        self._state = Qt.CheckState.Unchecked
-        self._resizing = False
-
-    def set_check_state(self, state):
-        if state != self._state:
-            self._state = state
-            self.viewport().update()
-
-    def paintSection(self, painter, rect, logical_index):
-        super().paintSection(painter, rect, logical_index)
-        if logical_index != 0:
-            return
-        _paint_checkbox(painter, rect, self._state)
-
-    def mouseReleaseEvent(self, event: QMouseEvent):
-        if self._resizing:
-            self._resizing = False
-            super().mouseReleaseEvent(event)
-            return
-        if event.button() == Qt.MouseButton.LeftButton and self.logicalIndexAt(event.position().toPoint()) == 0:
-            self.toggled.emit(self._state != Qt.CheckState.Checked)
-            event.accept()
-            return
-        super().mouseReleaseEvent(event)
-
-    def mousePressEvent(self, event: QMouseEvent):
-        if event.button() == Qt.MouseButton.LeftButton and self.logicalIndexAt(event.position().toPoint()) == 0:
-            boundary = self.sectionViewportPosition(0) + self.sectionSize(0)
-            if abs(event.position().x() - boundary) <= 6:
-                self._resizing = True
-                super().mousePressEvent(event)
-                return
-            event.accept()
-            return
-        super().mousePressEvent(event)
-
-
-class CheckBoxDelegate(TableItemDelegate):
-    def initStyleOption(self, option, index):
-        super().initStyleOption(option, index)
-        option.text = ""
-        option.features &= ~QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator
-
-    def paint(self, painter, option, index):
-        primary_delegate = self.parent().delegate
-        self.hoverRow = primary_delegate.hoverRow
-        self.pressedRow = primary_delegate.pressedRow
-        self.selectedRows = primary_delegate.selectedRows
-        super().paint(painter, option, index)
-
-    def editorEvent(self, event, model, option, index):
-        if event.type() == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
-            if option.rect.contains(event.position().toPoint()):
-                checked = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
-                return model.setData(index, Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
-        if event.type() == QEvent.Type.KeyPress and event.key() in (Qt.Key.Key_Space, Qt.Key.Key_Select):
-            checked = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
-            return model.setData(index, Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
-        return False
+def _template_category_order():
+    try:
+        with open(resource_path(config.source_file), "r", encoding="utf-8") as file:
+            lines = file
+            categories = []
+            seen = set()
+            for raw in lines:
+                match = re.match(r"^(.*?)[,，]\s*#genre#\s*$", raw.strip())
+                if not match:
+                    continue
+                category = match.group(1).strip()
+                if category and category not in seen:
+                    seen.add(category)
+                    categories.append(category)
+            return categories
+    except OSError:
+        return []
 
 
 class RubberBandTableView(TableView):
@@ -167,6 +107,19 @@ class ChannelCenterPage(QWidget):
         self._checked_result_keys = set()
         self._stream_snapshot = {"streams": []}
         self._stream_states = {}
+        self._view_mode = str(QSettings().value("appearance/channel_center_view", "category"))
+        if self._view_mode not in {"category", "list"}:
+            self._view_mode = "category"
+        self._category_order = []
+        self._category_filter = None
+        self._health_filter = None
+        self._category_items = {}
+        self._smart_items = {}
+        self.view_switch = SegmentedWidget(self)
+        self.view_switch.addItem("category", t("desktop.channel_view_category"), icon=FluentIcon.FOLDER)
+        self.view_switch.addItem("list", t("desktop.channel_view_list"), icon=FluentIcon.MENU)
+        self.view_switch.setMinimumWidth(210)
+        self.view_switch.setCurrentItem(self._view_mode)
         self.category_selector = ComboBox(self)
         self.category_selector.setMinimumWidth(170)
         self.search = AppSearchLineEdit(self)
@@ -192,16 +145,17 @@ class ChannelCenterPage(QWidget):
         self.logo_loader = self.channel_model.logo_loader
         self.result_model = MappingTableModel(self._result_columns(), self, checkable_key="batch_selected")
         self.channel_table = self._table(self.channel_model, multiple=True)
-        self.channel_header = CheckBoxHeader(self.channel_table)
+        self.channel_header = TableCheckBoxHeader(self.channel_table)
         self.channel_table.setHorizontalHeader(self.channel_header)
         self.channel_header.setSortIndicator(1, Qt.SortOrder.AscendingOrder)
         configure_table_columns(
             self.channel_table,
             [42, 240, 90, 80, 80, 105, 90, 115, 105, 85, 90, 170],
             "channel_center.channels",
+            fixed_widths={0: 42},
         )
         self.channel_table.setIconSize(QSize(32, 24))
-        self.channel_table.setItemDelegateForColumn(0, CheckBoxDelegate(self.channel_table))
+        self.channel_table.setItemDelegateForColumn(0, TableCheckBoxDelegate(self.channel_table))
         self.stream_status_delegate = StreamingStatusDelegate(self._show_stream_menu, self.channel_table)
         self.channel_table.setItemDelegateForColumn(1, self.stream_status_delegate)
         self.channel_header.toggled.connect(self._toggle_all_channels)
@@ -209,10 +163,11 @@ class ChannelCenterPage(QWidget):
 
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
+        toolbar.addWidget(self.view_switch)
         toolbar.addWidget(self.category_selector)
         toolbar.addWidget(self.search, 1)
-        toolbar.addWidget(self.selection_label)
         toolbar.addWidget(self.refresh_button)
+        toolbar.addWidget(self.selection_label)
         toolbar.addWidget(self.add_channel_button)
         toolbar.addWidget(self.add_result_button)
         toolbar.addWidget(self.delete_channel_button)
@@ -227,9 +182,25 @@ class ChannelCenterPage(QWidget):
         task_row.addWidget(self.task_label, 1)
         task_row.addWidget(self.task_progress, 1)
         layout.addLayout(task_row)
-        layout.addWidget(self.channel_table, 1)
+
+        self.channel_splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self.category_sidebar = self._create_category_sidebar()
+        self.channel_splitter.addWidget(self.category_sidebar)
+        self.channel_stack = QStackedWidget(self.channel_splitter)
+        self.channel_stack.addWidget(self.channel_table)
+        self.empty_state = self._create_empty_state()
+        self.channel_stack.addWidget(self.empty_state)
+        self.channel_splitter.addWidget(self.channel_stack)
+        self.channel_splitter.setCollapsible(0, False)
+        self.channel_splitter.setStretchFactor(0, 0)
+        self.channel_splitter.setStretchFactor(1, 1)
+        category_width = max(190, min(320, int(QSettings().value("appearance/channel_category_width", 228))))
+        self.channel_splitter.setSizes([category_width, 900])
+        self.channel_splitter.splitterMoved.connect(self._save_category_width)
+        layout.addWidget(self.channel_splitter, 1)
 
         self._create_result_drawer()
+        self.view_switch.currentItemChanged.connect(self._set_view_mode)
         self.refresh_button.clicked.connect(self.reload)
         self.category_selector.currentIndexChanged.connect(self._category_changed)
         self.search.textChanged.connect(self._search_changed)
@@ -245,7 +216,68 @@ class ChannelCenterPage(QWidget):
         self.retest_channel_button.clicked.connect(self._request_channel_retest)
         self.stream_selected_button.clicked.connect(self._open_selected_in_playback)
         QApplication.instance().installEventFilter(self)
+        self._apply_view_mode()
         self.reload()
+
+    def _create_category_sidebar(self):
+        sidebar = CardWidget(self)
+        sidebar.setObjectName("channelCategorySidebar")
+        sidebar.setMinimumWidth(190)
+        sidebar.setMaximumWidth(320)
+        sidebar.setBorderRadius(8)
+        layout = QVBoxLayout(sidebar)
+        layout.setContentsMargins(12, 14, 12, 12)
+        layout.setSpacing(8)
+
+        self.category_heading = StrongBodyLabel(t("desktop.channel_categories"), sidebar)
+        layout.addWidget(self.category_heading)
+        self.category_tree = self._directory_tree(sidebar)
+        self.category_tree.itemClicked.connect(self._category_item_clicked)
+        layout.addWidget(self.category_tree, 1)
+
+        self.smart_heading = StrongBodyLabel(t("desktop.smart_collections"), sidebar)
+        layout.addWidget(self.smart_heading)
+        self.smart_tree = self._directory_tree(sidebar)
+        self.smart_tree.setMaximumHeight(128)
+        self.smart_tree.itemClicked.connect(self._smart_item_clicked)
+        layout.addWidget(self.smart_tree)
+        return sidebar
+
+    @staticmethod
+    def _directory_tree(parent):
+        tree = TreeWidget(parent)
+        tree.setColumnCount(2)
+        tree.setHeaderHidden(True)
+        tree.setRootIsDecorated(False)
+        tree.setIndentation(0)
+        tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        tree.setBorderVisible(False)
+        tree.header().setStretchLastSection(False)
+        tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        return tree
+
+    def _create_empty_state(self):
+        state = QWidget(self)
+        layout = QVBoxLayout(state)
+        layout.setContentsMargins(24, 32, 24, 32)
+        layout.setSpacing(10)
+        layout.addStretch(1)
+        icon = IconWidget(FluentIcon.SEARCH.icon(color=QColor("#64748B")), state)
+        icon.setFixedSize(44, 44)
+        self.empty_title = StrongBodyLabel(t("desktop.channel_center_empty"), state)
+        self.empty_hint = BodyLabel(t("desktop.channel_center_empty_hint"), state)
+        self.empty_clear_button = PushButton(FluentIcon.CANCEL, t("desktop.clear_filters"), state)
+        self.empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_clear_button.clicked.connect(self._clear_channel_filters)
+        layout.addWidget(icon, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.empty_title)
+        layout.addWidget(self.empty_hint)
+        layout.addWidget(self.empty_clear_button, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addStretch(1)
+        return state
 
     def _create_result_drawer(self):
         self.result_drawer = CardWidget(self)
@@ -271,15 +303,16 @@ class ChannelCenterPage(QWidget):
         header.addWidget(self.close_drawer_button)
         drawer_layout.addLayout(header)
         self.result_table = self._table(self.result_model, multiple=True)
-        self.result_header = CheckBoxHeader(self.result_table)
+        self.result_header = TableCheckBoxHeader(self.result_table)
         self.result_table.setHorizontalHeader(self.result_header)
         self.result_header.setSortIndicator(1, Qt.SortOrder.AscendingOrder)
         configure_table_columns(
             self.result_table,
             [42, 90, 110, 90, 110, 90, 100, 280],
             "channel_center.results",
+            fixed_widths={0: 42},
         )
-        self.result_table.setItemDelegateForColumn(0, CheckBoxDelegate(self.result_table))
+        self.result_table.setItemDelegateForColumn(0, TableCheckBoxDelegate(self.result_table))
         self.result_header.toggled.connect(self._toggle_all_results)
         self.result_model.modelReset.connect(self._update_result_header)
         drawer_layout.addWidget(self.result_table, 1)
@@ -427,14 +460,203 @@ class ChannelCenterPage(QWidget):
             current = current.parentWidget()
         return False
 
+    def _set_view_mode(self, mode: str):
+        if mode not in {"list", "category"} or mode == self._view_mode:
+            return
+        if self.view_switch.currentRouteKey() != mode:
+            blocker = QSignalBlocker(self.view_switch)
+            self.view_switch.setCurrentItem(mode)
+            del blocker
+        self._view_mode = mode
+        QSettings().setValue("appearance/channel_center_view", mode)
+        self.hide_result_drawer()
+        self._apply_view_mode()
+        self._load_channels()
+
+    def _apply_view_mode(self):
+        categorized = self._view_mode == "category"
+        self.category_selector.setVisible(not categorized)
+        self.category_sidebar.setVisible(categorized)
+        self.channel_table.setColumnHidden(8, categorized)
+        adaptive_columns = getattr(self.channel_table.horizontalHeader(), "_adaptive_columns", None)
+        if adaptive_columns:
+            adaptive_columns.fit()
+
+    def _save_category_width(self, *_):
+        if self._view_mode != "category":
+            return
+        sizes = self.channel_splitter.sizes()
+        if sizes and sizes[0] > 0:
+            QSettings().setValue("appearance/channel_category_width", sizes[0])
+
+    @staticmethod
+    def _directory_item(tree, text: str, count: int, icon, route):
+        item = QTreeWidgetItem([text, str(int(count or 0))])
+        item.setData(0, Qt.ItemDataRole.UserRole, route)
+        item.setIcon(0, icon.icon() if hasattr(icon, "icon") else icon)
+        item.setSizeHint(0, QSize(0, 36))
+        item.setTextAlignment(1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        tree.addTopLevelItem(item)
+        return item
+
+    def _populate_category_directory(self, categories=None):
+        try:
+            full_categories = (
+                categories
+                if categories is not None
+                else self._sort_category_rows(list_categories(constants.channel_results_path))
+            )
+            matched_categories = (
+                list_categories(constants.channel_results_path, self.search.text())
+                if self.search.text()
+                else full_categories
+            )
+        except Exception:
+            full_categories, matched_categories = [], []
+
+        full_by_name = {row["category"]: row for row in full_categories}
+        matched_by_name = {row["category"]: row for row in matched_categories}
+        matched_count = sum(int(row.get("channel_count") or 0) for row in matched_categories)
+        matched_health = {
+            "warning": sum(int(row.get("warning_count") or 0) for row in matched_categories),
+            "offline": sum(int(row.get("offline_count") or 0) for row in matched_categories),
+            "unknown": matched_count - sum(
+                int(row.get(key) or 0)
+                for row in matched_categories
+                for key in ("healthy_count", "warning_count", "offline_count")
+            ),
+        }
+
+        category_blocker = QSignalBlocker(self.category_tree)
+        smart_blocker = QSignalBlocker(self.smart_tree)
+        self.category_tree.clear()
+        self.smart_tree.clear()
+        self._category_items = {}
+        self._smart_items = {}
+
+        self._category_items[("all", None)] = self._directory_item(
+            self.category_tree,
+            t("desktop.all_channels"),
+            matched_count,
+            FluentIcon.LIBRARY,
+            ("all", None),
+        )
+        for category in full_by_name:
+            matched_row = matched_by_name.get(category, {})
+            route = ("category", category)
+            self._category_items[route] = self._directory_item(
+                self.category_tree,
+                _category_label(category),
+                int(matched_row.get("channel_count") or 0),
+                FluentIcon.FOLDER,
+                route,
+            )
+            self._category_items[route].setToolTip(0, category)
+
+        for health, label, icon in (
+            ("warning", t("desktop.health_warning"), FluentIcon.INFO),
+            ("offline", t("desktop.health_offline"), FluentIcon.CANCEL),
+            ("unknown", t("desktop.health_unknown"), FluentIcon.QUESTION),
+        ):
+            route = ("health", health)
+            self._smart_items[route] = self._directory_item(
+                self.smart_tree,
+                label,
+                matched_health[health],
+                icon,
+                route,
+            )
+
+        current_route = (
+            ("health", self._health_filter)
+            if self._health_filter
+            else ("category", self._category_filter)
+            if self._category_filter
+            else ("all", None)
+        )
+        item = self._category_items.get(current_route) or self._smart_items.get(current_route)
+        if item is None:
+            self._category_filter = None
+            self._health_filter = None
+            current_route = ("all", None)
+            item = self._category_items.get(current_route)
+        if item:
+            tree = self.smart_tree if current_route[0] == "health" else self.category_tree
+            tree.setCurrentItem(item)
+        del category_blocker, smart_blocker
+
+    def _sort_category_rows(self, rows):
+        positions = {category: index for index, category in enumerate(self._category_order)}
+        fallback = len(positions)
+        return [
+            row
+            for _, row in sorted(
+                enumerate(rows),
+                key=lambda item: (
+                    0 if item[1].get("category") in positions else 1,
+                    positions.get(item[1].get("category"), fallback),
+                    item[0],
+                ),
+            )
+        ]
+
+    def _sort_channels_by_category(self, rows):
+        positions = {category: index for index, category in enumerate(self._category_order)}
+        fallback = len(positions)
+        rows.sort(
+            key=lambda row: (
+                0 if row.get("category") in positions else 1,
+                positions.get(row.get("category"), fallback),
+                row.get("category") or "",
+                row.get("name") or "",
+            )
+        )
+        return rows
+
+    def _category_item_clicked(self, item, _column):
+        route = item.data(0, Qt.ItemDataRole.UserRole)
+        if not route:
+            return
+        self._category_filter = route[1] if route[0] == "category" else None
+        self._health_filter = None
+        self.smart_tree.clearSelection()
+        self.hide_result_drawer()
+        self._load_channels()
+
+    def _smart_item_clicked(self, item, _column):
+        route = item.data(0, Qt.ItemDataRole.UserRole)
+        if not route:
+            return
+        self._category_filter = None
+        self._health_filter = route[1]
+        self.category_tree.clearSelection()
+        self.hide_result_drawer()
+        self._load_channels()
+
+    def _clear_channel_filters(self):
+        search_blocker = QSignalBlocker(self.search)
+        self.search.clear()
+        del search_blocker
+        if self._view_mode == "list":
+            category_blocker = QSignalBlocker(self.category_selector)
+            self.category_selector.setCurrentIndex(0)
+            del category_blocker
+        else:
+            self._category_filter = None
+            self._health_filter = None
+        self._populate_category_directory()
+        self.hide_result_drawer()
+        self._load_channels()
+
     def reload(self):
         selected_category = self.category_selector.currentData()
-        selected_channels = {row["channel_key"] for row in self.selected_channels()}
-        checked_channels = {row["channel_key"] for row in self.channel_model.rows if row.get("batch_selected")}
+        selected_channels = self._selected_channel_keys() - self._checked_channel_keys
+        checked_channels = set(self._checked_channel_keys)
         selected_result = self.selected_result()
         result_key = selected_result.get("result_key") if selected_result else None
+        self._category_order = _template_category_order()
         try:
-            categories = list_categories(constants.channel_results_path)
+            categories = self._sort_category_rows(list_categories(constants.channel_results_path))
         except Exception:
             categories = []
         blocker = QSignalBlocker(self.category_selector)
@@ -450,26 +672,36 @@ class ChannelCenterPage(QWidget):
                 target_index = self.category_selector.count() - 1
         self.category_selector.setCurrentIndex(target_index)
         del blocker
+        self._populate_category_directory(categories)
         self._load_channels(selected_channels, checked_channels)
         if self._drawer_channel_key:
             self._load_results(self._drawer_channel_key, result_key)
 
     def _load_channels(self, selected_keys=None, checked_keys=None):
-        category = self.category_selector.currentData()
+        category = self.category_selector.currentData() if self._view_mode == "list" else self._category_filter
+        health = self._health_filter if self._view_mode == "category" else None
         try:
-            rows = list_channels(constants.channel_results_path, category, self.search.text())
-            result_urls = list_result_urls_by_channel(constants.channel_results_path)
-            whitelist_maps = load_whitelist_maps(constants.whitelist_path)
-            blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
+            rows = list_channels(
+                constants.channel_results_path,
+                category,
+                self.search.text(),
+                health=health,
+            )
         except Exception:
-            rows, result_urls, whitelist_maps, blacklist = [], {}, ({}, {}), []
-        for row in rows:
-            urls = result_urls.get(row["channel_key"], [])
-            row["whitelist_count"] = sum(is_url_whitelisted(whitelist_maps, url, row["name"]) for url in urls)
-            row["blacklist_count"] = sum(check_url_by_keywords(url, blacklist) for url in urls)
-            row["batch_selected"] = row.get("channel_key") in (checked_keys or self._checked_channel_keys)
-            row.update(apply_channel_stream_state(row, self._stream_states))
+            rows = []
+        self._sort_channels_by_category(rows)
+        self._prepare_channel_rows(rows, checked_keys)
         self.channel_model.set_rows(rows)
+        self.channel_stack.setCurrentWidget(self.channel_table if rows else self.empty_state)
+        has_filter = bool(
+            self.search.text().strip()
+            or category
+            or health
+        )
+        self.empty_title.setText(t("desktop.channel_center_no_match" if has_filter else "desktop.channel_center_empty"))
+        self.empty_hint.setText(t("desktop.channel_center_no_match_hint" if has_filter else "desktop.channel_center_empty_hint"))
+        self.empty_clear_button.setVisible(has_filter)
+
         selection = self.channel_table.selectionModel()
         selection.clearSelection()
         for index, row in enumerate(self.channel_model.rows):
@@ -478,8 +710,23 @@ class ChannelCenterPage(QWidget):
                     self.channel_model.index(index, 0),
                     QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows,
                 )
-        self._checked_channel_keys = {row["channel_key"] for row in rows if row.get("batch_selected")}
         self._update_selection_label()
+
+    def _prepare_channel_rows(self, rows, checked_keys=None):
+        selected_keys = self._checked_channel_keys if checked_keys is None else checked_keys
+        try:
+            result_urls = list_result_urls_by_channel(constants.channel_results_path)
+            whitelist_maps = load_whitelist_maps(constants.whitelist_path)
+            blacklist = get_urls_from_file(constants.blacklist_path, pattern_search=False)
+        except Exception:
+            result_urls, whitelist_maps, blacklist = {}, ({}, {}), []
+        for row in rows:
+            urls = result_urls.get(row["channel_key"], [])
+            row["whitelist_count"] = sum(is_url_whitelisted(whitelist_maps, url, row["name"]) for url in urls)
+            row["blacklist_count"] = sum(check_url_by_keywords(url, blacklist) for url in urls)
+            row["batch_selected"] = row.get("channel_key") in selected_keys
+            row.update(apply_channel_stream_state(row, self._stream_states))
+        return rows
 
     def _load_results(self, channel_key: str, result_key=None):
         if channel_key != self._drawer_channel_key:
@@ -496,11 +743,14 @@ class ChannelCenterPage(QWidget):
             self.result_table.selectRow(selected_row)
 
     def _category_changed(self, *_):
+        if self._view_mode != "list":
+            return
         self.hide_result_drawer()
         self._load_channels()
 
     def _search_changed(self, *_):
         self.hide_result_drawer()
+        self._populate_category_directory()
         self._load_channels()
 
     def _current_channel_changed(self, current, _):
@@ -516,9 +766,11 @@ class ChannelCenterPage(QWidget):
         self._update_selection_label()
 
     def _channel_data_changed(self, *_):
-        self._checked_channel_keys = {
+        visible_keys = {row["channel_key"] for row in self.channel_model.rows}
+        self._checked_channel_keys.difference_update(visible_keys)
+        self._checked_channel_keys.update({
             row["channel_key"] for row in self.channel_model.rows if row.get("batch_selected")
-        }
+        })
         self._update_selection_label()
         self._update_channel_header()
 
@@ -541,9 +793,12 @@ class ChannelCenterPage(QWidget):
         self.result_header.set_check_state(self.result_model.check_state())
 
     def _update_selection_label(self):
-        count = len(self.selected_channels())
+        count = len(self._selected_channel_keys())
         self.selection_label.setText(t("desktop.channels_selected").format(count=count))
         self.selection_label.setVisible(count > 0)
+        self.add_result_button.setEnabled(count > 0)
+        self.delete_channel_button.setEnabled(count > 0)
+        self.retest_channel_button.setEnabled(count > 0)
         self.stream_selected_button.setVisible(count > 0)
 
     def _channel_clicked(self, index):
@@ -559,14 +814,38 @@ class ChannelCenterPage(QWidget):
             self.results_title.setText(t("desktop.channel_results_title").format(name=row["name"]))
             self.show_result_drawer()
 
-    def selected_channels(self):
+    def _selected_channel_keys(self):
         keys = {
             row["channel_key"]
             for index in self.channel_table.selectionModel().selectedRows()
             if (row := self.channel_model.row(index))
         }
-        keys.update(row["channel_key"] for row in self.channel_model.rows if row.get("batch_selected"))
-        return [row for row in self.channel_model.rows if row.get("channel_key") in keys]
+        keys.update(self._checked_channel_keys)
+        return keys
+
+    def selected_channels(self):
+        keys = self._selected_channel_keys()
+        if not keys:
+            return []
+        current_rows = {
+            row["channel_key"]: row
+            for row in self.channel_model.rows
+            if row.get("channel_key") in keys
+        }
+        missing = keys - current_rows.keys()
+        if missing:
+            try:
+                rows = [
+                    row for row in list_channels(constants.channel_results_path)
+                    if row.get("channel_key") in missing
+                ]
+            except Exception:
+                rows = []
+            self._prepare_channel_rows(rows)
+            current_rows.update({row["channel_key"]: row for row in rows})
+        return self._sort_channels_by_category(
+            [current_rows[key] for key in keys if key in current_rows]
+        )
 
     def selected_channel(self):
         current = self.channel_table.currentIndex()
@@ -707,7 +986,10 @@ class ChannelCenterPage(QWidget):
         dialog.setWindowTitle(t("desktop.add_channel"))
         form = QFormLayout(dialog)
         category = AppEditableComboBox(dialog)
-        category.addItems([row["category"] for row in list_categories(constants.channel_results_path)])
+        category.addItems([
+            row["category"]
+            for row in self._sort_category_rows(list_categories(constants.channel_results_path))
+        ])
         name = AppLineEdit(dialog)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
         form.addRow(t("desktop.categories"), category)
@@ -746,8 +1028,10 @@ class ChannelCenterPage(QWidget):
         )
         if not box.exec():
             return
+        deleted_keys = {row["channel_key"] for row in rows}
         delete_channels([row["name"] for row in rows])
-        delete_channel_records(constants.channel_results_path, [row["channel_key"] for row in rows])
+        delete_channel_records(constants.channel_results_path, list(deleted_keys))
+        self._checked_channel_keys.difference_update(deleted_keys)
         self.hide_result_drawer()
         self.reload()
         InfoBar.success(t("desktop.channels_deleted"), str(len(rows)), parent=self, position=InfoBarPosition.TOP)
@@ -799,8 +1083,13 @@ class ChannelCenterPage(QWidget):
         self.reload()
 
     def retranslate(self):
+        self.view_switch.items["list"].setText(t("desktop.channel_view_list"))
+        self.view_switch.items["category"].setText(t("desktop.channel_view_category"))
+        self.category_heading.setText(t("desktop.channel_categories"))
+        self.smart_heading.setText(t("desktop.smart_collections"))
         self.search.setPlaceholderText(t("desktop.search_channels"))
         self.refresh_button.setToolTip(t("desktop.refresh"))
+        self.empty_clear_button.setText(t("desktop.clear_filters"))
         self.add_channel_button.setText(t("desktop.add_channel"))
         self.add_result_button.setText(t("desktop.add_result"))
         self.delete_channel_button.setText(t("desktop.delete_channel"))

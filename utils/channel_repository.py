@@ -336,27 +336,38 @@ def sync_channel_snapshot(
             return_db_connection(db_path, conn)
 
 
-def list_categories(db_path: str) -> list[dict[str, Any]]:
+def list_categories(db_path: str, search: str = "") -> list[dict[str, Any]]:
     ensure_channel_repository(db_path)
     conn = get_db_connection(db_path)
     conn.row_factory = sqlite3.Row
     try:
+        where = ""
+        params = []
+        if search:
+            where = "WHERE name LIKE ? OR category LIKE ?"
+            params.extend([f"%{search}%", f"%{search}%"])
         rows = conn.execute(
-            """
+            f"""
             SELECT category, COUNT(*) AS channel_count,
                    SUM(CASE WHEN health='healthy' THEN 1 ELSE 0 END) AS healthy_count,
                    SUM(CASE WHEN health='warning' THEN 1 ELSE 0 END) AS warning_count,
                    SUM(CASE WHEN health='offline' THEN 1 ELSE 0 END) AS offline_count,
                    SUM(valid_results) AS valid_results
-            FROM channels GROUP BY category ORDER BY category
-            """
+            FROM channels {where} GROUP BY category ORDER BY category
+            """,
+            params,
         ).fetchall()
         return [dict(row) for row in rows]
     finally:
         return_db_connection(db_path, conn)
 
 
-def list_channels(db_path: str, category: str | None = None, search: str = "") -> list[dict[str, Any]]:
+def list_channels(
+    db_path: str,
+    category: str | None = None,
+    search: str = "",
+    health: str | None = None,
+) -> list[dict[str, Any]]:
     ensure_channel_repository(db_path)
     conn = get_db_connection(db_path)
     conn.row_factory = sqlite3.Row
@@ -366,6 +377,9 @@ def list_channels(db_path: str, category: str | None = None, search: str = "") -
         if category:
             clauses.append("category=?")
             params.append(category)
+        if health:
+            clauses.append("health=?")
+            params.append(health)
         if search:
             clauses.append("(name LIKE ? OR category LIKE ?)")
             params.extend([f"%{search}%", f"%{search}%"])
