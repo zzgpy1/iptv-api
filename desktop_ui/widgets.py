@@ -258,6 +258,12 @@ class _AdaptiveTableColumns(QObject):
         finally:
             self.header.blockSignals(False)
             self._applying = False
+        # Blocking section signals keeps an adaptive resize from being treated
+        # as a user resize, but it also prevents persistent cell editors from
+        # receiving updated geometry. Re-layout the view after the final column
+        # sizes are applied so hidden pages restore with correctly placed
+        # editors.
+        self.table.doItemsLayout()
 
     def _section_resized(self, *_):
         if self._applying:

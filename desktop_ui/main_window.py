@@ -1,16 +1,18 @@
+import datetime
 import os
 import sys
 import threading
 
-from PySide6.QtCore import QRect, QSettings, QTimer, Signal, Qt
-from PySide6.QtGui import QAction, QColor, QIcon, QPainter
+import pytz
+from PySide6.QtCore import QRect, QSettings, QTimer, QUrl, Signal, Qt
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QGuiApplication, QIcon, QPainter
 from PySide6.QtWidgets import QApplication, QCheckBox, QDialog, QDialogButtonBox, QLabel, QMenu, QMessageBox, QSystemTrayIcon, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, FluentWindow, InfoBar, InfoBarPosition, NavigationItemPosition, Theme, isDarkTheme, setTheme
 
 from desktop_ui.controller import ChannelOperationController, RtmpMonitorController, ServiceProcessController, UpdateController
 from desktop_ui.pages.channels import ChannelCenterPage
 from desktop_ui.pages.about import AboutPage
-from desktop_ui.pages.dashboard import DashboardPage
+from desktop_ui.pages.dashboard import DashboardPage, next_scheduled_update
 from desktop_ui.pages.logs import LogsPage
 from desktop_ui.pages.rtmp import RtmpPage
 from desktop_ui.pages.settings import SettingsPage
@@ -23,7 +25,7 @@ import utils.constants as constants
 from utils.config import config, resource_path
 from utils.i18n import get_language, set_language, t
 from utils.rtmp_runtime import install_rtmp_runtime
-from utils.tools import get_version_info
+from utils.tools import get_public_url, get_version_info
 
 
 class NavigationResizeHandle(QWidget):
@@ -65,6 +67,7 @@ class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
         info = get_version_info()
+        self._version = str(info.get("version") or "--")
         self.setWindowTitle(str(info.get("name") or "IPTV-API"))
         icon_path = "static/images/macos_app_icon.icns" if sys.platform == "darwin" else "favicon.ico"
         self.setWindowIcon(QIcon(resource_path(icon_path)))
@@ -144,6 +147,13 @@ class MainWindow(FluentWindow):
         self._position_navigation_resize_handle()
         self.controller = UpdateController(self)
         self._update_activity_state = "idle"
+        self._update_progress_value = 0
+        self._service_status = "unknown"
+        self._rtmp_snapshot = {}
+        self._tray_refresh_timer = QTimer(self)
+        self._tray_refresh_timer.setSingleShot(True)
+        self._tray_refresh_timer.setInterval(500)
+        self._tray_refresh_timer.timeout.connect(self._refresh_tray_menu)
         self.operation_controller = ChannelOperationController(self)
         self.rtmp_controller = RtmpMonitorController(self)
         self.service_controller = ServiceProcessController(self)
@@ -153,8 +163,10 @@ class MainWindow(FluentWindow):
         self.dashboard.cancel_requested.connect(self._cancel_update)
         self.dashboard.destination_requested.connect(self._navigate_from_dashboard)
         self.settings.settings_saved.connect(self.dashboard.refresh_schedule)
+        self.settings.settings_saved.connect(self._refresh_tray_menu)
         self.controller.started.connect(self._update_started)
         self.controller.progress.connect(self.dashboard.set_progress)
+        self.controller.progress.connect(self._update_tray_progress)
         self.controller.output.connect(self._on_runtime_output)
         self.controller.finished.connect(self._update_finished)
         self.controller.failed.connect(self._update_failed)
@@ -196,23 +208,17 @@ class MainWindow(FluentWindow):
         self.stackedWidget.currentChanged.connect(self._navigation_page_changed)
         if config.open_service:
             self._start_service()
+        else:
+            self._service_status_changed("stopped")
         self.rtmp_controller.start()
         QApplication.instance().aboutToQuit.connect(self.shutdown)
         self._force_quit = False
         self.tray = None
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray = QSystemTrayIcon(self.windowIcon(), self)
-            self.tray.setToolTip("IPTV API")
-            menu = QMenu(self)
-            self.show_action = QAction(t("desktop.show_window"), self)
-            self.quit_action = QAction(t("desktop.quit"), self)
-            self.show_action.triggered.connect(self.show_and_raise)
-            self.quit_action.triggered.connect(self.quit_app)
-            menu.addAction(self.show_action)
-            menu.addSeparator()
-            menu.addAction(self.quit_action)
-            self.tray.setContextMenu(menu)
+            self._create_tray_menu()
             self.tray.activated.connect(lambda reason: self.show_and_raise() if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
+            self._refresh_tray_menu()
             self.tray.show()
         else:
             QApplication.instance().setQuitOnLastWindowClosed(True)
@@ -316,8 +322,7 @@ class MainWindow(FluentWindow):
         ):
             page.retranslate()
         if self.tray:
-            self.show_action.setText(t("desktop.show_window"))
-            self.quit_action.setText(t("desktop.quit"))
+            self._refresh_tray_menu()
         self._update_language_item()
         self._update_theme_item()
         self._refresh_navigation_statuses()
@@ -415,8 +420,315 @@ class MainWindow(FluentWindow):
         self.activateWindow()
 
     def quit_app(self):
+        if self._has_active_work() and not self._confirm_tray_action(
+            t("desktop.tray_quit_busy_title"),
+            t("desktop.tray_quit_busy_prompt"),
+        ):
+            return
         self._force_quit = True
         QApplication.quit()
+
+    def _create_tray_menu(self):
+        menu = QMenu(self)
+        self.tray_title_action = QAction(self)
+        self.tray_service_status_action = QAction(self)
+        self.tray_update_status_action = QAction(self)
+        self.tray_schedule_action = QAction(self)
+        self.tray_stream_status_action = QAction(self)
+        for action in (
+            self.tray_title_action,
+            self.tray_service_status_action,
+            self.tray_update_status_action,
+            self.tray_schedule_action,
+            self.tray_stream_status_action,
+        ):
+            action.setEnabled(False)
+            menu.addAction(action)
+        menu.addSeparator()
+
+        self.show_action = QAction(self)
+        self.show_action.triggered.connect(self.show_and_raise)
+        menu.addAction(self.show_action)
+        menu.setDefaultAction(self.show_action)
+
+        self.tray_task_menu = QMenu(self)
+        self.tray_run_update_action = QAction(self)
+        self.tray_pause_update_action = QAction(self)
+        self.tray_resume_update_action = QAction(self)
+        self.tray_cancel_update_action = QAction(self)
+        self.tray_task_history_action = QAction(self)
+        self.tray_run_update_action.triggered.connect(self._start_update)
+        self.tray_pause_update_action.triggered.connect(self._pause_update)
+        self.tray_resume_update_action.triggered.connect(self._resume_update)
+        self.tray_cancel_update_action.triggered.connect(self._cancel_update_from_tray)
+        self.tray_task_history_action.triggered.connect(lambda: self._open_tray_page(self.tasks))
+        for action in (
+            self.tray_run_update_action,
+            self.tray_pause_update_action,
+            self.tray_resume_update_action,
+            self.tray_cancel_update_action,
+        ):
+            self.tray_task_menu.addAction(action)
+        self.tray_task_menu.addSeparator()
+        self.tray_task_menu.addAction(self.tray_task_history_action)
+        menu.addMenu(self.tray_task_menu)
+
+        self.tray_result_menu = QMenu(self)
+        self.tray_open_results_action = QAction(self)
+        self.tray_copy_service_url_action = QAction(self)
+        self.tray_open_output_action = QAction(self)
+        self.tray_start_service_action = QAction(self)
+        self.tray_restart_service_action = QAction(self)
+        self.tray_stop_service_action = QAction(self)
+        self.tray_open_results_action.triggered.connect(
+            lambda: QDesktopServices.openUrl(QUrl(get_public_url()))
+        )
+        self.tray_copy_service_url_action.triggered.connect(self._copy_service_url_from_tray)
+        self.tray_open_output_action.triggered.connect(self.dashboard.open_output)
+        self.tray_start_service_action.triggered.connect(self._start_service_from_tray)
+        self.tray_restart_service_action.triggered.connect(self._restart_service_from_tray)
+        self.tray_stop_service_action.triggered.connect(self._stop_service_from_tray)
+        for action in (
+            self.tray_open_results_action,
+            self.tray_copy_service_url_action,
+            self.tray_open_output_action,
+        ):
+            self.tray_result_menu.addAction(action)
+        self.tray_result_menu.addSeparator()
+        for action in (
+            self.tray_start_service_action,
+            self.tray_restart_service_action,
+            self.tray_stop_service_action,
+        ):
+            self.tray_result_menu.addAction(action)
+        menu.addMenu(self.tray_result_menu)
+
+        menu.addSeparator()
+        self.tray_logs_action = QAction(self)
+        self.tray_settings_action = QAction(self)
+        self.tray_logs_action.triggered.connect(lambda: self._open_tray_page(self.logs))
+        self.tray_settings_action.triggered.connect(lambda: self._open_tray_page(self.settings))
+        menu.addAction(self.tray_logs_action)
+        menu.addAction(self.tray_settings_action)
+        menu.addSeparator()
+
+        self.quit_action = QAction(self)
+        self.quit_action.triggered.connect(self.quit_app)
+        menu.addAction(self.quit_action)
+        menu.aboutToShow.connect(self._refresh_tray_menu)
+        self.tray.setContextMenu(menu)
+
+    def _refresh_tray_menu(self):
+        if not getattr(self, "tray", None):
+            return
+        self.tray_title_action.setText(
+            t("desktop.tray_title").format(version=getattr(self, "_version", "--"))
+        )
+
+        service_label = {
+            "running": t("desktop.running"),
+            "external": t("desktop.external_service"),
+            "stopped": t("desktop.stopped"),
+            "failed": t("desktop.unavailable"),
+        }.get(self._service_status, t("desktop.unknown"))
+        self.tray_service_status_action.setText(
+            t("desktop.tray_service_status").format(status=service_label, port=config.app_port)
+        )
+
+        update_key = {
+            "running": "desktop.tray_update_running",
+            "paused": "desktop.tray_update_paused",
+            "stopping": "desktop.tray_update_stopping",
+            "failed": "desktop.tray_update_failed",
+        }.get(self._update_activity_state, "desktop.tray_update_idle")
+        update_args = {"progress": self._update_progress_value}
+        self.tray_update_status_action.setText(t(update_key).format(**update_args))
+        schedule_text, schedule_detail = self._tray_schedule_text()
+        self.tray_schedule_action.setText(schedule_text)
+
+        active_streams = max(0, int(self._rtmp_snapshot.get("active_count") or 0))
+        self.tray_stream_status_action.setVisible(active_streams > 0)
+        self.tray_stream_status_action.setText(
+            t("desktop.tray_active_streams").format(count=active_streams)
+        )
+
+        is_running = self._update_activity_state == "running"
+        is_paused = self._update_activity_state == "paused"
+        is_stopping = self._update_activity_state == "stopping"
+        is_idle = not (is_running or is_paused or is_stopping)
+        self.tray_run_update_action.setVisible(is_idle)
+        self.tray_run_update_action.setEnabled(is_idle and not self.operation_controller.is_busy)
+        self.tray_pause_update_action.setVisible(is_running)
+        self.tray_resume_update_action.setVisible(is_paused)
+        self.tray_cancel_update_action.setVisible(is_running or is_paused or is_stopping)
+        self.tray_cancel_update_action.setEnabled(not is_stopping)
+
+        service_available = self._service_status in {"running", "external"}
+        service_owned = self.service_controller.owns_process and self._service_status == "running"
+        self.tray_open_results_action.setEnabled(service_available)
+        self.tray_copy_service_url_action.setEnabled(service_available)
+        self.tray_start_service_action.setVisible(not service_available)
+        self.tray_start_service_action.setEnabled(self._service_status != "unknown")
+        self.tray_restart_service_action.setVisible(service_owned)
+        self.tray_stop_service_action.setVisible(service_owned)
+        self.tray_logs_action.setText(
+            t("desktop.tray_view_logs_error")
+            if "logs" in self._navigation_statuses
+            else t("desktop.tray_view_logs")
+        )
+
+        tooltip_lines = [
+            "IPTV API",
+            t("desktop.tray_tooltip_service").format(status=service_label),
+            self.tray_update_status_action.text(),
+            schedule_detail,
+        ]
+        if active_streams:
+            tooltip_lines.append(t("desktop.tray_active_streams").format(count=active_streams))
+        self.tray.setToolTip("\n".join(tooltip_lines))
+        self._update_tray_icon()
+        self._retranslate_tray_actions()
+
+    def _update_tray_icon(self):
+        if self._service_status == "failed" or "logs" in self._navigation_statuses:
+            color = "#DC2626"
+        elif (
+            self._update_activity_state in {"running", "paused", "stopping"}
+            or int(self._rtmp_snapshot.get("starting_count") or 0) > 0
+        ):
+            color = "#2563EB"
+        elif self._service_status not in {"running", "external"}:
+            color = "#D97706"
+        else:
+            color = "#059669"
+        pixmap = self.windowIcon().pixmap(32, 32)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor("#FFFFFF"))
+        painter.drawEllipse(20, 20, 12, 12)
+        painter.setBrush(QColor(color))
+        painter.drawEllipse(22, 22, 8, 8)
+        painter.end()
+        self.tray.setIcon(QIcon(pixmap))
+
+    def _retranslate_tray_actions(self):
+        self.show_action.setText(t("desktop.show_window"))
+        self.tray_task_menu.setTitle(t("desktop.tray_update_tasks"))
+        self.tray_run_update_action.setText(t("desktop.run_once"))
+        self.tray_pause_update_action.setText(t("desktop.pause"))
+        self.tray_resume_update_action.setText(t("desktop.resume"))
+        self.tray_cancel_update_action.setText(t("desktop.tray_cancel_update"))
+        self.tray_task_history_action.setText(t("desktop.task_history"))
+        self.tray_result_menu.setTitle(t("desktop.tray_results_service"))
+        self.tray_open_results_action.setText(t("desktop.tray_open_results"))
+        self.tray_copy_service_url_action.setText(t("desktop.tray_copy_service_url"))
+        self.tray_open_output_action.setText(t("desktop.open_output"))
+        self.tray_start_service_action.setText(t("desktop.tray_start_service"))
+        self.tray_restart_service_action.setText(t("desktop.tray_restart_service"))
+        self.tray_stop_service_action.setText(t("desktop.tray_stop_service"))
+        self.tray_settings_action.setText(t("desktop.settings"))
+        self.quit_action.setText(t("desktop.quit"))
+
+    def _tray_schedule_text(self):
+        try:
+            next_time = next_scheduled_update()
+            if next_time is None:
+                value = t("desktop.tray_schedule_disabled")
+                return value, value
+            timezone = pytz.timezone(config.time_zone)
+            now = datetime.datetime.now(timezone)
+            next_time = next_time.astimezone(timezone)
+            delta_days = (next_time.date() - now.date()).days
+            if delta_days == 0:
+                key = "desktop.tray_next_update_today"
+                value = next_time.strftime("%H:%M")
+            elif delta_days == 1:
+                key = "desktop.tray_next_update_tomorrow"
+                value = next_time.strftime("%H:%M")
+            else:
+                key = "desktop.tray_next_update_date"
+                value = next_time.strftime("%m-%d %H:%M")
+            return (
+                t(key).format(time=value),
+                t("desktop.next_update_time").format(time=next_time.strftime("%Y-%m-%d %H:%M:%S")),
+            )
+        except Exception:
+            value = t("desktop.tray_schedule_unavailable")
+            return value, value
+
+    def _open_tray_page(self, page):
+        self.show_and_raise()
+        self.switchTo(page)
+
+    def _copy_service_url_from_tray(self):
+        QGuiApplication.clipboard().setText(get_public_url())
+        self.tray.showMessage(
+            t("desktop.tray_copy_service_url"),
+            t("desktop.tray_service_url_copied"),
+            QSystemTrayIcon.MessageIcon.Information,
+            2500,
+        )
+
+    def _start_service_from_tray(self):
+        if self.service_controller.process is not None:
+            self.service_controller.stop()
+        self._start_service()
+
+    def _update_tray_progress(self, _title, progress, _finished=False, _metadata=None, _now=None):
+        self._update_progress_value = max(0, min(100, int(progress)))
+        if not self._tray_refresh_timer.isActive():
+            self._tray_refresh_timer.start()
+
+    def _cancel_update_from_tray(self):
+        if self._confirm_tray_action(
+            t("desktop.tray_cancel_update"),
+            t("desktop.tray_cancel_update_prompt"),
+        ):
+            self._cancel_update()
+
+    def _stop_service_from_tray(self):
+        if not self._confirm_tray_action(
+            t("desktop.tray_stop_service"),
+            t("desktop.tray_stop_service_prompt"),
+        ):
+            return
+        self.service_controller.stop()
+        self._service_status_changed("stopped")
+
+    def _restart_service_from_tray(self):
+        active_streams = max(0, int(self._rtmp_snapshot.get("active_count") or 0))
+        message = (
+            t("desktop.tray_restart_service_prompt").format(count=active_streams)
+            if active_streams
+            else t("desktop.tray_restart_service_prompt_idle")
+        )
+        if not self._confirm_tray_action(
+            t("desktop.tray_restart_service"),
+            message,
+        ):
+            return
+        self.service_controller.stop()
+        self._service_status_changed("stopped")
+        self._start_service()
+
+    def _confirm_tray_action(self, title: str, message: str):
+        result = QMessageBox.question(
+            self,
+            title,
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return result == QMessageBox.StandardButton.Yes
+
+    def _has_active_work(self):
+        return (
+            self._update_activity_state in {"running", "paused", "stopping"}
+            or self.operation_controller.is_busy
+            or int(self._rtmp_snapshot.get("active_count") or 0) > 0
+            or int(self._rtmp_snapshot.get("starting_count") or 0) > 0
+        )
 
     def _navigate_from_dashboard(self, destination: str):
         page = {
@@ -498,6 +810,7 @@ class MainWindow(FluentWindow):
                 duration=-1,
             )
         self.service_controller.start()
+        self._refresh_tray_menu()
 
     def _install_rtmp_from_ui(self, start_service=False):
         dialog = QDialog(self)
@@ -582,11 +895,14 @@ class MainWindow(FluentWindow):
         )
 
     def _service_status_changed(self, status: str):
+        self._service_status = status
         self.dashboard.set_service_status(status)
         if status == "failed":
             self._mark_logs_error()
+        self._refresh_tray_menu()
 
     def _update_rtmp_navigation_status(self, snapshot: dict):
+        self._rtmp_snapshot = snapshot if isinstance(snapshot, dict) else {}
         active_count = max(0, int(snapshot.get("active_count") or 0))
         starting_count = max(0, int(snapshot.get("starting_count") or 0))
         if active_count:
@@ -607,6 +923,7 @@ class MainWindow(FluentWindow):
             )
         else:
             self._clear_navigation_status("rtmp")
+        self._refresh_tray_menu()
 
     def _update_about_navigation_status(self, state: str, payload):
         payload = payload if isinstance(payload, dict) else {}
@@ -652,6 +969,7 @@ class MainWindow(FluentWindow):
         self.controller.start()
 
     def _update_started(self):
+        self._update_progress_value = 0
         self._set_update_navigation_status("running")
         self.operation_controller.suspend()
         self.dashboard.set_running(True)
@@ -686,6 +1004,7 @@ class MainWindow(FluentWindow):
         }[state]
         self._set_navigation_status("dashboard", icon, color, key, dismiss_on_visit=dismiss)
         self._clear_navigation_status("tasks")
+        self._refresh_tray_menu()
 
     def _operation_started(self, operation: str):
         self._set_navigation_status(

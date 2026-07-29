@@ -18,6 +18,33 @@ from utils.i18n import t
 from utils.tools import get_public_url, parse_times, resource_path
 
 
+def next_scheduled_update(now: datetime.datetime | None = None):
+    """Return the next configured update time, or None when scheduling is disabled."""
+    timezone = pytz.timezone(config.time_zone)
+    if now is None:
+        now = datetime.datetime.now(timezone)
+    elif now.tzinfo is None:
+        now = timezone.localize(now)
+    else:
+        now = now.astimezone(timezone)
+    times = parse_times(config.update_times)
+    if config.update_mode == "time" and times:
+        candidates = []
+        for hour, minute in times:
+            candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            candidates.append(candidate if candidate > now else candidate + datetime.timedelta(days=1))
+        return min(candidates)
+    if config.update_interval:
+        run = latest_successful_run(constants.channel_results_path)
+        base = datetime.datetime.fromtimestamp(float(run["finished_at"]), timezone) if run and run.get("finished_at") else now
+        interval = datetime.timedelta(hours=config.update_interval)
+        next_time = base + interval
+        while next_time <= now:
+            next_time += interval
+        return next_time
+    return None
+
+
 class DashboardProgressBar(ProgressBar):
     """Compact pill-shaped progress track with theme-safe idle colors."""
 
@@ -550,23 +577,8 @@ class DashboardPage(QWidget):
 
     def refresh_schedule(self):
         try:
-            timezone = pytz.timezone(config.time_zone)
-            now = datetime.datetime.now(timezone)
-            times = parse_times(config.update_times)
-            if config.update_mode == "time" and times:
-                candidates = []
-                for hour, minute in times:
-                    candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-                    candidates.append(candidate if candidate > now else candidate + datetime.timedelta(days=1))
-                next_time = min(candidates)
-            elif config.update_interval:
-                run = latest_successful_run(constants.channel_results_path)
-                base = datetime.datetime.fromtimestamp(float(run["finished_at"]), timezone) if run and run.get("finished_at") else now
-                interval = datetime.timedelta(hours=config.update_interval)
-                next_time = base + interval
-                while next_time <= now:
-                    next_time += interval
-            else:
+            next_time = next_scheduled_update()
+            if next_time is None:
                 self.status_card.detail_label.setText(t("desktop.schedule_disabled"))
                 return
             self.status_card.detail_label.setText(t("desktop.next_update_time").format(time=next_time.strftime("%Y-%m-%d %H:%M:%S")))
