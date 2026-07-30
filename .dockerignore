@@ -6,6 +6,8 @@ tkinter_ui
 **/*.md
 static/images
 docs/images
+scripts/gui_showcase
+tests/test_gui_showcase.py
 .git
 .github
 .gitignore
