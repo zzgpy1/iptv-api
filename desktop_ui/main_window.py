@@ -64,8 +64,9 @@ class MainWindow(FluentWindow):
     rtmp_install_finished = Signal(dict)
     rtmp_install_output = Signal(str)
 
-    def __init__(self):
+    def __init__(self, start_runtime: bool = True):
         super().__init__()
+        self._start_runtime = bool(start_runtime)
         info = get_version_info()
         self._version = str(info.get("version") or "--")
         self.setWindowTitle(str(info.get("name") or "IPTV-API"))
@@ -206,15 +207,16 @@ class MainWindow(FluentWindow):
         self.rtmp_install_finished.connect(self._finish_rtmp_install)
         self.rtmp_install_output.connect(self._append_runtime_log)
         self.stackedWidget.currentChanged.connect(self._navigation_page_changed)
-        if config.open_service:
+        if self._start_runtime and config.open_service:
             self._start_service()
         else:
             self._service_status_changed("stopped")
-        self.rtmp_controller.start()
+        if self._start_runtime:
+            self.rtmp_controller.start()
         QApplication.instance().aboutToQuit.connect(self.shutdown)
         self._force_quit = False
         self.tray = None
-        if QSystemTrayIcon.isSystemTrayAvailable():
+        if self._start_runtime and QSystemTrayIcon.isSystemTrayAvailable():
             self.tray = QSystemTrayIcon(self.windowIcon(), self)
             self._create_tray_menu()
             self.tray.activated.connect(lambda reason: self.show_and_raise() if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
