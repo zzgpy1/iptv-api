@@ -336,22 +336,25 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 **环境变量：**
 
-| 变量              | 描述                                | 默认值       |
-|:----------------|:----------------------------------|:----------|
-| PUBLIC_DOMAIN   | 公网域名或 IP 地址，决定外部访问或推流结果的 Host 地址    | 127.0.0.1 |
-| PUBLIC_PORT     | 公网端口，设置为映射后的端口，决定外部访问地址和推流结果地址的端口 | 80        |
-| NGINX_HTTP_PORT | HTTP服务端口，外部访问需要映射该端口              | 8080      |
+| 变量              | 描述                                                | 默认值       |
+|:----------------|:--------------------------------------------------|:----------|
+| PUBLIC_URL      | 推荐：完整公网地址，例如 `http://192.168.1.10` 或 `https://iptv.example.com` |           |
+| PUBLIC_DOMAIN   | 兼容配置：`PUBLIC_URL` 留空时使用的公网域名或 IP                    | 127.0.0.1 |
+| PUBLIC_PORT     | 兼容配置：`PUBLIC_URL` 留空时使用的宿主机映射端口                    | 80        |
+| NGINX_HTTP_PORT | 高级兼容配置：容器内部 HTTP 端口，通常保持默认                        | 8080      |
 
 > 当宿主机/Docker 已启用 IPv6 时，容器会自动同时监听 IPv6 地址，无需额外配置；纯 IPv4 或禁用 IPv6 的环境则自动跳过。
 
 如果需要修改环境变量，在上述运行命令后添加以下参数：
 
 ```bash
-# 修改公网域名
--e PUBLIC_DOMAIN=your.domain.com
-# 修改公网端口
--e PUBLIC_PORT=80
+# 推荐：直接设置完整公网地址
+-e PUBLIC_URL=https://iptv.example.com
 ```
+
+使用仓库中的 Compose 文件时，只需通过 `PORT` 修改宿主机端口，例如
+`PORT=8088 docker compose up -d`。
+未设置或留空的 `PUBLIC_URL` 不会覆盖挂载配置文件中的 `public_url`。
 
 除了以上环境变量，还支持通过环境变量覆盖配置文件中的[配置项](../docs/config.md)
 
@@ -386,7 +389,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 **RTMP 推流：**
 
 > [!NOTE]
-> 1. 如果是服务器部署，请务必配置 `PUBLIC_DOMAIN` 环境变量为服务器域名或 IP 地址，`PUBLIC_PORT` 环境变量为公网端口，否则推流地址无法访问
+> 1. 如果是服务器部署，建议通过 `PUBLIC_URL` 配置完整公网地址；旧版 `PUBLIC_DOMAIN` 与 `PUBLIC_PORT` 仍兼容
 > 2. 开启推流后，默认会将获取到的接口（如订阅源）进行推流；请仅对你有明确授权、可合法分发或仅用于内部测试的内容启用该功能
 > 3. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹，将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
 > 4. 在中国大陆使用时，请特别确认内容授权、版权、网络视听与广播电视等相关合规要求；不要将本项目用于传播、转发或公开分发未经授权的直播源/节目源
@@ -414,9 +417,9 @@ HLS 流。请仅用于你有明确授权的内容、个人自有内容或封闭�
 #### 1. 启动前准备（以 Docker Compose 部署为例）
 
 - 使用本仓库提供的 `docker-compose.yml`，确认并根据需要修改下面的环境变量：
-    - `PUBLIC_DOMAIN`：公网可访问的域名或公网 IP（用于推流地址中的 Host）。
-    - `PUBLIC_PORT`：映射到宿主机的公网端口（影响最终访问地址）。
-    - `NGINX_HTTP_PORT`：容器内 HTTP 服务端口（通常保持默认）。
+    - `PORT`：映射到宿主机的访问端口。
+    - `PUBLIC_URL`：推荐填写完整公网地址，用于生成推流和播放列表链接。
+    - `NGINX_HTTP_PORT`：高级兼容项，容器内部 HTTP 端口通常保持默认。
 - 确保将配置目录挂载到容器内（默认：`/iptv-api/config`），便于在宿主机上修改模板、放置本地视频等。
 
 示例（摘自 compose 配置，保留用于参考）：
@@ -429,17 +432,16 @@ services:
     restart: unless-stopped
 
     ports:
-      - "80:8080" # 修改为公网端口:容器内HTTP服务端口
+      - "${PORT:-80}:8080" # PORT 是用户访问端口；8080 是固定的容器内部端口
 
     volumes:
       - /iptv-api/config:/iptv-api/config # 修改为宿主机配置文件夹路径:容器内配置文件夹路径
       - /iptv-api/output:/iptv-api/output
 
     environment:
-      PUBLIC_SCHEME: "http"
-      PUBLIC_DOMAIN: "192.168.1.95" # 修改为你的服务器域名或IP地址，这里以我的局域网IP为例
-      PUBLIC_PORT: "80" # 修改为公网端口
-      NGINX_HTTP_PORT: "8080" # 默认容器内HTTP服务端口
+      PUBLIC_URL: "${PUBLIC_URL:-http://192.168.1.95}" # 修改为完整公网地址
+      PUBLIC_PORT: "${PORT:-80}" # 兼容旧配置，由 PORT 自动同步
+      NGINX_HTTP_PORT: "8080" # 高级兼容项，通常不要修改
       CDN_URL: ""
       HTTP_PROXY: ""
 ```
@@ -514,8 +516,8 @@ docker compose up -d
 
 #### 6. 常见提示与调优建议
 
-- 公网访问与防火墙：确保 `PUBLIC_PORT` 对外已放通（防火墙、云服务安全组等）。RTMP/HTTP 需要对应端口能够被外部访问。
-- 域名与证书：若使用域名并启用 HTTPS，请将 `PUBLIC_DOMAIN` 设置为域名，`PUBLIC_SCHEME` 设置为 `https`，并在外部配置好反向代理或证书。
+- 公网访问与防火墙：确保 `PUBLIC_URL` 中的 HTTP 端口和 RTMP 端口已对外放通（防火墙、云服务安全组等）。
+- 域名与证书：若使用域名并启用 HTTPS，请直接将 `PUBLIC_URL` 设置为 `https://你的域名`，并在外部配置好反向代理或证书。
 - 性能与并发：本地推流会消耗 CPU 和带宽，建议合理设置 `rtmp_max_streams` 限制并发推流数量，避免服务器过载。
 - 空闲停止：`rtmp_idle_timeout` 控制无人观看后自动停止推流的超时时间（秒），可根据服务器资源与使用场景调整。
 

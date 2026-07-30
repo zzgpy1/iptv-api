@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 import pytz
 
@@ -86,6 +87,7 @@ CONFIG_SCHEMA = {
     **{key: ConfigRule(kind="boolean") for key in BOOLEAN_KEYS},
     "urls_limit": ConfigRule(kind="integer", minimum=1),
     "app_port": ConfigRule(kind="integer", minimum=1, maximum=65535),
+    "service_port": ConfigRule(kind="integer", minimum=1, maximum=65535),
     "nginx_http_port": ConfigRule(kind="integer", minimum=1, maximum=65535),
     "nginx_rtmp_port": ConfigRule(kind="integer", minimum=1, maximum=65535),
     "local_num": ConfigRule(kind="integer", minimum=0),
@@ -119,6 +121,7 @@ CONFIG_SCHEMA = {
     "update_times": ConfigRule(kind="times", allow_empty=True),
     "time_zone": ConfigRule(kind="timezone"),
     "public_domain": ConfigRule(),
+    "public_url": ConfigRule(kind="public_url", allow_empty=True),
     "cdn_url": ConfigRule(allow_empty=True),
     "http_proxy": ConfigRule(allow_empty=True),
     "user_agent": ConfigRule(allow_empty=True),
@@ -418,8 +421,24 @@ class ConfigManager:
         return self.config.getint("Settings", "app_port", fallback=5180)
 
     @property
+    def service_port(self):
+        legacy_port = self.config.getint("Settings", "nginx_http_port", fallback=8080)
+        if not self.config.has_option("Settings", "service_port"):
+            return legacy_port
+        service_source = self._sources.get(("Settings", "service_port"))
+        legacy_source = self._sources.get(("Settings", "nginx_http_port"))
+        if (
+            service_source == self._default_config_path
+            and legacy_source
+            and legacy_source != self._default_config_path
+        ):
+            return legacy_port
+        return self.config.getint("Settings", "service_port", fallback=legacy_port)
+
+    @property
     def nginx_http_port(self):
-        return self.config.getint("Settings", "nginx_http_port", fallback=8080)
+        """Backward-compatible alias for the user-facing HTTP service port."""
+        return self.service_port
 
     @property
     def nginx_rtmp_port(self):
@@ -579,6 +598,10 @@ class ConfigManager:
         return self.config.get("Settings", "public_scheme", fallback="http") or "http"
 
     @property
+    def public_url(self):
+        return self.config.get("Settings", "public_url", fallback="").strip().rstrip("/")
+
+    @property
     def public_domain(self):
         cfg = self.config.get("Settings", "public_domain", fallback="127.0.0.1")
         if cfg and cfg != "127.0.0.1":
@@ -603,7 +626,22 @@ class ConfigManager:
         env = self._environ.get("PUBLIC_PORT")
         if env:
             return int(env)
-        return self.nginx_http_port if self.rtmp_available else self.app_port
+        return self.service_port if self.rtmp_available else self.app_port
+
+    def environment_override_name(self, key: str) -> str | None:
+        source_key = key
+        if key == "service_port":
+            service_source = self._sources.get(("Settings", "service_port"))
+            legacy_source = self._sources.get(("Settings", "nginx_http_port"))
+            if (
+                service_source == self._default_config_path
+                and legacy_source
+                and legacy_source != self._default_config_path
+            ):
+                source_key = "nginx_http_port"
+        source = self._sources.get(("Settings", source_key), "")
+        prefix = "环境变量 "
+        return source[len(prefix):] if source.startswith(prefix) else None
 
     @property
     def language(self):
@@ -692,6 +730,11 @@ class ConfigManager:
                 for env_name in candidates:
                     env_val = self._environ.get(env_name)
                     if env_val is not None:
+                        # Compose expands `${PUBLIC_URL:-}` to an empty string
+                        # when it is not configured. Treat that value as absent
+                        # so a URL saved in the mounted config remains effective.
+                        if key == "public_url" and not str(env_val).strip():
+                            continue
                         self.config.set(section, key, env_val)
                         self._sources[(section, key)] = f"环境变量 {env_name}"
                         break
@@ -827,6 +870,30 @@ class ConfigManager:
                 ]
             return []
 
+        if rule.kind == "public_url":
+            try:
+                parts = urlsplit(value)
+                if (
+                    parts.scheme not in {"http", "https"}
+                    or not parts.hostname
+                    or parts.username
+                    or parts.password
+                    or parts.query
+                    or parts.fragment
+                ):
+                    raise ValueError
+                _ = parts.port
+            except ValueError:
+                return [
+                    self._issue(
+                        section,
+                        key,
+                        value,
+                        "应为完整的 HTTP(S) 地址，例如 https://iptv.example.com",
+                    )
+                ]
+            return []
+
         if rule.kind == "resolution":
             match = re.fullmatch(r"(\d+)[xX*](\d+)", value)
             if not match or any(int(part) <= 0 for part in match.groups()):
@@ -932,6 +999,28 @@ class ConfigManager:
                         "不能小于 min_resolution",
                     )
                 )
+
+            if self.config.getboolean("Settings", "open_rtmp", fallback=True):
+                ports = {
+                    "app_port": self.app_port,
+                    "service_port": self.service_port,
+                    "nginx_rtmp_port": self.nginx_rtmp_port,
+                }
+                duplicates = {
+                    port
+                    for port in ports.values()
+                    if list(ports.values()).count(port) > 1
+                }
+                for key, port in ports.items():
+                    if port in duplicates:
+                        issues.append(
+                            self._issue(
+                                "Settings",
+                                key,
+                                str(port),
+                                "开启 RTMP 时，内部 API、HTTP 服务和 RTMP 端口不能相同",
+                            )
+                        )
 
         public_port = self._environ.get("PUBLIC_PORT")
         if public_port is not None:

@@ -148,9 +148,11 @@
 | final_file               | Generated result file path.                                                                                                                                                                                                                                                                                                                 | output/result.txt                        |
 | open_realtime_write      | Enable real-time writing of result files, you can access and use the updated results during the speed measurement process                                                                                                                                                                                                                   | True                                     |
 | open_service             | Enable page service, used to control whether to start the result page service. If using platforms such as Qinglong with scheduled tasks, and you need the program to exit after update is finished, you can disable this.                                                                                                                   | True                                     |
-| app_port                 | Page service port, used to control the port number of the page service.                                                                                                                                                                                                                                                                     | 5180                                     |
-| public_scheme            | Public network protocol. Optional values: `http`, `https`.                                                                                                                                                                                                                                                                                  | http                                     |
-| public_domain            | Public network Host address, used to generate access URLs in the result; uses local machine IP by default.                                                                                                                                                                                                                                  | 127.0.0.1                                |
+| service_port             | HTTP service access port. Nginx listens here when desktop streaming is enabled; new configurations normally change only this port.                                                                                                                                                                                                          | 8080                                     |
+| public_url               | Recommended complete public URL, such as `https://iptv.example.com` or `http://host:8088`, used for playlist, EPG, logo, and service links.                                                                                                                                                                                                  |                                          |
+| app_port                 | Advanced compatibility setting: internal Flask API port. Normally do not change or use it as the user-facing port.                                                                                                                                                                                                                          | 5180                                     |
+| public_scheme            | Advanced compatibility setting: legacy public scheme, used only when `public_url` is empty.                                                                                                                                                                                                                                                 | http                                     |
+| public_domain            | Advanced compatibility setting: legacy public host, used only when `public_url` is empty; defaults to the local IP.                                                                                                                                                                                                                         | 127.0.0.1                                |
 | cdn_url                  | CDN proxy acceleration address(es) for subscription sources, channel logos and other resources. Multiple are supported (comma-separated): subscription and EPG sources fall back through them in order until one succeeds; channel logos use the first address.                                                                                                                                                                                                                     |                                          |
 | http_proxy               | HTTP proxy address, used for network requests such as obtaining subscription sources                                                                                                                                                                                                                                                        |                                          |
 | open_local               | Enable local source function, will use the data in the template file and the local source file (`local.txt`).                                                                                                                                                                                                                               | True                                     |
@@ -187,8 +189,8 @@
 | logo_type                | Channel logo file type.                                                                                                                                                                                                                                                                                                                     | png                                      |
 | open_subscribe_logo      | Enable to prioritize the tvg-logo address provided in the subscription m3u, only fall back to the logo library when the subscription source does not provide one.                                                                                                                                                                            | True                                     |
 | open_rtmp                | Enable RTMP push function. Recommended only for owned or authorized content. Requires FFmpeg installed and uses local bandwidth to improve playback experience.                                                                                                                                                                            | True                                     |
-| nginx_http_port          | Nginx HTTP service port, used for the HTTP service of RTMP push forwarding.                                                                                                                                                                                                                                                                 | 8080                                     |
-| nginx_rtmp_port          | Nginx RTMP service port, used for the RTMP service of RTMP push forwarding.                                                                                                                                                                                                                                                                 | 1935                                     |
+| nginx_http_port          | Advanced compatibility setting: legacy HTTP port name; use `service_port` for new configurations.                                                                                                                                                                                                                                           | 8080                                     |
+| nginx_rtmp_port          | Advanced setting: Nginx RTMP protocol port, needed only by streaming clients.                                                                                                                                                                                                                                                               | 1935                                     |
 | rtmp_idle_timeout        | RTMP channel idle stop-streaming timeout in seconds. When no one watches for longer than this duration, streaming is stopped, helping reduce server resource usage.                                                                                                                                                                         | 300                                      |
 | rtmp_max_streams         | Maximum number of concurrent RTMP push streams. Controls how many channels can be pushed at the same time. Larger values increase server load; tune to optimize resource usage.                                                                                                                                                             | 10                                       |
 | rtmp_transcode_mode      | Push streaming transcoding mode. `copy` means no transcoding — output is copied to save CPU consumption as much as possible. `auto` means adaptive transcoding to match players; this increases CPU usage but can improve compatibility.                                                                                                    | copy                                     |
@@ -308,22 +310,25 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 **Environment variables:**
 
-| Variable        | Description                                                                                                      | Default   |
-|:----------------|:-----------------------------------------------------------------------------------------------------------------|:----------|
-| PUBLIC_DOMAIN   | Public domain or IP address, determines external access and the Host used in push stream results                 | 127.0.0.1 |
-| PUBLIC_PORT     | Public port, set to the mapped port, determines external access address and the port used in push stream results | 80        |
-| NGINX_HTTP_PORT | Nginx HTTP service port, needs to be mapped for external access                                                  | 8080      |
+| Variable        | Description                                                                                         | Default   |
+|:----------------|:----------------------------------------------------------------------------------------------------|:----------|
+| PUBLIC_URL      | Recommended complete public URL, such as `http://192.168.1.10` or `https://iptv.example.com`         |           |
+| PUBLIC_DOMAIN   | Compatibility setting: public domain or IP used when `PUBLIC_URL` is empty                           | 127.0.0.1 |
+| PUBLIC_PORT     | Compatibility setting: mapped host port used when `PUBLIC_URL` is empty                              | 80        |
+| NGINX_HTTP_PORT | Advanced compatibility setting: internal container HTTP port; normally keep the default              | 8080      |
 
 > When IPv6 is enabled on the host/Docker, the container automatically listens on IPv6 addresses as well, with no extra configuration; in IPv4-only or IPv6-disabled environments it is skipped automatically.
 
 If you need to modify environment variables, add the following parameters after the above run command:
 
 ```bash
-# Modify public domain
--e PUBLIC_DOMAIN=your.domain.com
-# Modify public port
--e PUBLIC_PORT=80
+# Recommended: set the complete public URL
+-e PUBLIC_URL=https://iptv.example.com
 ```
+
+With the repository Compose file, change only the host port through `PORT`, for example
+`PORT=8088 docker compose up -d`. Compose updates both the port mapping and legacy `PUBLIC_PORT`.
+An unset or empty `PUBLIC_URL` does not override `public_url` in the mounted configuration.
 
 In addition to the environment variables listed above, you can also override the [configuration items](#config) in the
 configuration file via environment variables.
@@ -362,7 +367,7 @@ Log endpoints return the compatible plain-text format by default; add `?format=j
 **RTMP Streaming:**
 
 > [!NOTE]
-> 1. For server deployments, set `PUBLIC_DOMAIN` to the server domain or IP address and `PUBLIC_PORT` to the public port; otherwise streaming addresses will not be accessible.
+> 1. For server deployments, set the complete public address through `PUBLIC_URL`; legacy `PUBLIC_DOMAIN` and `PUBLIC_PORT` remain supported.
 > 2. When streaming is enabled, obtained interfaces such as subscription sources are streamed by default. Use this only for content you own, are authorized to redistribute, or need for closed/internal testing.
 > 3. To stream local videos, create `config/hls` and place files named after their channels in it. The program streams them to the corresponding channels.
 > 4. In Mainland China, ensure that content authorization, copyright, network-audiovisual, and broadcasting requirements are satisfied. Do not distribute, relay, or publicly expose unauthorized live streams or program sources.

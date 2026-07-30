@@ -403,8 +403,12 @@ def run_service(prompt_for_install=True):
             if config.rtmp_available and sys.platform in {"win32", "darwin"}:
                 rtmp_started = start_rtmp_service()
                 atexit.register(stop_rtmp_service)
-            public_url = get_public_url(
-                config.nginx_http_port if rtmp_started else config.app_port
+            public_url = (
+                get_public_url()
+                if config.public_url
+                else get_public_url(
+                    config.service_port if rtmp_started else config.app_port
+                )
             )
             mode = [t("name.direct_connection")]
             if rtmp_started:

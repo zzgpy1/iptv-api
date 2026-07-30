@@ -11,7 +11,7 @@ import time
 import requests
 
 from PySide6.QtCore import QByteArray, QObject, QProcess, QProcessEnvironment, QThread, QUrl, Signal, Slot
-from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
+from PySide6.QtNetwork import QNetworkAccessManager, QNetworkProxy, QNetworkReply, QNetworkRequest
 
 from main import UpdateSource
 import utils.constants as constants
@@ -291,6 +291,7 @@ class RtmpMonitorController(QObject):
         self.thread = None
         self.worker = None
         self.network = QNetworkAccessManager(self)
+        self.network.setProxy(QNetworkProxy(QNetworkProxy.ProxyType.NoProxy))
         self.controlled_streams = set()
         self._batch_requests = {}
         self._batch_sequence = 0
@@ -324,6 +325,7 @@ class RtmpMonitorController(QObject):
                     f"http://127.0.0.1:{config.app_port}/api/rtmp/streams/{result_key}/stop",
                     json={},
                     timeout=0.5,
+                    proxies={"http": None, "https": None, "all": None},
                 )
             except requests.RequestException:
                 pass
@@ -463,6 +465,7 @@ class ServiceProcessController(QObject):
                 f"http://127.0.0.1:{config.app_port}/api/rtmp/shutdown",
                 json={},
                 timeout=2,
+                proxies={"http": None, "https": None, "all": None},
             )
         except requests.RequestException:
             pass

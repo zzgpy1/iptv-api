@@ -146,9 +146,11 @@
 | final_file               | 生成结果文件路径                                                                                                             | output/result.txt                        |
 | open_realtime_write      | 开启实时写入结果文件，在测速过程中可以访问并使用更新结果                                                                                         | True                                     |
 | open_service             | 开启页面服务，用于控制是否启动结果页面服务；如果使用青龙等平台部署，有专门设定的定时任务，需要更新完成后停止运行，可以关闭该功能                                                     | True                                     |
-| app_port                 | 页面服务端口，用于控制页面服务的端口号                                                                                                  | 5180                                     |
-| public_scheme            | 公网协议；可选值: http、https                                                                                                 | http                                     |
-| public_domain            | 公网 Host 地址，用于生成结果中的访问地址，默认使用本机 IP                                                                                    | 127.0.0.1                                |
+| service_port             | HTTP 服务访问端口；桌面版启用推流时由 Nginx 监听，新配置通常只需修改此端口                                                                    | 8080                                     |
+| public_url               | 推荐的公网完整访问地址，例如 `https://iptv.example.com` 或 `http://host:8088`；用于统一生成播放列表、EPG、台标和服务链接                                |                                          |
+| app_port                 | 高级兼容设置：Flask 内部 API 端口，通常无需修改，也不应作为用户访问端口                                                                        | 5180                                     |
+| public_scheme            | 高级兼容设置：旧版公网协议，仅在 `public_url` 留空时生效；可选值: http、https                                                            | http                                     |
+| public_domain            | 高级兼容设置：旧版公网 Host，仅在 `public_url` 留空时生效，默认使用本机 IP                                                                 | 127.0.0.1                                |
 | cdn_url                  | CDN 代理加速地址，用于订阅源、频道图标等资源的加速访问；支持配置多个（用英文逗号分隔），订阅源与 EPG 按顺序逐个回退拉取，任一镜像成功即停，频道图标使用第一个地址                                                                                        |                                          |
 | http_proxy               | HTTP 代理地址，用于获取订阅源等网络请求                                                                                               |                                          |
 | open_local               | 开启本地源功能，将使用模板文件与本地源文件（local.txt）中的数据                                                                                 | True                                     |
@@ -185,8 +187,8 @@
 | logo_type                | 频道台标文件类型                                                                                                             | png                                      |
 | open_subscribe_logo      | 开启优先使用订阅源 m3u 中自带的 tvg-logo 台标地址，仅当订阅源未提供时才回退到台标库                                                                        | True                                     |
 | open_rtmp                | 开启 RTMP 推流功能，仅建议用于自有或已授权内容，需要安装 FFmpeg，利用本地带宽提升接口播放体验                                                                    | True                                     |
-| nginx_http_port          | Nginx HTTP 服务端口，用于 RTMP 推流转发的 HTTP 服务端口                                                                              | 8080                                     |
-| nginx_rtmp_port          | Nginx RTMP 服务端口，用于 RTMP 推流转发的 RTMP 服务端口                                                                              | 1935                                     |
+| nginx_http_port          | 高级兼容设置：旧版 HTTP 端口名；新配置请使用 `service_port`                                                                            | 8080                                     |
+| nginx_rtmp_port          | 高级设置：Nginx RTMP 协议端口，仅推流客户端需要                                                                                       | 1935                                     |
 | rtmp_idle_timeout        | RTMP 频道接口空闲停止推流超时时长，单位秒(s)，用于控制接口无人观看时超过该时长后停止推流，调整此值能优化服务器资源占用                                                      | 300                                      |
 | rtmp_max_streams         | RTMP 推流最大并发数量，用于控制同时推流的频道数量，数值越大服务器压力越大，调整此值能优化服务器资源占用                                                               | 10                                       |
 | rtmp_transcode_mode      | 推流转码模式，copy 则不进行转码，以复制方式输出，可以最大程度节省CPU消耗，auto 则自适应匹配播放器进行转码，会增加CPU消耗但能提升兼容性                                          | copy                                     |
@@ -304,22 +306,25 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 **环境变量：**
 
-| 变量              | 描述                                | 默认值       |
-|:----------------|:----------------------------------|:----------|
-| PUBLIC_DOMAIN   | 公网域名或 IP 地址，决定外部访问或推流结果的 Host 地址    | 127.0.0.1 |
-| PUBLIC_PORT     | 公网端口，设置为映射后的端口，决定外部访问地址和推流结果地址的端口 | 80        |
-| NGINX_HTTP_PORT | HTTP服务端口，外部访问需要映射该端口              | 8080      |
+| 变量              | 描述                                                | 默认值       |
+|:----------------|:--------------------------------------------------|:----------|
+| PUBLIC_URL      | 推荐：完整公网地址，例如 `http://192.168.1.10` 或 `https://iptv.example.com` |           |
+| PUBLIC_DOMAIN   | 兼容配置：`PUBLIC_URL` 留空时使用的公网域名或 IP                    | 127.0.0.1 |
+| PUBLIC_PORT     | 兼容配置：`PUBLIC_URL` 留空时使用的宿主机映射端口                    | 80        |
+| NGINX_HTTP_PORT | 高级兼容配置：容器内部 HTTP 端口，通常保持默认                        | 8080      |
 
 > 当宿主机/Docker 已启用 IPv6 时，容器会自动同时监听 IPv6 地址，无需额外配置；纯 IPv4 或禁用 IPv6 的环境则自动跳过。
 
 如果需要修改环境变量，在上述运行命令后添加以下参数：
 
 ```bash
-# 修改公网域名
--e PUBLIC_DOMAIN=your.domain.com
-# 修改公网端口
--e PUBLIC_PORT=80
+# 推荐：直接设置完整公网地址
+-e PUBLIC_URL=https://iptv.example.com
 ```
+
+使用仓库中的 Compose 文件时，只需通过 `PORT` 修改宿主机端口，例如
+`PORT=8088 docker compose up -d`；Compose 会同时更新端口映射和兼容的 `PUBLIC_PORT`。
+未设置或留空的 `PUBLIC_URL` 不会覆盖挂载配置文件中的 `public_url`。
 
 除了以上环境变量，还支持通过环境变量覆盖配置文件中的[配置项](#配置)
 
@@ -356,7 +361,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 **RTMP 推流：**
 
 > [!NOTE]
-> 1. 如果是服务器部署，请务必配置 `PUBLIC_DOMAIN` 环境变量为服务器域名或 IP 地址，`PUBLIC_PORT` 环境变量为公网端口，否则推流地址无法访问
+> 1. 如果是服务器部署，建议通过 `PUBLIC_URL` 配置完整公网地址；旧版 `PUBLIC_DOMAIN` 与 `PUBLIC_PORT` 仍兼容
 > 2. 开启推流后，默认会将获取到的接口（如订阅源）进行推流；请仅对你有明确授权、可合法分发或仅用于内部测试的内容启用该功能
 > 3. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹，将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
 > 4. 在中国大陆使用时，请特别确认内容授权、版权、网络视听与广播电视等相关合规要求；不要将本项目用于传播、转发或公开分发未经授权的直播源/节目源

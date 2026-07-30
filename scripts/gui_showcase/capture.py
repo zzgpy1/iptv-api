@@ -34,7 +34,9 @@ def _configure_environment(language: str) -> None:
     os.environ["open_service"] = "False"
     os.environ["update_startup"] = "False"
     os.environ["public_domain"] = "192.168.1.100"
+    os.environ["SERVICE_PORT"] = "8080"
     os.environ["PUBLIC_PORT"] = "8080"
+    os.environ["PUBLIC_URL"] = ""
     os.environ["IPTV_API_SKIP_VERSION_CHECK"] = "1"
 
 

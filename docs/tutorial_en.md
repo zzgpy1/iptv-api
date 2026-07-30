@@ -374,22 +374,25 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 **Environment variables:**
 
-| Variable        | Description                                                                                                      | Default   |
-|:----------------|:-----------------------------------------------------------------------------------------------------------------|:----------|
-| PUBLIC_DOMAIN   | Public domain or IP address, determines external access and the Host used in push stream results                 | 127.0.0.1 |
-| PUBLIC_PORT     | Public port, set to the mapped port, determines external access address and the port used in push stream results | 80        |
-| NGINX_HTTP_PORT | Nginx HTTP service port, needs to be mapped for external access                                                  | 8080      |
+| Variable        | Description                                                                                         | Default   |
+|:----------------|:----------------------------------------------------------------------------------------------------|:----------|
+| PUBLIC_URL      | Recommended complete public URL, such as `http://192.168.1.10` or `https://iptv.example.com`         |           |
+| PUBLIC_DOMAIN   | Compatibility setting: public domain or IP used when `PUBLIC_URL` is empty                           | 127.0.0.1 |
+| PUBLIC_PORT     | Compatibility setting: mapped host port used when `PUBLIC_URL` is empty                              | 80        |
+| NGINX_HTTP_PORT | Advanced compatibility setting: internal container HTTP port; normally keep the default              | 8080      |
 
 > When IPv6 is enabled on the host/Docker, the container automatically listens on IPv6 addresses as well, with no extra configuration; in IPv4-only or IPv6-disabled environments it is skipped automatically.
 
 If you need to modify environment variables, add the following parameters after the above run command:
 
 ```bash
-# Modify public domain
--e PUBLIC_DOMAIN=your.domain.com
-# Modify public port
--e PUBLIC_PORT=80
+# Recommended: set the complete public URL
+-e PUBLIC_URL=https://iptv.example.com
 ```
+
+With the repository Compose file, change only the host port through `PORT`, for example
+`PORT=8088 docker compose up -d`.
+An unset or empty `PUBLIC_URL` does not override `public_url` in the mounted configuration.
 
 In addition to the environment variables listed above, you can also override
 the [configuration items](../docs/config_en.md) in the configuration file via environment variables.
@@ -426,7 +429,7 @@ generated result files directly on the host. Append the following options to the
 **RTMP Streaming:**
 
 > [!NOTE]
-> 1. For server deployments, set `PUBLIC_DOMAIN` to the server domain or IP address and `PUBLIC_PORT` to the public port; otherwise streaming addresses will not be accessible.
+> 1. For server deployments, set the complete public address through `PUBLIC_URL`; legacy `PUBLIC_DOMAIN` and `PUBLIC_PORT` remain supported.
 > 2. When streaming is enabled, obtained interfaces such as subscription sources are streamed by default. Use this only for content you own, are authorized to redistribute, or need for closed/internal testing.
 > 3. To stream local videos, create `config/hls` and place files named after their channels in it. The program streams them to the corresponding channels.
 > 4. In Mainland China, ensure that content authorization, copyright, network-audiovisual, and broadcasting requirements are satisfied. Do not distribute, relay, or publicly expose unauthorized live streams or program sources.
@@ -453,9 +456,9 @@ authorized to relay or for closed/internal technical testing.
 #### 1. Preparations before start (Docker Compose example)
 
 - Use the repository's `docker-compose.yml` and confirm the following environment variables before starting:
-    - `PUBLIC_DOMAIN`: public domain or public IP used in stream Host headers.
-    - `PUBLIC_PORT`: public port mapped on the host (affects final access addresses).
-    - `NGINX_HTTP_PORT`: container internal HTTP port (normally keep default).
+    - `PORT`: user-facing port mapped on the host.
+    - `PUBLIC_URL`: recommended complete public URL used to generate streaming and playlist links.
+    - `NGINX_HTTP_PORT`: advanced compatibility setting; normally keep the internal container port unchanged.
 - Make sure the `config` directory is mounted into the container (default `/iptv-api/config`) so you can edit templates,
   add local videos, and place subscription files on the host.
 
@@ -469,17 +472,16 @@ services:
     restart: unless-stopped
 
     ports:
-      - "80:8080" # host_port:container_http_port
+      - "${PORT:-80}:8080" # PORT is user-facing; 8080 is the fixed internal container port
 
     volumes:
       - /iptv-api/config:/iptv-api/config # Change to host configuration folder path:container configuration folder path
       - /iptv-api/output:/iptv-api/output
 
     environment:
-      PUBLIC_SCHEME: "http"
-      PUBLIC_DOMAIN: "192.168.1.95" # Change to your server domain or IP address. Here it uses my LAN IP as an example.
-      PUBLIC_PORT: "80" # Change to public port
-      NGINX_HTTP_PORT: "8080" # Default HTTP service port inside the container
+      PUBLIC_URL: "${PUBLIC_URL:-http://192.168.1.95}" # Change to the complete public URL
+      PUBLIC_PORT: "${PORT:-80}" # Legacy compatibility value synchronized from PORT
+      NGINX_HTTP_PORT: "8080" # Advanced compatibility setting; normally do not change
       CDN_URL: ""
       HTTP_PROXY: ""
 ```
@@ -543,10 +545,10 @@ docker compose up -d
 
 #### 6. Common tips and tuning
 
-- Public access & firewall: Make sure `PUBLIC_PORT` is open to the outside (firewall, cloud security groups, etc.).
-  RTMP/HTTP ports must be accessible externally.
-- Domain and certificates: If using a domain with HTTPS, set `PUBLIC_DOMAIN` to your domain and `PUBLIC_SCHEME` to
-  `https`. Manage TLS/HTTPS via an external reverse proxy or your hosting setup.
+- Public access & firewall: Make sure the HTTP port in `PUBLIC_URL` and the RTMP port are externally accessible through
+  firewalls and cloud security groups.
+- Domain and certificates: For HTTPS, set `PUBLIC_URL` directly to `https://your-domain` and manage TLS through an
+  external reverse proxy or your hosting setup.
 - Performance & concurrency: Local streaming consumes CPU and bandwidth. Adjust `rtmp_max_streams` to limit concurrent
   streams and avoid overloading the server.
 - Idle stop: `rtmp_idle_timeout` controls how long a stream stays active with no viewers (in seconds); tune it per your

@@ -8,9 +8,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytz
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QWidget
+from PySide6.QtNetwork import QNetworkProxy
 
+from desktop_ui.controller import RtmpMonitorController
 from desktop_ui.main_window import MainWindow
-from desktop_ui.pages.dashboard import next_scheduled_update
+from desktop_ui.pages.dashboard import DashboardPage, next_scheduled_update
 
 
 class TrayMenuStructureTests(unittest.TestCase):
@@ -138,3 +140,71 @@ class TrayActivityTests(unittest.TestCase):
 
     def test_idle_tray_is_not_busy(self):
         self.assertFalse(MainWindow._has_active_work(self._host()))
+
+
+class TrayServicePortTests(unittest.TestCase):
+    @staticmethod
+    def _host(status="running", rtmp_available=False):
+        return SimpleNamespace(
+            _service_status=status,
+            _rtmp_snapshot={"available": rtmp_available},
+        )
+
+    def test_uses_public_proxy_port_when_rtmp_is_healthy(self):
+        self.assertEqual(MainWindow._service_port(self._host(rtmp_available=True)), 8080)
+
+    def test_falls_back_to_app_port_when_rtmp_is_unavailable(self):
+        self.assertEqual(MainWindow._service_port(self._host(rtmp_available=False)), 5180)
+
+    def test_stopped_service_does_not_advertise_proxy_port(self):
+        self.assertEqual(
+            MainWindow._service_port(self._host(status="stopped", rtmp_available=True)),
+            5180,
+        )
+
+
+class DashboardServiceUrlTests(unittest.TestCase):
+    @staticmethod
+    def _host(status="running", rtmp_available=False):
+        return SimpleNamespace(
+            _service_status=status,
+            _stream_snapshot={"available": rtmp_available},
+        )
+
+    @patch("desktop_ui.pages.dashboard.get_public_url", side_effect=lambda port: f"http://host:{port}")
+    def test_uses_proxy_url_only_while_proxy_is_healthy(self, _public_url):
+        self.assertEqual(
+            DashboardPage._service_url(self._host(rtmp_available=True)),
+            "http://host:8080",
+        )
+        self.assertEqual(
+            DashboardPage._service_url(self._host(rtmp_available=False)),
+            "http://host:5180",
+        )
+        self.assertEqual(
+            DashboardPage._service_url(self._host(status="stopped", rtmp_available=True)),
+            "http://host:5180",
+        )
+
+    @patch("desktop_ui.pages.dashboard.get_public_url", return_value="https://iptv.example.com")
+    @patch(
+        "desktop_ui.pages.dashboard.config",
+        SimpleNamespace(public_url="https://iptv.example.com"),
+    )
+    def test_prefers_explicit_public_url_while_service_is_running(
+        self,
+        _public_url,
+    ):
+        self.assertEqual(
+            DashboardPage._service_url(self._host(rtmp_available=True)),
+            "https://iptv.example.com",
+        )
+
+
+class RtmpControlNetworkTests(unittest.TestCase):
+    def test_loopback_control_requests_bypass_system_proxy(self):
+        controller = RtmpMonitorController()
+        self.assertEqual(
+            controller.network.proxy().type(),
+            QNetworkProxy.ProxyType.NoProxy,
+        )

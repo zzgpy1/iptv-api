@@ -2,8 +2,10 @@ import configparser
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from utils.config import CONFIG_SCHEMA, ConfigManager, ConfigValidationError
+from utils.tools import get_public_url
 
 
 class ConfigValidationTests(unittest.TestCase):
@@ -93,6 +95,144 @@ app_port = 5180
         message = str(raised.exception)
         self.assertIn("环境变量 PUBLIC_PORT", message)
         self.assertIn("应为 1～65535 的整数", message)
+
+    def test_legacy_nginx_http_port_remains_effective_for_old_user_config(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+service_port = 8080
+nginx_http_port = 8080
+""",
+            """\
+[Settings]
+nginx_http_port = 9090
+""",
+        )
+
+        self.assertEqual(manager.service_port, 9090)
+        self.assertEqual(manager.nginx_http_port, 9090)
+
+    def test_service_port_takes_precedence_when_explicitly_configured(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+service_port = 8080
+nginx_http_port = 8080
+""",
+            """\
+[Settings]
+service_port = 7070
+nginx_http_port = 9090
+""",
+        )
+
+        self.assertEqual(manager.service_port, 7070)
+        self.assertEqual(manager.nginx_http_port, 7070)
+
+    def test_legacy_nginx_http_environment_override_is_compatible(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+service_port = 8080
+nginx_http_port = 8080
+""",
+            environ={"NGINX_HTTP_PORT": "9090"},
+        )
+
+        self.assertEqual(manager.service_port, 9090)
+        self.assertEqual(
+            manager.environment_override_name("service_port"),
+            "NGINX_HTTP_PORT",
+        )
+
+    def test_service_port_environment_override_takes_precedence(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+service_port = 8080
+nginx_http_port = 8080
+""",
+            environ={
+                "SERVICE_PORT": "7070",
+                "NGINX_HTTP_PORT": "9090",
+            },
+        )
+
+        self.assertEqual(manager.service_port, 7070)
+        self.assertEqual(
+            manager.environment_override_name("service_port"),
+            "SERVICE_PORT",
+        )
+
+    def test_public_url_overrides_legacy_generated_address(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+public_url = https://iptv.example.com/base/
+public_scheme = http
+public_domain = legacy.example
+service_port = 8080
+nginx_http_port = 8080
+"""
+        )
+
+        self.assertEqual(manager.public_url, "https://iptv.example.com/base")
+        with patch("utils.tools.config", manager):
+            self.assertEqual(get_public_url(), "https://iptv.example.com/base")
+            self.assertEqual(get_public_url(5180), "http://legacy.example:5180")
+
+    def test_empty_public_url_environment_keeps_configured_address(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+public_url = https://iptv.example.com
+""",
+            environ={"PUBLIC_URL": ""},
+        )
+
+        self.assertEqual(manager.public_url, "https://iptv.example.com")
+        self.assertIsNone(manager.environment_override_name("public_url"))
+
+    def test_nonempty_public_url_environment_overrides_configured_address(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+public_url = https://config.example.com
+""",
+            environ={"PUBLIC_URL": "https://env.example.com/base/"},
+        )
+
+        self.assertEqual(manager.public_url, "https://env.example.com/base")
+        self.assertEqual(
+            manager.environment_override_name("public_url"),
+            "PUBLIC_URL",
+        )
+
+    def test_invalid_public_url_is_rejected(self):
+        with self.assertRaises(ConfigValidationError) as raised:
+            self._manager(
+                """\
+[Settings]
+public_url = iptv.example.com?token=secret
+"""
+            )
+
+        self.assertIn("完整的 HTTP(S) 地址", str(raised.exception))
+
+    def test_rtmp_listener_ports_must_be_distinct(self):
+        with self.assertRaises(ConfigValidationError) as raised:
+            self._manager(
+                """\
+[Settings]
+open_rtmp = True
+app_port = 8080
+service_port = 8080
+nginx_http_port = 8080
+nginx_rtmp_port = 1935
+"""
+            )
+
+        self.assertIn("端口不能相同", str(raised.exception))
 
     def test_special_formats_and_cross_field_constraints_are_validated(self):
         default = """\

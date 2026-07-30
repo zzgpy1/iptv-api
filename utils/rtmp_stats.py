@@ -102,9 +102,13 @@ def parse_rtmp_stats(content: bytes | str, db_path: str = constants.channel_resu
 
 
 def fetch_rtmp_snapshot(timeout: float = 1.5) -> dict:
-    url = f"http://127.0.0.1:{config.nginx_http_port}/stat"
+    url = f"http://127.0.0.1:{config.service_port}/stat"
     try:
-        response = requests.get(url, timeout=timeout)
+        response = requests.get(
+            url,
+            timeout=timeout,
+            proxies={"http": None, "https": None, "all": None},
+        )
         response.raise_for_status()
         snapshot = parse_rtmp_stats(response.content)
         snapshot.update({
@@ -119,6 +123,7 @@ def fetch_rtmp_snapshot(timeout: float = 1.5) -> dict:
             runtime_response = requests.get(
                 f"http://127.0.0.1:{config.app_port}/api/rtmp/runtime",
                 timeout=min(timeout, 0.8),
+                proxies={"http": None, "https": None, "all": None},
             )
             runtime_response.raise_for_status()
             runtime_payload = runtime_response.json()

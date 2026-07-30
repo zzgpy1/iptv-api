@@ -24,6 +24,14 @@ CONFIG_OPTIONS = {
     "rtmp_transcode_mode": ["copy", "auto"],
 }
 
+ADVANCED_CONFIG_KEYS = {
+    "app_port",
+    "nginx_http_port",
+    "nginx_rtmp_port",
+    "public_domain",
+    "public_scheme",
+}
+
 
 def _framed_channel_icon(icon: QIcon) -> QIcon:
     rendered = icon.pixmap(QSize(64, 40))
@@ -371,9 +379,16 @@ class ConfigTableModel(QAbstractTableModel):
         for key, value in config.config.items("Settings"):
             if key == "language":
                 continue
-            env_names = (key, key.upper(), f"Settings_{key}", f"SETTINGS_{key.upper()}")
-            env_name = next((name for name in env_names if os.getenv(name) is not None), None)
+            if key == "service_port":
+                value = str(config.service_port)
+            env_name = config.environment_override_name(key)
             description = descriptions.get(key, "")
+            advanced = key in ADVANCED_CONFIG_KEYS
+            read_only = key == "nginx_http_port"
+            if advanced:
+                description = f"{t('desktop.advanced_setting')} · {description}"
+            if read_only:
+                description = f"{t('desktop.legacy_read_only')} · {description}"
             if env_name:
                 description = f"{description} · {t('desktop.environment_override')}: {env_name}"
             self.all_rows.append({
@@ -383,17 +398,29 @@ class ConfigTableModel(QAbstractTableModel):
                 "env_name": env_name,
                 "kind": _config_kind(key, value),
                 "options": pytz.common_timezones if key == "time_zone" else CONFIG_OPTIONS.get(key, []),
+                "advanced": advanced,
+                "read_only": read_only,
             })
-        self.rows = list(self.all_rows)
+        self.rows = [row for row in self.all_rows if not row["advanced"]]
         self.endResetModel()
 
     def filter(self, text: str):
         term = text.strip().lower()
         self.beginResetModel()
         self.rows = [
-            row for row in self.all_rows
-            if not term or term in row["key"].lower() or term in str(row["value"]).lower()
-            or term in row["description"].lower()
+            row
+            for row in self.all_rows
+            if (
+                (
+                    term
+                    and (
+                        term in row["key"].lower()
+                        or term in str(row["value"]).lower()
+                        or term in row["description"].lower()
+                    )
+                )
+                or (not term and not row["advanced"])
+            )
         ]
         self.endResetModel()
 
@@ -408,7 +435,12 @@ class ConfigTableModel(QAbstractTableModel):
             return None
         row = self.rows[index.row()]
         key = ("key", "value", "description")[index.column()]
-        if role == Qt.ItemDataRole.DisplayRole and index.column() == 1 and not row["env_name"]:
+        if (
+            role == Qt.ItemDataRole.DisplayRole
+            and index.column() == 1
+            and not row["env_name"]
+            and not row["read_only"]
+        ):
             return ""
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             return row[key]
@@ -424,7 +456,7 @@ class ConfigTableModel(QAbstractTableModel):
         if role != Qt.ItemDataRole.EditRole or index.column() != 1 or not index.isValid():
             return False
         row = self.rows[index.row()]
-        if row["env_name"]:
+        if row["env_name"] or row["read_only"]:
             return False
         if row["kind"] == "bool":
             enabled = value if isinstance(value, bool) else str(value).lower() == "true"
@@ -436,7 +468,12 @@ class ConfigTableModel(QAbstractTableModel):
 
     def flags(self, index):
         flags = super().flags(index)
-        if index.isValid() and index.column() == 1 and not self.rows[index.row()]["env_name"]:
+        if (
+            index.isValid()
+            and index.column() == 1
+            and not self.rows[index.row()]["env_name"]
+            and not self.rows[index.row()]["read_only"]
+        ):
             flags |= Qt.ItemFlag.ItemIsEditable
         return flags
 
@@ -447,6 +484,6 @@ class ConfigTableModel(QAbstractTableModel):
 
     def save(self):
         for row in self.all_rows:
-            if not row["env_name"]:
+            if not row["env_name"] and not row["read_only"]:
                 config.set("Settings", row["key"], row["value"])
         config.save()

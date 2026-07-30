@@ -7,8 +7,11 @@ import subprocess
 import sys
 import threading
 import time
+import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from functools import lru_cache
+
+import requests
 
 import utils.constants as constants
 from utils.config import config
@@ -48,6 +51,42 @@ _hls_monitor_started_evt = threading.Event()
 _hls_monitor_lock = threading.Lock()
 _libc = ctypes.CDLL(None) if sys.platform.startswith("linux") else None
 _nginx_started_by_app = False
+
+
+def _rtmp_stats_available(timeout: float = 0.5) -> bool:
+    try:
+        response = requests.get(
+            f"http://127.0.0.1:{config.service_port}/stat",
+            timeout=timeout,
+            proxies={"http": None, "https": None, "all": None},
+        )
+        response.raise_for_status()
+        return ET.fromstring(response.content).tag == "rtmp"
+    except (requests.RequestException, ET.ParseError):
+        return False
+
+
+def _wait_for_rtmp_service(timeout: float = 5.0, interval: float = 0.1) -> bool:
+    deadline = time.monotonic() + timeout
+    while True:
+        if _rtmp_stats_available(timeout=min(0.5, max(0.1, timeout))):
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(interval)
+
+
+def _managed_nginx_running() -> bool:
+    pid_path = os.path.join(nginx_dir, "logs", "nginx.pid")
+    try:
+        with open(pid_path, "r", encoding="utf-8") as file:
+            pid = int(file.read().strip())
+        if pid <= 0:
+            return False
+        os.kill(pid, 0)
+        return True
+    except (OSError, TypeError, ValueError):
+        return False
 
 
 def _reserve_stream(channel_id):
@@ -643,6 +682,9 @@ def start_rtmp_service():
     if not status.get("available"):
         print(t(f"msg.rtmp_{status.get('error_code')}", status.get("error_code") or "RTMP unavailable"))
         return False
+    if _rtmp_stats_available():
+        _nginx_started_by_app = _managed_nginx_running()
+        return True
     nginx_path = status.get("executable") or nginx_path
     os.makedirs(os.path.dirname(nginx_conf), exist_ok=True)
     os.makedirs(os.path.join(nginx_dir, "logs"), exist_ok=True)
@@ -664,8 +706,13 @@ def start_rtmp_service():
             check = subprocess.run(args + ["-t"], capture_output=True, text=True, timeout=10)
             if check.returncode != 0:
                 raise RuntimeError((check.stderr or check.stdout).strip())
-            subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            launch = subprocess.run(args, capture_output=True, text=True, timeout=10)
+            if launch.returncode != 0:
+                raise RuntimeError((launch.stderr or launch.stdout).strip())
         _nginx_started_by_app = True
+        if not _wait_for_rtmp_service():
+            stop_rtmp_service()
+            raise RuntimeError(t("msg.rtmp_healthcheck_failed").format(port=config.service_port))
         return True
     except Exception as e:
         print(t("msg.error_rtmp_service_start_failed").format(info=e))

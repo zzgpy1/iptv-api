@@ -8,6 +8,7 @@ from PySide6.QtGui import QImage, QPainter
 from PySide6.QtWidgets import QApplication
 
 from desktop_ui.pages.settings import SettingsPage
+from desktop_ui.models import ConfigTableModel
 from desktop_ui.widgets import paint_table_checkbox
 
 
@@ -60,6 +61,27 @@ class SettingsEditorLayoutTests(unittest.TestCase):
         self.assertEqual(editor.geometry().right(), cell.right() - 6)
         self.assertGreaterEqual(editor.geometry().top(), cell.top())
         self.assertLessEqual(editor.geometry().bottom(), cell.bottom())
+
+    def test_advanced_port_settings_are_hidden_until_searched(self):
+        model = ConfigTableModel()
+        visible_keys = {row["key"] for row in model.rows}
+        self.assertIn("service_port", visible_keys)
+        self.assertIn("public_url", visible_keys)
+        self.assertNotIn("app_port", visible_keys)
+        self.assertNotIn("nginx_http_port", visible_keys)
+
+        model.filter("app_port")
+
+        self.assertEqual([row["key"] for row in model.rows], ["app_port"])
+
+        model.filter("nginx_http_port")
+        legacy_row = next(
+            index
+            for index, row in enumerate(model.rows)
+            if row["key"] == "nginx_http_port"
+        )
+        legacy_index = model.index(legacy_row, 1)
+        self.assertFalse(model.flags(legacy_index) & Qt.ItemFlag.ItemIsEditable)
 
 
 if __name__ == "__main__":

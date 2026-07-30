@@ -406,6 +406,8 @@ def merge_objects(*objects, match_key=None):
 
 
 def get_public_url(port: int | None = None) -> str:
+    if port is None and config.public_url:
+        return config.public_url
     port = config.public_port if port is None else port
     host = config.public_domain
     scheme = config.public_scheme
@@ -1085,7 +1087,7 @@ def render_nginx_conf(nginx_conf_template, nginx_conf, replacements=None):
         content = f.read()
 
     content = content.replace('${APP_PORT}', str(config.app_port))
-    content = content.replace('${NGINX_HTTP_PORT}', str(config.nginx_http_port))
+    content = content.replace('${NGINX_HTTP_PORT}', str(config.service_port))
     content = content.replace('${NGINX_RTMP_PORT}', str(config.nginx_rtmp_port))
     for key, value in (replacements or {}).items():
         content = content.replace(key, str(value))

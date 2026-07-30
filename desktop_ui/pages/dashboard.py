@@ -169,7 +169,13 @@ class DashboardPage(QWidget):
         self.status_card = MetricCard(t("desktop.run_status"), t("desktop.idle"), icon=FluentIcon.POWER_BUTTON, accent="#64748B")
         self.channel_card = MetricCard(t("desktop.channels"), "0", icon=FluentIcon.LIBRARY, accent="#7C3AED")
         self.valid_card = MetricCard(t("desktop.valid_results"), "0", icon=FluentIcon.COMPLETED, accent="#059669")
-        self.service_card = MetricCard(t("desktop.service"), t("desktop.unknown"), get_public_url(), FluentIcon.GLOBE, accent="#EA580C")
+        self.service_card = MetricCard(
+            t("desktop.service"),
+            t("desktop.unknown"),
+            get_public_url(config.app_port),
+            FluentIcon.GLOBE,
+            accent="#EA580C",
+        )
         for card in (self.status_card, self.channel_card, self.valid_card, self.service_card):
             card.set_clickable()
 
@@ -480,7 +486,7 @@ class DashboardPage(QWidget):
             "stopped": t("desktop.stopped"),
             "failed": t("desktop.unavailable"),
         }.get(status, t("desktop.unknown"))
-        self.service_card.set_value(label, get_public_url())
+        self.service_card.set_value(label, self._service_url())
 
     def set_stream_snapshot(self, snapshot: dict):
         self._stream_snapshot = snapshot
@@ -490,6 +496,17 @@ class DashboardPage(QWidget):
             for row in self._runtime_rows
         ]
         self._apply_runtime_rows()
+        self.set_service_status(self._service_status)
+
+    def _service_url(self) -> str:
+        if config.public_url and self._service_status in {"running", "external"}:
+            return get_public_url()
+        use_rtmp_proxy = (
+            self._service_status in {"running", "external"}
+            and bool(self._stream_snapshot.get("available"))
+        )
+        port = config.service_port if use_rtmp_proxy else config.app_port
+        return get_public_url(port)
 
     def _show_stream_menu(self, row: dict, position):
         menu = RoundMenu(parent=self)
@@ -621,7 +638,7 @@ class DashboardPage(QWidget):
         self.refresh_schedule()
 
     def _open_service_route(self, route: str):
-        QDesktopServices.openUrl(QUrl(f"{get_public_url().rstrip('/')}{route}"))
+        QDesktopServices.openUrl(QUrl(f"{self._service_url().rstrip('/')}{route}"))
 
     def open_output(self):
         path = os.path.abspath(constants.output_dir)

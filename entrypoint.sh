@@ -17,6 +17,9 @@ export IPTV_API_PLAIN_OUTPUT=1
 : "${APP_PORT:=$APP_PORT}"
 : "${NGINX_HTTP_PORT:=$NGINX_HTTP_PORT}"
 : "${NGINX_RTMP_PORT:=$NGINX_RTMP_PORT}"
+if [ -n "${SERVICE_PORT:-}" ]; then
+  NGINX_HTTP_PORT="$SERVICE_PORT"
+fi
 
 if [ -f /proc/net/if_inet6 ]; then
   IPV6_HTTP_LISTEN="listen [::]:${NGINX_HTTP_PORT};"

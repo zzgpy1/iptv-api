@@ -9,7 +9,7 @@
 
 > [!NOTE]
 > 配置项位于 `config/config.ini`。建议仅在 `config/user_config.ini` 中保存需要覆盖的配置，并保留
-> `[Settings]` 分组；也可以使用同名环境变量覆盖。
+> `[Settings]` 分组；也可以使用同名环境变量覆盖。`PUBLIC_URL` 未设置或留空时不会覆盖配置文件中的 `public_url`。
 
 | 配置项                    | 描述                                                                                                                   | 默认值                                      |
 |:-----------------------|:---------------------------------------------------------------------------------------------------------------------|:-----------------------------------------|
@@ -33,9 +33,11 @@
 | final_file             | 生成结果文件路径                                                                                                             | output/result.txt                        |
 | open_realtime_write    | 开启实时写入结果文件，在测速过程中可以访问并使用更新结果                                                                                         | True                                     |
 | open_service           | 开启页面服务，用于控制是否启动结果页面服务；如果使用青龙等平台部署，有专门设定的定时任务，需要更新完成后停止运行，可以关闭该功能                                                     | True                                     |
-| app_port               | 页面服务端口，用于控制页面服务的端口号                                                                                                  | 5180                                     |
-| public_scheme          | 公网协议；可选值: http、https                                                                                                 | http                                     |
-| public_domain          | 公网 Host 地址，用于生成结果中的访问地址，默认使用本机 IP                                                                                    | 127.0.0.1                                |
+| service_port           | HTTP 服务访问端口；桌面版启用推流时由 Nginx 监听，新配置通常只需修改此端口                                                                    | 8080                                     |
+| public_url             | 推荐的公网完整访问地址，例如 `https://iptv.example.com` 或 `http://host:8088`；用于统一生成播放列表、EPG、台标和服务链接                                |                                          |
+| app_port               | 高级兼容设置：Flask 内部 API 端口，通常无需修改，也不应作为用户访问端口                                                                        | 5180                                     |
+| public_scheme          | 高级兼容设置：旧版公网协议，仅在 `public_url` 留空时生效；可选值: http、https                                                            | http                                     |
+| public_domain          | 高级兼容设置：旧版公网 Host，仅在 `public_url` 留空时生效，默认使用本机 IP                                                                 | 127.0.0.1                                |
 | cdn_url                | CDN 代理加速地址，用于订阅源、频道图标等资源的加速访问；支持配置多个（用英文逗号分隔），订阅源与 EPG 按顺序逐个回退拉取，任一镜像成功即停，频道图标使用第一个地址                                                                                        |                                          |
 | http_proxy             | HTTP 代理地址，用于获取订阅源等网络请求                                                                                               |                                          |
 | open_local             | 开启本地源功能，将使用模板文件与本地源文件（local.txt）中的数据                                                                                 | True                                     |
@@ -72,8 +74,8 @@
 | logo_type              | 频道台标文件类型                                                                                                             | png                                      |
 | open_subscribe_logo    | 开启优先使用订阅源 m3u 中自带的 tvg-logo 台标地址，仅当订阅源未提供时才回退到台标库                                                                        | True                                     |
 | open_rtmp              | 开启 RTMP 推流功能，仅建议用于自有或已授权内容，需要安装 FFmpeg，利用本地带宽提升接口播放体验                                                                    | True                                     |
-| nginx_http_port        | Nginx HTTP 服务端口，用于 RTMP 推流转发的 HTTP 服务端口                                                                              | 8080                                     |
-| nginx_rtmp_port        | Nginx RTMP 服务端口，用于 RTMP 推流转发的 RTMP 服务端口                                                                              | 1935                                     |
+| nginx_http_port        | 高级兼容设置：旧版 HTTP 端口名；新配置请使用 `service_port`                                                                            | 8080                                     |
+| nginx_rtmp_port        | 高级设置：Nginx RTMP 协议端口，仅推流客户端需要                                                                                       | 1935                                     |
 | rtmp_idle_timeout      | RTMP 频道接口空闲停止推流超时时长，单位秒(s)，用于控制接口无人观看时超过该时长后停止推流，调整此值能优化服务器资源占用                                                      | 300                                      |
 | rtmp_max_streams       | RTMP 推流最大并发数量，用于控制同时推流的频道数量，数值越大服务器压力越大，调整此值能优化服务器资源占用                                                               | 10                                       |
 | rtmp_transcode_mode    | 推流转码模式，copy 则不进行转码，以复制方式输出，可以最大程度节省CPU消耗，auto 则自适应匹配播放器进行转码，会增加CPU消耗但能提升兼容性                                          | copy                                     |

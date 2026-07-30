@@ -483,7 +483,7 @@ class MainWindow(FluentWindow):
         self.tray_restart_service_action = QAction(self)
         self.tray_stop_service_action = QAction(self)
         self.tray_open_results_action.triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl(get_public_url()))
+            lambda: QDesktopServices.openUrl(QUrl(self._service_url()))
         )
         self.tray_copy_service_url_action.triggered.connect(self._copy_service_url_from_tray)
         self.tray_open_output_action.triggered.connect(self.dashboard.open_output)
@@ -533,9 +533,9 @@ class MainWindow(FluentWindow):
             "stopped": t("desktop.stopped"),
             "failed": t("desktop.unavailable"),
         }.get(self._service_status, t("desktop.unknown"))
-        self.tray_service_status_action.setText(
-            t("desktop.tray_service_status").format(status=service_label, port=config.app_port)
-        )
+        self.tray_service_status_action.setText(t("desktop.tray_service_status").format(
+            status=service_label,
+        ))
 
         update_key = {
             "running": "desktop.tray_update_running",
@@ -664,13 +664,25 @@ class MainWindow(FluentWindow):
         self.switchTo(page)
 
     def _copy_service_url_from_tray(self):
-        QGuiApplication.clipboard().setText(get_public_url())
+        QGuiApplication.clipboard().setText(self._service_url())
         self.tray.showMessage(
             t("desktop.tray_copy_service_url"),
             t("desktop.tray_service_url_copied"),
             QSystemTrayIcon.MessageIcon.Information,
             2500,
         )
+
+    def _service_port(self) -> int:
+        use_rtmp_proxy = (
+            self._service_status in {"running", "external"}
+            and bool(self._rtmp_snapshot.get("available"))
+        )
+        return config.service_port if use_rtmp_proxy else config.app_port
+
+    def _service_url(self) -> str:
+        if config.public_url and self._service_status in {"running", "external"}:
+            return get_public_url()
+        return get_public_url(self._service_port())
 
     def _start_service_from_tray(self):
         if self.service_controller.process is not None:
