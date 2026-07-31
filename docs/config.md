@@ -47,6 +47,9 @@
 | open_headers           | 开启使用 M3U 内含的请求头验证信息，用于测速等操作，个别播放器可能不支持播放这类含验证信息的接口                                                          | True                                     |
 | user_agent             | 全局请求 User-Agent，用于拉取订阅源、测速以及写入 m3u 结果（无需开启 open_headers），留空则使用内置默认 UA；优先级：接口自带 UA > 订阅地址 UA > 全局 UA > 内置默认 UA                            |                                          |
 | open_speed_test        | 开启测速功能，获取响应时间、速率、分辨率                                                                                                 | True                                     |
+| open_stream_screenshot | 自动为可播放候选接口获取播放截图；会增加 FFmpeg 解码开销和更新时间，关闭时仍可在 GUI 手动获取                                             | False                                    |
+| stream_screenshot_timeout | 单个接口截图超时时长，单位秒(s)                                                                                                      | 5                                        |
+| stream_screenshot_width | 播放截图最大宽度，按原始宽高比缩放                                                                                                      | 640                                      |
 | open_filter_resolution | 开启分辨率过滤，低于最小分辨率（min_resolution）的接口将会被过滤，GUI 用户需要手动安装 FFmpeg，程序会自动调用 FFmpeg 获取接口分辨率，推荐开启，虽然会增加测速阶段耗时，但能更有效地区分是否可播放的接口 | True                                     |
 | open_filter_speed      | 开启速率过滤，低于最小速率（min_speed）的接口将会被过滤                                                                                     | True                                     |
 | open_filter_ad         | 开启广告过滤，自动识别并过滤无信号/广告等循环占位源（含 #EXT-X-ENDLIST 的短循环列表，或片段地址包含广告关键字），复用测速阶段已抓取的播放列表进行判断，不增加额外请求与测速耗时                            | True                                     |

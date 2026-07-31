@@ -17,7 +17,7 @@ from updates.epg.tools import write_to_xml, compress_to_gz
 from updates.subscribe import get_channels_by_subscribe_urls
 from utils.aggregator import ResultAggregator
 from utils.channel import get_channel_items, append_total_data, get_speed_test_status, test_speed
-from utils.channel_repository import finish_run, start_run
+from utils.channel_repository import finish_run, prune_stream_screenshots, start_run
 from utils.config import config
 from utils.i18n import t
 from utils.requests.async_tools import check_ipv6_support_async
@@ -697,6 +697,19 @@ class UpdateSource:
             else:
                 final_result = await self._stop_aggregator(flush=True)
                 self.source_metrics["output_items"] = get_urls_len(final_result)
+                try:
+                    await asyncio.to_thread(
+                        prune_stream_screenshots,
+                        constants.channel_results_path,
+                        constants.screenshot_dir,
+                    )
+                except Exception as exc:
+                    self.reporter.warning(
+                        "screenshots.cleanup_failed",
+                        t("msg.screenshot_cleanup_failed").format(info=exc),
+                        phase="output",
+                        error_type=type(exc).__name__,
+                    )
                 if (
                     not self.run_outcome
                     and self.source_metrics["aggregated_items"] > 0

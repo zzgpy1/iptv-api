@@ -11,10 +11,13 @@ from utils.channel_repository import (
     list_channels,
     load_selected_snapshot,
     set_channel_selection,
+    upsert_stream_screenshot,
     update_result_measurement,
 )
 from utils.config import config
 from utils.i18n import t
+from utils.ffmpeg import capture_stream_screenshot
+from utils.requests.tools import headers as request_headers
 from utils.speed import get_speed, invalidate_speed_cache
 
 
@@ -72,6 +75,169 @@ class ChannelOperations:
             self._resort_and_publish(channel_key)
             finish_operation(self.db_path, operation_id, "success")
             return merged
+        except asyncio.CancelledError:
+            finish_operation(self.db_path, operation_id, "cancelled")
+            raise
+        except Exception as exc:
+            finish_operation(self.db_path, operation_id, "failed", str(exc))
+            raise
+
+    async def capture_result_screenshot(
+        self,
+        channel_key: str,
+        result_key: str,
+        progress=None,
+    ) -> dict:
+        operation_id = begin_operation(
+            self.db_path,
+            "capture_result_screenshot",
+            "result",
+            result_key,
+        )
+        try:
+            channel = get_channel(self.db_path, channel_key)
+            rows = list_channel_results(self.db_path, channel_key)
+            row = next((item for item in rows if item["result_key"] == result_key), None)
+            if not channel or not row:
+                raise ValueError(t("msg.channel_result_not_found"))
+            if progress:
+                progress(0, 1, channel["name"])
+            screenshot = await capture_stream_screenshot(
+                row["url"].partition("$")[0],
+                result_key,
+                constants.screenshot_dir,
+                headers={
+                    **request_headers,
+                    **(row.get("headers") or {}),
+                },
+                timeout=config.stream_screenshot_timeout,
+                width=config.stream_screenshot_width,
+            )
+            upsert_stream_screenshot(self.db_path, screenshot)
+            if screenshot.get("status") != "success":
+                raise RuntimeError(
+                    t(
+                        f"desktop.screenshot_error_{screenshot.get('error')}",
+                        screenshot.get("error") or t("desktop.screenshot_failed"),
+                    )
+                )
+            merged = {
+                **_as_channel_item(row),
+                **{
+                    key: screenshot[key]
+                    for key in ("resolution", "fps", "video_codec", "audio_codec")
+                    if screenshot.get(key) is not None
+                },
+            }
+            update_result_measurement(self.db_path, channel_key, result_key, merged)
+            self._resort_and_publish(channel_key)
+            if progress:
+                progress(1, 1, channel["name"])
+            finish_operation(self.db_path, operation_id, "success")
+            return {
+                **screenshot,
+                "channel_key": channel_key,
+                "channel_name": channel["name"],
+            }
+        except asyncio.CancelledError:
+            finish_operation(self.db_path, operation_id, "cancelled")
+            raise
+        except Exception as exc:
+            finish_operation(self.db_path, operation_id, "failed", str(exc))
+            raise
+
+    async def capture_result_screenshots(
+        self,
+        channel_key: str,
+        result_keys: list[str],
+        progress=None,
+    ) -> dict:
+        operation_id = begin_operation(
+            self.db_path,
+            "capture_result_screenshots",
+            "channel",
+            channel_key,
+        )
+        try:
+            channel = get_channel(self.db_path, channel_key)
+            rows = list_channel_results(self.db_path, channel_key)
+            requested_keys = list(dict.fromkeys(key for key in result_keys if key))
+            if not requested_keys:
+                raise ValueError(t("msg.channel_result_not_found"))
+            row_map = {row["result_key"]: row for row in rows}
+            targets = [row_map[key] for key in requested_keys if key in row_map]
+            if not channel:
+                raise ValueError(t("msg.channel_not_found"))
+            if len(targets) != len(requested_keys):
+                raise ValueError(t("msg.channel_result_not_found"))
+
+            total = len(targets)
+            completed = 0
+            semaphore = asyncio.Semaphore(
+                max(1, min(2, config.performance_settings.probe_concurrency, total or 1))
+            )
+
+            async def capture_one(row: dict):
+                nonlocal completed
+                async with semaphore:
+                    screenshot = await capture_stream_screenshot(
+                        row["url"].partition("$")[0],
+                        row["result_key"],
+                        constants.screenshot_dir,
+                        headers={
+                            **request_headers,
+                            **(row.get("headers") or {}),
+                        },
+                        timeout=config.stream_screenshot_timeout,
+                        width=config.stream_screenshot_width,
+                    )
+                await asyncio.to_thread(
+                    upsert_stream_screenshot,
+                    self.db_path,
+                    screenshot,
+                )
+                if screenshot.get("status") == "success":
+                    merged = {
+                        **_as_channel_item(row),
+                        **{
+                            key: screenshot[key]
+                            for key in ("resolution", "fps", "video_codec", "audio_codec")
+                            if screenshot.get(key) is not None
+                        },
+                    }
+                    await asyncio.to_thread(
+                        update_result_measurement,
+                        self.db_path,
+                        channel_key,
+                        row["result_key"],
+                        merged,
+                    )
+                completed += 1
+                if progress:
+                    progress(completed, total, channel["name"])
+                return screenshot
+
+            screenshots = await asyncio.gather(
+                *(capture_one(row) for row in targets)
+            ) if targets else []
+            if any(item.get("status") == "success" for item in screenshots):
+                self._resort_and_publish(channel_key)
+            failed = sum(item.get("status") != "success" for item in screenshots)
+            finish_operation(
+                self.db_path,
+                operation_id,
+                "partial" if failed else "success",
+                t("desktop.screenshot_batch_result").format(
+                    success=len(screenshots) - failed,
+                    failed=failed,
+                ),
+            )
+            return {
+                "channel_key": channel_key,
+                "results": screenshots,
+                "success": len(screenshots) - failed,
+                "failed": failed,
+            }
         except asyncio.CancelledError:
             finish_operation(self.db_path, operation_id, "cancelled")
             raise

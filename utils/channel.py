@@ -14,12 +14,14 @@ import utils.constants as constants
 from utils.artifacts import ArtifactWriter
 from utils.alias import Alias
 from utils.config import config
+from utils.channel_repository import upsert_stream_screenshot
 from utils.db import sync_result_data
-from utils.ffmpeg import check_ffmpeg_installed_status
+from utils.ffmpeg import capture_stream_screenshot, check_ffmpeg_installed_status
 from utils.frozen import is_url_frozen, mark_url_bad, mark_url_good
 from utils.i18n import t
 from utils.identity import stable_result_id
 from utils.ip_checker import IPChecker
+from utils.requests.tools import headers as request_headers
 from utils.speed import (
     create_speed_test_session,
     get_speed,
@@ -883,11 +885,19 @@ async def test_speed(
     """
     ipv6_proxy_url = None if (not config.open_ipv6 or ipv6) else constants.ipv6_proxy
     open_full_speed_test = config.open_full_speed_test
-    get_resolution = config.open_filter_resolution and check_ffmpeg_installed_status()
+    needs_ffmpeg = config.open_filter_resolution or config.open_stream_screenshot
+    ffmpeg_available = check_ffmpeg_installed_status() if needs_ffmpeg else False
+    get_resolution = config.open_filter_resolution and ffmpeg_available
+    capture_screenshots = config.open_stream_screenshot and ffmpeg_available
     performance = config.performance_settings
     concurrency = performance.speed_test_concurrency
     http_semaphore = asyncio.Semaphore(concurrency)
     probe_semaphore = asyncio.Semaphore(performance.probe_concurrency)
+    screenshot_semaphore = asyncio.Semaphore(min(2, performance.probe_concurrency))
+    screenshot_speed_threshold = min(
+        [min_speed, *resolution_speed_map.values()],
+        default=min_speed,
+    )
     speed_writer = ArtifactWriter(
         constants.speed_test_log_path,
         constants.speed_test_jsonl_path,
@@ -1009,6 +1019,50 @@ async def test_speed(
                             "test_status": "request_error",
                             "error_type": type(exc).__name__,
                         }
+                    speed_value = result.get("speed") or 0
+                    delay_value = result.get("delay")
+                    if (
+                        capture_screenshots
+                        and delay_value not in {-1, None}
+                        and isinstance(speed_value, (int, float))
+                        and speed_value >= screenshot_speed_threshold
+                        and not math.isinf(speed_value)
+                    ):
+                        result_key = info.get("id") or stable_result_id(
+                            info.get("url", ""),
+                            info.get("headers"),
+                        )
+                        try:
+                            async with screenshot_semaphore:
+                                screenshot = await capture_stream_screenshot(
+                                    info.get("url", "").partition("$")[0],
+                                    result_key,
+                                    constants.screenshot_dir,
+                                    headers={
+                                        **request_headers,
+                                        **(info.get("headers") or {}),
+                                    },
+                                    timeout=config.stream_screenshot_timeout,
+                                    width=config.stream_screenshot_width,
+                                )
+                            await asyncio.to_thread(
+                                upsert_stream_screenshot,
+                                constants.channel_results_path,
+                                screenshot,
+                            )
+                            if screenshot.get("status") == "success":
+                                for key in (
+                                    "resolution",
+                                    "fps",
+                                    "video_codec",
+                                    "audio_codec",
+                                ):
+                                    if screenshot.get(key) is not None:
+                                        result[key] = screenshot[key]
+                        except asyncio.CancelledError:
+                            raise
+                        except Exception:
+                            pass
                     if pause_wait:
                         await pause_wait()
                     handle_result(cate, name, info, result)

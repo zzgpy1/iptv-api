@@ -54,6 +54,7 @@ class GuiShowcaseFixtureTests(unittest.TestCase):
         }
         self.assertIn("scripts/gui_showcase", dockerignore)
         self.assertIn("tests/test_gui_showcase.py", dockerignore)
+        self.assertIn("output/screenshots", dockerignore)
         for spec_path in (
             ROOT / "desktop_ui" / "desktop_ui.spec",
             ROOT / "tkinter_ui" / "tkinter_ui.spec",

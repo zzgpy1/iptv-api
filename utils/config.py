@@ -70,6 +70,7 @@ BOOLEAN_KEYS = {
     "open_rtmp",
     "open_service",
     "open_speed_test",
+    "open_stream_screenshot",
     "open_subscribe",
     "open_subscribe_epg",
     "open_subscribe_logo",
@@ -94,6 +95,8 @@ CONFIG_SCHEMA = {
     "subscribe_num": ConfigRule(kind="integer", minimum=0),
     "speed_test_limit": ConfigRule(kind="integer", minimum=0),
     "speed_test_timeout": ConfigRule(kind="integer", minimum=1),
+    "stream_screenshot_timeout": ConfigRule(kind="integer", minimum=1, maximum=60),
+    "stream_screenshot_width": ConfigRule(kind="integer", minimum=160, maximum=3840),
     "request_timeout": ConfigRule(kind="integer", minimum=1),
     "rtmp_idle_timeout": ConfigRule(kind="integer", minimum=0),
     "rtmp_max_streams": ConfigRule(kind="integer", minimum=1),
@@ -399,6 +402,18 @@ class ConfigManager:
     @property
     def open_speed_test(self):
         return self.config.getboolean("Settings", "open_speed_test", fallback=True)
+
+    @property
+    def open_stream_screenshot(self):
+        return self.config.getboolean("Settings", "open_stream_screenshot", fallback=False)
+
+    @property
+    def stream_screenshot_timeout(self):
+        return self.config.getint("Settings", "stream_screenshot_timeout", fallback=5)
+
+    @property
+    def stream_screenshot_width(self):
+        return self.config.getint("Settings", "stream_screenshot_width", fallback=640)
 
     @property
     def open_update_time(self):

@@ -314,6 +314,8 @@ def validate_packaging_rules() -> None:
         raise ValueError("scripts/gui_showcase is not excluded by .dockerignore")
     if "tests/test_gui_showcase.py" not in dockerignore:
         raise ValueError("GUI showcase validation tests are not excluded by .dockerignore")
+    if "output/screenshots" not in dockerignore:
+        raise ValueError("Runtime screenshot cache is not excluded by .dockerignore")
     for spec_path in (
         REPOSITORY_ROOT / "desktop_ui" / "desktop_ui.spec",
         REPOSITORY_ROOT / "tkinter_ui" / "tkinter_ui.spec",

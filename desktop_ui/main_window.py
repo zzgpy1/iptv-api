@@ -180,6 +180,21 @@ class MainWindow(FluentWindow):
                 {"channel_key": row["channel_key"], "result_key": row["result_key"]},
             )
         )
+        self.channels.capture_screenshot_requested.connect(
+            lambda row: self.operation_controller.enqueue(
+                "capture_result_screenshot",
+                {"channel_key": row["channel_key"], "result_key": row["result_key"]},
+            )
+        )
+        self.channels.capture_screenshots_requested.connect(
+            lambda rows: self.operation_controller.enqueue(
+                "capture_result_screenshots",
+                {
+                    "channel_key": rows[0]["channel_key"],
+                    "result_keys": [row["result_key"] for row in rows],
+                },
+            )
+        )
         self.operation_controller.task_started.connect(self.channels.set_task_started)
         self.operation_controller.task_started.connect(self._operation_started)
         self.operation_controller.task_progress.connect(self.channels.set_task_progress)
@@ -1030,7 +1045,7 @@ class MainWindow(FluentWindow):
         )
         self._clear_navigation_status("tasks")
 
-    def _operation_succeeded(self, operation: str, _):
+    def _operation_succeeded(self, operation: str, result):
         args = {"operation": t(f"desktop.{operation}", operation)}
         self._set_navigation_status(
             "channels", FluentIcon.COMPLETED, "#059669",
@@ -1038,7 +1053,30 @@ class MainWindow(FluentWindow):
         )
         self.channels.set_task_finished()
         self.dashboard.refresh_metrics()
-        InfoBar.success(t("desktop.task_completed"), t(f"desktop.{operation}", operation), parent=self, position=InfoBarPosition.TOP)
+        if operation == "capture_result_screenshot" and isinstance(result, dict):
+            QTimer.singleShot(
+                0,
+                lambda: self.channels.show_result_screenshot(
+                    result.get("result_key", ""),
+                    notify=True,
+                ),
+            )
+        elif (
+            operation == "capture_result_screenshots"
+            and isinstance(result, dict)
+            and result.get("failed")
+        ):
+            InfoBar.warning(
+                t("desktop.task_completed"),
+                t("desktop.screenshot_batch_result").format(
+                    success=result.get("success", 0),
+                    failed=result.get("failed", 0),
+                ),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+        else:
+            InfoBar.success(t("desktop.task_completed"), t(f"desktop.{operation}", operation), parent=self, position=InfoBarPosition.TOP)
 
     def _operation_failed(self, operation: str, message: str):
         self._mark_logs_error()
@@ -1048,7 +1086,16 @@ class MainWindow(FluentWindow):
             "desktop.nav_channel_task_failed", args, dismiss_on_visit=True,
         )
         self.channels.set_task_finished()
-        InfoBar.error(t("desktop.task_failed"), message.splitlines()[-1] if message else operation, parent=self, position=InfoBarPosition.TOP, duration=8000)
+        if operation == "capture_result_screenshot":
+            QTimer.singleShot(
+                0,
+                lambda: self.channels.set_screenshot_capture_failed(
+                    message,
+                    notify=True,
+                ),
+            )
+        else:
+            InfoBar.error(t("desktop.task_failed"), message.splitlines()[-1] if message else operation, parent=self, position=InfoBarPosition.TOP, duration=8000)
 
     def _stream_control_finished(self, action: str, success: bool, message: str):
         if success:

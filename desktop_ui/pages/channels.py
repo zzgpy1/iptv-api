@@ -1,14 +1,15 @@
 import datetime
 import re
 
-from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QSettings, QSize, QSignalBlocker, Signal, Qt, QUrl
-from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QPainter
+from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QRectF, QSettings, QSize, QSignalBlocker, Signal, Qt, QUrl
+from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, FluentIcon, IconWidget, InfoBar, InfoBarPosition, MessageBox, ProgressBar, PushButton, RoundMenu, SegmentedWidget, StrongBodyLabel, TableView, ToolButton, TreeWidget, isDarkTheme
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, InfoBar, InfoBarPosition, MessageBox, ProgressBar, PushButton, RoundMenu, SegmentedWidget, StrongBodyLabel, TableView, ToolButton, TreeWidget, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
+from desktop_ui.screenshot_dialog import StreamScreenshotDialog
 from desktop_ui.stream_status import StreamingStatusDelegate, apply_channel_stream_state, build_channel_stream_states
 from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns
 from utils.channel_repository import add_manual_result, delete_channel_records, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, set_channel_logo, upsert_manual_channel
@@ -89,9 +90,81 @@ class RubberBandTableView(TableView):
         self._rubber_band.hide()
 
 
+class ResultDrawerCard(CardWidget):
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        background = QColor("#202020" if isDarkTheme() else "#FFFFFF")
+        border = QColor("#3A3A3A" if isDarkTheme() else "#D9DFE7")
+        painter.setPen(QPen(border, 1))
+        painter.setBrush(background)
+        radius = self.getBorderRadius()
+        painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), radius, radius)
+
+
+class DrawerResizeHandle(QWidget):
+    resize_requested = Signal(int)
+    resize_finished = Signal()
+    full_screen_requested = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._last_global_y = None
+        self.setFixedHeight(12)
+        self.setCursor(Qt.CursorShape.SizeVerCursor)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        color = QColor("#666666" if isDarkTheme() else "#A8B0BB")
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        rect = QRectF((self.width() - 42) / 2, 4, 42, 4)
+        painter.drawRoundedRect(rect, 2, 2)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._last_global_y = int(event.globalPosition().y())
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if (
+            self._last_global_y is not None
+            and event.buttons() & Qt.MouseButton.LeftButton
+        ):
+            global_y = int(event.globalPosition().y())
+            self.resize_requested.emit(self._last_global_y - global_y)
+            self._last_global_y = global_y
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if (
+            event.button() == Qt.MouseButton.LeftButton
+            and self._last_global_y is not None
+        ):
+            self._last_global_y = None
+            self.resize_finished.emit()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.full_screen_requested.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
+
 class ChannelCenterPage(QWidget):
     retest_channel_requested = Signal(dict)
     retest_result_requested = Signal(dict)
+    capture_screenshot_requested = Signal(dict)
+    capture_screenshots_requested = Signal(list)
     playback_workspace_requested = Signal(dict)
     playback_batch_requested = Signal(list)
     stream_monitor_requested = Signal()
@@ -103,6 +176,15 @@ class ChannelCenterPage(QWidget):
         self._task_operation = None
         self._task_name = None
         self._drawer_channel_key = None
+        try:
+            self._drawer_height = int(
+                QSettings().value("appearance/channel_result_drawer_height", 360)
+            )
+        except (TypeError, ValueError):
+            self._drawer_height = 360
+        self._drawer_height = max(250, self._drawer_height)
+        self._drawer_fullscreen = False
+        self._screenshot_dialog = None
         self._checked_channel_keys = set()
         self._checked_result_keys = set()
         self._stream_snapshot = {"streams": []}
@@ -280,26 +362,33 @@ class ChannelCenterPage(QWidget):
         return state
 
     def _create_result_drawer(self):
-        self.result_drawer = CardWidget(self)
+        self.result_drawer = ResultDrawerCard(self)
         self.result_drawer.setObjectName("resultDrawer")
-        self.result_drawer.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.result_drawer.setBorderRadius(12)
         drawer_layout = QVBoxLayout(self.result_drawer)
-        drawer_layout.setContentsMargins(18, 14, 18, 16)
-        drawer_layout.setSpacing(8)
+        drawer_layout.setContentsMargins(18, 2, 18, 16)
+        drawer_layout.setSpacing(6)
+        self.drawer_resize_handle = DrawerResizeHandle(self.result_drawer)
+        self.drawer_resize_handle.setAccessibleName(t("desktop.resize_result_drawer"))
+        self.drawer_resize_handle.setToolTip(t("desktop.resize_result_drawer_hint"))
+        drawer_layout.addWidget(self.drawer_resize_handle)
         header = QHBoxLayout()
         self.results_title = BodyLabel(t("desktop.results"), self.result_drawer)
         self.play_button = AccentPushButton(FluentIcon.PLAY, t("desktop.play"), self.result_drawer)
         self.retest_result_button = AccentPushButton(FluentIcon.SPEED_HIGH, t("desktop.retest_result"), self.result_drawer)
+        self.screenshot_button = PushButton(FluentIcon.PHOTO, t("desktop.stream_screenshot"), self.result_drawer)
         self.stream_button = PushButton(FluentIcon.VIDEO, t("desktop.open_play_streaming"), self.result_drawer)
-        self.more_button = PushButton(FluentIcon.MORE, t("desktop.more_actions"), self.result_drawer)
+        self.more_button = DropDownPushButton(FluentIcon.MORE, t("desktop.more_actions"), self.result_drawer)
+        self.fullscreen_drawer_button = ToolButton(FluentIcon.FULL_SCREEN, self.result_drawer)
         self.close_drawer_button = ToolButton(FluentIcon.CLOSE, self.result_drawer)
         header.addWidget(self.results_title)
         header.addStretch(1)
         header.addWidget(self.play_button)
         header.addWidget(self.retest_result_button)
+        header.addWidget(self.screenshot_button)
         header.addWidget(self.stream_button)
         header.addWidget(self.more_button)
+        header.addWidget(self.fullscreen_drawer_button)
         header.addWidget(self.close_drawer_button)
         drawer_layout.addLayout(header)
         self.result_table = self._table(self.result_model, multiple=True)
@@ -308,13 +397,15 @@ class ChannelCenterPage(QWidget):
         self.result_header.setSortIndicator(1, Qt.SortOrder.AscendingOrder)
         configure_table_columns(
             self.result_table,
-            [42, 90, 110, 90, 110, 90, 100, 280],
+            [42, 90, 105, 85, 105, 105, 85, 95, 250],
             "channel_center.results",
             fixed_widths={0: 42},
         )
         self.result_table.setItemDelegateForColumn(0, TableCheckBoxDelegate(self.result_table))
         self.result_header.toggled.connect(self._toggle_all_results)
         self.result_model.modelReset.connect(self._update_result_header)
+        self.result_table.selectionModel().selectionChanged.connect(self._result_selection_changed)
+        self.result_table.selectionModel().currentChanged.connect(self._result_selection_changed)
         drawer_layout.addWidget(self.result_table, 1)
         self.result_drawer.hide()
         self.drawer_animation = QPropertyAnimation(self.result_drawer, b"geometry", self)
@@ -324,22 +415,38 @@ class ChannelCenterPage(QWidget):
         self.drawer_animation.finished.connect(self._drawer_animation_finished)
         self.play_button.clicked.connect(self._open_result)
         self.retest_result_button.clicked.connect(self._request_result_retest)
+        self.screenshot_button.clicked.connect(self._preview_result_screenshot)
         self.stream_button.clicked.connect(self._stream_playback)
+        self.fullscreen_drawer_button.clicked.connect(self._toggle_result_drawer_fullscreen)
         self.close_drawer_button.clicked.connect(self.hide_result_drawer)
+        self.drawer_resize_handle.resize_requested.connect(self._resize_result_drawer)
+        self.drawer_resize_handle.resize_finished.connect(self._save_result_drawer_height)
+        self.drawer_resize_handle.full_screen_requested.connect(self._toggle_result_drawer_fullscreen)
         self.result_table.doubleClicked.connect(lambda _: self._open_result())
         self.result_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.result_table.customContextMenuRequested.connect(self._show_result_menu)
         self.result_model.dataChanged.connect(self._result_data_changed)
         self._create_menus()
+        self._update_drawer_mode_button()
         self._update_drawer_style()
+        self._update_result_actions()
 
     def _create_menus(self):
         self.copy_action = Action(FluentIcon.COPY, t("desktop.copy_url"), self, triggered=self._copy_result)
         self.copy_stream_action = Action(FluentIcon.LINK, t("desktop.copy_stream_url"), self, triggered=self._copy_stream_url)
         self.whitelist_action = Action(FluentIcon.ADD_TO, t("desktop.add_whitelist"), self, triggered=self._add_whitelist)
         self.blacklist_action = Action(FluentIcon.REMOVE_FROM, t("desktop.add_blacklist"), self, triggered=self._add_blacklist)
+        self.preview_screenshot_action = Action(FluentIcon.PHOTO, t("desktop.preview_screenshot"), self, triggered=self._preview_result_screenshot)
+        self.capture_screenshot_action = Action(FluentIcon.SYNC, t("desktop.refresh_screenshot"), self, triggered=self._request_result_screenshot)
         self.result_menu = RoundMenu(parent=self)
-        for action in (self.copy_action, self.copy_stream_action, self.whitelist_action, self.blacklist_action):
+        for action in (
+            self.preview_screenshot_action,
+            self.capture_screenshot_action,
+            self.copy_action,
+            self.copy_stream_action,
+            self.whitelist_action,
+            self.blacklist_action,
+        ):
             self.result_menu.addAction(action)
         self.more_button.setMenu(self.result_menu)
         self.channel_retest_action = Action(FluentIcon.SPEED_HIGH, t("desktop.retest_channel"), self, triggered=self._request_channel_retest)
@@ -375,6 +482,7 @@ class ChannelCenterPage(QWidget):
             ("speed", t("desktop.column_speed"), _speed),
             ("delay", t("desktop.column_delay"), _delay),
             ("resolution", t("desktop.column_resolution"), None),
+            ("screenshot_status", t("desktop.screenshot"), lambda value, _: t(f"desktop.screenshot_{value or 'not_captured'}", value or "--")),
             ("ipv_type", t("desktop.column_protocol"), None),
             ("origin", t("name.from"), None),
             ("host", t("desktop.host"), None),
@@ -400,8 +508,59 @@ class ChannelCenterPage(QWidget):
             self.result_drawer.setGeometry(self._drawer_geometry())
 
     def _drawer_geometry(self):
-        height = min(360, max(250, int(self.height() * 0.44)))
-        return QRect(28, self.height() - height - 24, max(320, self.width() - 56), height)
+        if self._drawer_fullscreen:
+            return self.rect()
+        horizontal_margin = 12
+        bottom_margin = 8
+        maximum_height = max(250, self.height() - 28)
+        height = min(maximum_height, max(250, self._drawer_height))
+        return QRect(
+            horizontal_margin,
+            self.height() - height - bottom_margin,
+            max(320, self.width() - horizontal_margin * 2),
+            height,
+        )
+
+    def _resize_result_drawer(self, delta: int):
+        if not delta:
+            return
+        if self._drawer_fullscreen:
+            self._drawer_fullscreen = False
+            self.result_drawer.setBorderRadius(12)
+            self._drawer_height = max(250, self.height() - 28)
+            self._update_drawer_mode_button()
+        maximum_height = max(250, self.height() - 28)
+        self._drawer_height = min(
+            maximum_height,
+            max(250, self._drawer_height + int(delta)),
+        )
+        self.drawer_animation.stop()
+        self.result_drawer.setGeometry(self._drawer_geometry())
+
+    def _save_result_drawer_height(self):
+        if not self._drawer_fullscreen:
+            QSettings().setValue(
+                "appearance/channel_result_drawer_height",
+                self._drawer_height,
+            )
+
+    def _toggle_result_drawer_fullscreen(self):
+        self._drawer_fullscreen = not self._drawer_fullscreen
+        self.result_drawer.setBorderRadius(0 if self._drawer_fullscreen else 12)
+        self.drawer_animation.stop()
+        self.result_drawer.setGeometry(self._drawer_geometry())
+        self.result_drawer.raise_()
+        self._update_drawer_mode_button()
+
+    def _update_drawer_mode_button(self):
+        if self._drawer_fullscreen:
+            self.fullscreen_drawer_button.setIcon(FluentIcon.MINIMIZE)
+            text = t("desktop.restore_result_drawer")
+        else:
+            self.fullscreen_drawer_button.setIcon(FluentIcon.FULL_SCREEN)
+            text = t("desktop.fullscreen_result_drawer")
+        self.fullscreen_drawer_button.setToolTip(text)
+        self.fullscreen_drawer_button.setAccessibleName(text)
 
     def show_result_drawer(self):
         target = self._drawer_geometry()
@@ -427,7 +586,14 @@ class ChannelCenterPage(QWidget):
         self.drawer_animation.stop()
         self._drawer_hiding = True
         self.drawer_animation.setStartValue(self.result_drawer.geometry())
-        self.drawer_animation.setEndValue(QRect(28, self.height() + 4, self.result_drawer.width(), self.result_drawer.height()))
+        self.drawer_animation.setEndValue(
+            QRect(
+                self.result_drawer.x(),
+                self.height() + 4,
+                self.result_drawer.width(),
+                self.result_drawer.height(),
+            )
+        )
         self.drawer_animation.start()
 
     def _drawer_animation_finished(self):
@@ -436,20 +602,35 @@ class ChannelCenterPage(QWidget):
             self._drawer_hiding = False
 
     def _update_drawer_style(self):
-        background = "#202020" if isDarkTheme() else "#ffffff"
-        border = "#3a3a3a" if isDarkTheme() else "#d9dfe7"
-        self.result_drawer.setStyleSheet(
-            f"CardWidget#resultDrawer {{ background-color: {background}; border: 1px solid {border}; }}"
-        )
+        self.result_drawer.update()
 
     def eventFilter(self, watched, event):
         if event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Escape:
             self.hide_result_drawer()
         if event.type() == QEvent.Type.MouseButtonPress and self.result_drawer.isVisible():
             widget = watched if isinstance(watched, QWidget) else None
-            if widget and not self._is_child_of(widget, self.result_drawer) and not self._is_child_of(widget, self.channel_table):
+            if (
+                not self._event_position_in_drawer(event)
+                and widget
+                and not self._is_drawer_interaction_widget(widget)
+            ):
                 self.hide_result_drawer()
         return super().eventFilter(watched, event)
+
+    def _event_position_in_drawer(self, event):
+        global_position = getattr(event, "globalPosition", None)
+        if not callable(global_position):
+            return False
+        point = self.result_drawer.mapFromGlobal(global_position().toPoint())
+        return self.result_drawer.rect().contains(point)
+
+    def _is_drawer_interaction_widget(self, widget):
+        if (
+            self._is_child_of(widget, self.result_drawer)
+            or self._is_child_of(widget, self.channel_table)
+        ):
+            return True
+        return widget.window() is not self.window()
 
     @staticmethod
     def _is_child_of(widget, parent):
@@ -652,8 +833,13 @@ class ChannelCenterPage(QWidget):
         selected_category = self.category_selector.currentData()
         selected_channels = self._selected_channel_keys() - self._checked_channel_keys
         checked_channels = set(self._checked_channel_keys)
-        selected_result = self.selected_result()
-        result_key = selected_result.get("result_key") if selected_result else None
+        selected_result_keys = {
+            row["result_key"]
+            for index in self.result_table.selectionModel().selectedRows()
+            if (row := self.result_model.row(index))
+        }
+        current_result = self.result_model.row(self.result_table.currentIndex())
+        result_key = current_result.get("result_key") if current_result else None
         self._category_order = _template_category_order()
         try:
             categories = self._sort_category_rows(list_categories(constants.channel_results_path))
@@ -675,7 +861,11 @@ class ChannelCenterPage(QWidget):
         self._populate_category_directory(categories)
         self._load_channels(selected_channels, checked_channels)
         if self._drawer_channel_key:
-            self._load_results(self._drawer_channel_key, result_key)
+            self._load_results(
+                self._drawer_channel_key,
+                result_key,
+                selected_result_keys,
+            )
 
     def _load_channels(self, selected_keys=None, checked_keys=None):
         category = self.category_selector.currentData() if self._view_mode == "list" else self._category_filter
@@ -728,7 +918,7 @@ class ChannelCenterPage(QWidget):
             row.update(apply_channel_stream_state(row, self._stream_states))
         return rows
 
-    def _load_results(self, channel_key: str, result_key=None):
+    def _load_results(self, channel_key: str, result_key=None, selected_keys=None):
         if channel_key != self._drawer_channel_key:
             self._checked_result_keys.clear()
         try:
@@ -738,9 +928,39 @@ class ChannelCenterPage(QWidget):
         for result in results:
             result["batch_selected"] = result.get("result_key") in self._checked_result_keys
         self.result_model.set_rows(results)
-        selected_row = next((index for index, row in enumerate(self.result_model.rows) if row.get("result_key") == result_key), -1)
-        if selected_row >= 0:
-            self.result_table.selectRow(selected_row)
+        selection = self.result_table.selectionModel()
+        selection.clearSelection()
+        restore_keys = set(selected_keys or ())
+        if result_key:
+            restore_keys.add(result_key)
+        first_restored_row = -1
+        current_row = -1
+        for index, row in enumerate(self.result_model.rows):
+            if row.get("result_key") not in restore_keys:
+                continue
+            selection.select(
+                self.result_model.index(index, 0),
+                QItemSelectionModel.SelectionFlag.Select
+                | QItemSelectionModel.SelectionFlag.Rows,
+            )
+            if first_restored_row < 0:
+                first_restored_row = index
+            if row.get("result_key") == result_key:
+                current_row = index
+        target_row = current_row if current_row >= 0 else first_restored_row
+        if target_row < 0 and self.result_model.rows:
+            target_row = 0
+            selection.select(
+                self.result_model.index(target_row, 0),
+                QItemSelectionModel.SelectionFlag.Select
+                | QItemSelectionModel.SelectionFlag.Rows,
+            )
+        if target_row >= 0:
+            selection.setCurrentIndex(
+                self.result_model.index(target_row, 1),
+                QItemSelectionModel.SelectionFlag.NoUpdate,
+            )
+        self._update_result_actions()
 
     def _category_changed(self, *_):
         if self._view_mode != "list":
@@ -779,6 +999,32 @@ class ChannelCenterPage(QWidget):
             row["result_key"] for row in self.result_model.rows if row.get("batch_selected")
         }
         self._update_result_header()
+        self._update_result_actions()
+
+    def _result_selection_changed(self, *_):
+        self._update_result_actions()
+
+    def _update_result_actions(self):
+        rows = self.selected_results()
+        count = len(rows)
+        single = count == 1
+        streamable = single and rows[0].get("selected_rank") is not None
+        task_idle = self._task_operation is None
+
+        self.play_button.setEnabled(single)
+        self.retest_result_button.setEnabled(count > 0 and task_idle)
+        self.screenshot_button.setEnabled(single)
+        self.stream_button.setEnabled(streamable)
+        self.more_button.setEnabled(count > 0)
+
+        self.preview_screenshot_action.setEnabled(single)
+        self.capture_screenshot_action.setEnabled(count > 0 and task_idle)
+        self.copy_action.setEnabled(count > 0)
+        self.copy_stream_action.setEnabled(streamable)
+        self.whitelist_action.setEnabled(count > 0)
+        self.blacklist_action.setEnabled(count > 0)
+        if self._screenshot_dialog and self._screenshot_dialog.isVisible():
+            self._screenshot_dialog.set_capture_enabled(task_idle)
 
     def _toggle_all_channels(self, checked: bool):
         self.channel_model.set_all_checked(checked)
@@ -921,6 +1167,7 @@ class ChannelCenterPage(QWidget):
         if index.isValid():
             if not self.result_table.selectionModel().isRowSelected(index.row(), index.parent()):
                 self.result_table.selectRow(index.row())
+            self._update_result_actions()
             self.result_menu.exec(self.result_table.viewport().mapToGlobal(position))
 
     def _request_channel_retest(self):
@@ -935,6 +1182,105 @@ class ChannelCenterPage(QWidget):
     def _request_result_retest(self):
         for row in self.selected_results():
             self.retest_result_requested.emit(row)
+
+    def _request_result_screenshot(self):
+        rows = list(self.selected_results())
+        if len(rows) == 1:
+            self.capture_screenshot_requested.emit(rows[0])
+        elif rows:
+            self.capture_screenshots_requested.emit(rows)
+
+    def _preview_result_screenshot(self):
+        rows = self.selected_results()
+        if len(rows) != 1:
+            return
+        row = rows[0]
+        if self._screenshot_dialog and self._screenshot_dialog.isVisible():
+            if not self._screenshot_dialog.is_loading:
+                self._screenshot_dialog.set_result(row)
+                self._auto_capture_missing_screenshot(
+                    self._screenshot_dialog,
+                    row,
+                )
+            self._screenshot_dialog.raise_()
+            self._screenshot_dialog.activateWindow()
+            return
+        dialog = StreamScreenshotDialog(row, self)
+        dialog.capture_requested.connect(self._request_dialog_screenshot)
+        dialog.finished.connect(self._screenshot_dialog_finished)
+        self._screenshot_dialog = dialog
+        dialog.set_capture_enabled(self._task_operation is None)
+        dialog.open()
+        self._auto_capture_missing_screenshot(dialog, row)
+
+    def _auto_capture_missing_screenshot(self, dialog, row: dict):
+        status = row.get("screenshot_status") or "not_captured"
+        missing = status == "not_captured" or (
+            status == "success" and not dialog.has_screenshot()
+        )
+        if missing and self._task_operation is None:
+            dialog.request_capture()
+
+    def _request_dialog_screenshot(self, row: dict):
+        if self._task_operation is not None:
+            if self._screenshot_dialog:
+                self._screenshot_dialog.set_loading(False)
+            return
+        self.capture_screenshot_requested.emit(row)
+
+    def _screenshot_dialog_finished(self, *_):
+        self._screenshot_dialog = None
+
+    def show_result_screenshot(self, result_key: str, notify=False):
+        row = next(
+            (item for item in self.result_model.rows if item.get("result_key") == result_key),
+            None,
+        )
+        if (
+            row
+            and self._screenshot_dialog
+            and self._screenshot_dialog.isVisible()
+            and self._screenshot_dialog.result.get("result_key") == result_key
+        ):
+            self._screenshot_dialog.set_result(row)
+            self._update_result_actions()
+        if notify:
+            InfoBar.success(
+                t("desktop.task_completed"),
+                t("desktop.capture_result_screenshot"),
+                parent=self._screenshot_notification_parent(),
+                position=InfoBarPosition.TOP,
+            )
+
+    def set_screenshot_capture_failed(self, message: str, notify=False):
+        if self._screenshot_dialog and self._screenshot_dialog.isVisible():
+            result_key = self._screenshot_dialog.result.get("result_key")
+            row = next(
+                (
+                    item
+                    for item in self.result_model.rows
+                    if item.get("result_key") == result_key
+                ),
+                None,
+            )
+            if row:
+                self._screenshot_dialog.set_result(row)
+                self._update_result_actions()
+            else:
+                self._screenshot_dialog.set_error(message)
+        if notify:
+            InfoBar.error(
+                t("desktop.task_failed"),
+                message.splitlines()[-1] if message else t("desktop.screenshot_failed"),
+                parent=self._screenshot_notification_parent(),
+                position=InfoBarPosition.TOP,
+                duration=8000,
+            )
+
+    def _screenshot_notification_parent(self):
+        if self._screenshot_dialog and self._screenshot_dialog.isVisible():
+            return self._screenshot_dialog
+        return self
 
     def _copy_result(self):
         rows = self.selected_results()
@@ -1069,6 +1415,7 @@ class ChannelCenterPage(QWidget):
         self.task_progress.setValue(0)
         self.task_label.show()
         self.task_progress.show()
+        self._update_result_actions()
 
     def set_task_progress(self, name: str, value: int):
         self._task_name = name
@@ -1081,6 +1428,7 @@ class ChannelCenterPage(QWidget):
         self.task_label.hide()
         self.task_progress.hide()
         self.reload()
+        self._update_result_actions()
 
     def retranslate(self):
         self.view_switch.items["list"].setText(t("desktop.channel_view_list"))
@@ -1097,13 +1445,19 @@ class ChannelCenterPage(QWidget):
         self.stream_selected_button.setText(t("desktop.open_selected_streams"))
         self.play_button.setText(t("desktop.play"))
         self.retest_result_button.setText(t("desktop.retest_result"))
+        self.screenshot_button.setText(t("desktop.stream_screenshot"))
         self.stream_button.setText(t("desktop.open_play_streaming"))
         self.more_button.setText(t("desktop.more_actions"))
+        self.drawer_resize_handle.setAccessibleName(t("desktop.resize_result_drawer"))
+        self.drawer_resize_handle.setToolTip(t("desktop.resize_result_drawer_hint"))
+        self._update_drawer_mode_button()
         for action, key in (
             (self.copy_action, "desktop.copy_url"),
             (self.copy_stream_action, "desktop.copy_stream_url"),
             (self.whitelist_action, "desktop.add_whitelist"),
             (self.blacklist_action, "desktop.add_blacklist"),
+            (self.preview_screenshot_action, "desktop.preview_screenshot"),
+            (self.capture_screenshot_action, "desktop.refresh_screenshot"),
             (self.channel_retest_action, "desktop.retest_channel"),
             (self.channel_add_result_action, "desktop.add_result"),
             (self.channel_edit_logo_action, "desktop.edit_channel_logo"),

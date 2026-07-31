@@ -98,7 +98,17 @@ def ensure_channel_repository(db_path: str) -> None:
                     status TEXT NOT NULL,
                     message TEXT
                 );
-                PRAGMA user_version=1;
+                CREATE TABLE IF NOT EXISTS stream_screenshots (
+                    result_key TEXT PRIMARY KEY,
+                    filename TEXT,
+                    status TEXT NOT NULL,
+                    captured_at REAL,
+                    attempted_at REAL NOT NULL,
+                    width INTEGER,
+                    height INTEGER,
+                    error TEXT
+                );
+                PRAGMA user_version=2;
                 """
             )
             columns = {row[1] for row in conn.execute("PRAGMA table_info(channels)")}
@@ -431,7 +441,18 @@ def list_channel_results(db_path: str, channel_key: str) -> list[dict[str, Any]]
     try:
         rows = conn.execute(
             """
-            SELECT * FROM channel_results WHERE channel_key=?
+            SELECT channel_results.*,
+                   stream_screenshots.filename AS screenshot_filename,
+                   stream_screenshots.status AS screenshot_status,
+                   stream_screenshots.captured_at AS screenshot_captured_at,
+                   stream_screenshots.attempted_at AS screenshot_attempted_at,
+                   stream_screenshots.width AS screenshot_width,
+                   stream_screenshots.height AS screenshot_height,
+                   stream_screenshots.error AS screenshot_error
+            FROM channel_results
+            LEFT JOIN stream_screenshots
+              ON stream_screenshots.result_key=channel_results.result_key
+            WHERE channel_results.channel_key=?
             ORDER BY selected_rank IS NULL, selected_rank, valid DESC, speed DESC, delay ASC
             """,
             (channel_key,),
@@ -445,6 +466,109 @@ def list_channel_results(db_path: str, channel_key: str) -> list[dict[str, Any]]
         return result
     finally:
         return_db_connection(db_path, conn)
+
+
+def get_stream_screenshot(db_path: str, result_key: str) -> dict[str, Any] | None:
+    ensure_channel_repository(db_path)
+    conn = get_db_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            "SELECT * FROM stream_screenshots WHERE result_key=?",
+            (result_key,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        return_db_connection(db_path, conn)
+
+
+def upsert_stream_screenshot(db_path: str, screenshot: dict) -> None:
+    ensure_channel_repository(db_path)
+    values = (
+        screenshot.get("result_key"),
+        screenshot.get("filename"),
+        screenshot.get("status") or "failed",
+        screenshot.get("captured_at"),
+        screenshot.get("attempted_at") or time.time(),
+        screenshot.get("width"),
+        screenshot.get("height"),
+        screenshot.get("error"),
+    )
+    with _LOCK:
+        conn = get_db_connection(db_path)
+        try:
+            conn.execute(
+                """
+                INSERT INTO stream_screenshots(
+                    result_key, filename, status, captured_at, attempted_at,
+                    width, height, error
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(result_key) DO UPDATE SET
+                    filename=excluded.filename,
+                    status=excluded.status,
+                    captured_at=excluded.captured_at,
+                    attempted_at=excluded.attempted_at,
+                    width=excluded.width,
+                    height=excluded.height,
+                    error=excluded.error
+                """,
+                values,
+            )
+            conn.commit()
+        finally:
+            return_db_connection(db_path, conn)
+
+
+def prune_stream_screenshots(
+    db_path: str,
+    screenshot_dir: str = constants.screenshot_dir,
+) -> dict[str, int]:
+    ensure_channel_repository(db_path)
+    os.makedirs(screenshot_dir, exist_ok=True)
+    with _LOCK:
+        conn = get_db_connection(db_path)
+        try:
+            active_keys = {
+                row[0]
+                for row in conn.execute("SELECT DISTINCT result_key FROM channel_results")
+            }
+            stored_rows = list(
+                conn.execute("SELECT result_key, filename FROM stream_screenshots")
+            )
+            orphan_rows = [row for row in stored_rows if row[0] not in active_keys]
+            if orphan_rows:
+                conn.executemany(
+                    "DELETE FROM stream_screenshots WHERE result_key=?",
+                    [(row[0],) for row in orphan_rows],
+                )
+            conn.commit()
+        finally:
+            return_db_connection(db_path, conn)
+
+    referenced = {
+        filename
+        for result_key, filename in stored_rows
+        if result_key in active_keys and filename
+    }
+    removed = 0
+    temporary = 0
+    for filename in os.listdir(screenshot_dir):
+        path = os.path.join(screenshot_dir, filename)
+        if not os.path.isfile(path):
+            continue
+        is_temporary = filename.startswith(".")
+        if is_temporary or filename not in referenced:
+            try:
+                os.unlink(path)
+                removed += 1
+                temporary += int(is_temporary)
+            except OSError:
+                pass
+    return {
+        "records": len(orphan_rows),
+        "files": removed,
+        "temporary_files": temporary,
+    }
 
 
 def list_streamable_results(db_path: str) -> list[dict[str, Any]]:
