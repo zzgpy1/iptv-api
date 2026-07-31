@@ -26,6 +26,7 @@ from opencc import OpenCC
 import utils.constants as constants
 from utils.config import config, resource_path
 from utils.i18n import t
+from utils.identity import stable_result_id
 from utils.types import ChannelData
 
 opencc_t2s = OpenCC("t2s")
@@ -466,6 +467,7 @@ def convert_to_m3u(path=None, first_channel_name=None, data=None, content=None):
             current_group = None
             logo_url = get_logo_url()
             from_fanmingming = "https://raw.githubusercontent.com/fanmingming/live/main/tv" in logo_url
+            data_positions = defaultdict(int)
             for line in file:
                 trimmed_line = line.strip()
                 if trimmed_line != "":
@@ -493,10 +495,10 @@ def convert_to_m3u(path=None, first_channel_name=None, data=None, content=None):
                         item_data = {}
                         if data:
                             item_list = data.get(original_channel_name, [])
-                            for item in item_list:
-                                if item["url"] == channel_link:
-                                    item_data = item
-                                    break
+                            item_position = data_positions[original_channel_name]
+                            if item_position < len(item_list):
+                                item_data = item_list[item_position]
+                                data_positions[original_channel_name] = item_position + 1
                         channel_logo = ""
                         if config.open_subscribe_logo and item_data:
                             channel_logo = item_data.get("tvg_logo") or ""
@@ -562,7 +564,11 @@ def remove_duplicates_from_list(data_list, seen, filter_host=False, ipv6_support
             continue
         if not ipv6_support and item["ipv_type"] == "ipv6":
             continue
-        part = item["host"] if filter_host else item["url"]
+        part = (
+            item["host"]
+            if filter_host
+            else stable_result_id(item["url"], item.get("headers"))
+        )
         if part not in seen:
             seen.add(part)
             unique_list.append(item)

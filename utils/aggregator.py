@@ -14,6 +14,7 @@ from utils.channel import (
 )
 from utils.channel_repository import sync_channel_snapshot
 from utils.config import config
+from utils.identity import stable_result_id
 from utils.i18n import t
 
 
@@ -130,15 +131,19 @@ class ResultAggregator:
 
                 if (cate, name) not in finished:
                     prev_sorted = self.result.get(cate, {}).get(name, [])
-                    seen = {it.get("url") for it in partial_result[cate][name] if
-                            isinstance(it, dict) and it.get("url")}
+                    seen = {
+                        stable_result_id(it.get("url", ""), it.get("headers"))
+                        for it in partial_result[cate][name]
+                        if isinstance(it, dict) and it.get("url")
+                    }
                     for item in prev_sorted:
                         if not isinstance(item, dict):
                             continue
                         url = item.get("url")
-                        if url and url not in seen and item.get("origin") not in retain_origin:
+                        result_id = stable_result_id(url or "", item.get("headers"))
+                        if url and result_id not in seen and item.get("origin") not in retain_origin:
                             partial_result[cate][name].append(item)
-                            seen.add(url)
+                            seen.add(result_id)
             try:
                 if len(affected) == 1:
                     cate_single, name_single = next(iter(affected))

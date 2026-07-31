@@ -9,6 +9,7 @@ from utils.artifacts import ArtifactWriter
 from utils.channel import format_channel_name
 from utils.config import config
 from utils.i18n import t
+from utils.identity import stable_result_id
 from utils.reporting import Reporter
 from utils.requests.async_tools import fetch_first, merge_headers
 from utils.tools import (
@@ -23,11 +24,30 @@ from utils.tools import (
 
 def _channel_item_key(item):
     return (
-        item.get("url"),
-        tuple(sorted((item.get("headers") or {}).items())),
+        stable_result_id(item.get("url") or "", item.get("headers")),
+        tuple(sorted(
+            (str(key), str(value))
+            for key, value in (item.get("catchup") or {}).items()
+            if value is not None
+        )),
         item.get("tvg_logo"),
         item.get("extra_info", ""),
     )
+
+
+def _build_channel_item(item, source_headers=None, in_whitelist=False):
+    url, _, extra_info = (item.get("value") or "").strip().partition("$")
+    item_headers = {**(source_headers or {}), **(item.get("headers") or {})}
+    value = {
+        "url": url,
+        "headers": item_headers or None,
+        "catchup": item.get("catchup") or None,
+        "tvg_logo": item.get("tvg_logo") or None,
+        "extra_info": extra_info,
+    }
+    if in_whitelist:
+        value["origin"] = "whitelist"
+    return value
 
 
 def _merge_channel_results(target, source, seen):
@@ -214,16 +234,7 @@ async def get_channels_by_subscribe_urls(
                             unmatched_logged += 1
                         if not open_unmatch_category:
                             continue
-                    url, _, extra_info = url.partition("$")
-                    item_headers = {**(headers or {}), **(item.get("headers") or {})}
-                    value = {
-                        "url": url,
-                        "headers": item_headers or None,
-                        "tvg_logo": item.get("tvg_logo") or None,
-                        "extra_info": extra_info,
-                    }
-                    if in_whitelist:
-                        value["origin"] = "whitelist"
+                    value = _build_channel_item(item, headers, in_whitelist)
                     key = _channel_item_key(value)
                     if key not in channel_seen[name]:
                         channel_seen[name].add(key)

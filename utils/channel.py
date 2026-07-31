@@ -1,6 +1,7 @@
 import asyncio
 import gzip
 import hashlib
+import json
 import math
 import os
 import pickle
@@ -70,6 +71,22 @@ retain_origin = ["whitelist", "hls"]
 _TOTAL_URLS_CACHE_MAX_SIZE = 2048
 _TOTAL_URLS_CACHE = OrderedDict()
 
+_CHANNEL_OUTPUT_FIELDS = (
+    "id",
+    "url",
+    "origin",
+    "ipv_type",
+    "extra_info",
+    "headers",
+    "catchup",
+    "tvg_logo",
+    "supply",
+    "video_codec",
+    "audio_codec",
+    "resolution",
+    "fps",
+)
+
 
 def _build_total_urls_signature(info_list: list[ChannelData]) -> str:
     """
@@ -82,19 +99,20 @@ def _build_total_urls_signature(info_list: list[ChannelData]) -> str:
             hasher.update(b"\x1e")
             continue
 
-        origin = info.get("origin") or ""
-        extra_info = info.get("extra_info") or ""
+        output_info = {key: info.get(key) for key in _CHANNEL_OUTPUT_FIELDS}
+        origin = output_info.get("origin") or ""
+        extra_info = output_info.get("extra_info") or ""
         if origin not in retain_origin and not extra_info:
             extra_info = constants.origin_map.get(origin, "")
-
+        output_info["extra_info"] = extra_info
         hasher.update(
-            "\x1f".join((
-                str(info.get("id", "")),
-                info.get("url") or "",
-                origin,
-                info.get("ipv_type") or "",
-                extra_info,
-            )).encode("utf-8", errors="ignore")
+            json.dumps(
+                output_info,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            ).encode("utf-8", errors="ignore")
         )
         hasher.update(b"\x1e")
 
@@ -476,7 +494,11 @@ def append_data_to_info_data(
     init_info_data(info_data, category, name)
 
     channel_list = info_data[category][name]
-    existing_map = {info["url"]: idx for idx, info in enumerate(channel_list) if "url" in info}
+    existing_map = {
+        stable_result_id(info["url"], info.get("headers")): idx
+        for idx, info in enumerate(channel_list)
+        if info.get("url")
+    }
 
     for item in data:
         try:
@@ -522,8 +544,8 @@ def append_data_to_info_data(
                     if ipv_type_data is not None and host:
                         ipv_type_data[host] = ipv_type
 
-            if normalized_url in existing_map:
-                existing_idx = existing_map[normalized_url]
+            if channel_id in existing_map:
+                existing_idx = existing_map[channel_id]
                 existing_origin = channel_list[existing_idx].get("origin")
                 if existing_origin != "whitelist" and url_origin == "whitelist":
                     channel_list[existing_idx] = {
@@ -596,7 +618,7 @@ def append_data_to_info_data(
                 "extra_info": extra_info,
                 "supply": supply
             })
-            existing_map[url] = len(channel_list) - 1
+            existing_map[channel_id] = len(channel_list) - 1
 
         except Exception as e:
             print(t("msg.error_append_channel_data").format(info=e))
@@ -1117,12 +1139,15 @@ def sort_channel_result(channel_data, result=None, filter_host=False, ipv6_suppo
             result_list = (result.get(c, {}).get(n, []) if result else [])
 
             if c == unmatch_category:
-                seen_urls = set()
+                seen_results = set()
                 for item in values:
-                    url = item.get("url")
-                    if url and url not in seen_urls:
+                    result_id = stable_result_id(
+                        item.get("url", ""),
+                        item.get("headers"),
+                    )
+                    if item.get("url") and result_id not in seen_results:
                         channel_result[c][n].append(item)
-                        seen_urls.add(url)
+                        seen_results.add(result_id)
                 continue
 
             if filter_host:
@@ -1146,12 +1171,15 @@ def sort_channel_result(channel_data, result=None, filter_host=False, ipv6_suppo
 
                 total_result = whitelist_result + sorter(result_list, ipv6_support=ipv6_support)
 
-            seen_urls = set()
+            seen_results = set()
             for item in total_result:
-                url = item.get("url")
-                if url and url not in seen_urls:
+                result_id = stable_result_id(
+                    item.get("url", ""),
+                    item.get("headers"),
+                )
+                if item.get("url") and result_id not in seen_results:
                     channel_result[c][n].append(item)
-                    seen_urls.add(url)
+                    seen_results.add(result_id)
 
     return channel_result
 
@@ -1310,6 +1338,11 @@ def process_write_content(
             custom_print(name, end=end_char)
             content += f"\n{name},url"
     render_hasher = hashlib.sha256(content.encode("utf-8"))
+    for name, items in result_data.items():
+        render_hasher.update(b"\x1d")
+        render_hasher.update(name.encode("utf-8", errors="ignore"))
+        render_hasher.update(b"\x1f")
+        render_hasher.update(_build_total_urls_signature(items).encode("ascii"))
     render_hasher.update(
         repr((
             is_last,
