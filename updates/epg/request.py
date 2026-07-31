@@ -85,8 +85,13 @@ def parse_epg(epg_content, reporter=None, request_url=None):
 
         channel_text = opencc_t2s.convert(programme.find('title').text)
         channel_elem = ET.Element(
-            'programme', attrib={"channel": channel_id, "start": channel_start.strftime("%Y%m%d%H%M%S +0800"),
-                                 "stop": channel_stop.strftime("%Y%m%d%H%M%S +0800")})
+            'programme',
+            attrib={
+                "channel": channel_id,
+                "start": channel_start.strftime("%Y%m%d%H%M%S %z"),
+                "stop": channel_stop.strftime("%Y%m%d%H%M%S %z"),
+            },
+        )
         channel_elem_s = ET.SubElement(channel_elem, 'title', attrib={"lang": "zh"})
         channel_elem_s.text = channel_text
         programmes[channel_id].append(channel_elem)
