@@ -9,6 +9,7 @@ import uuid
 from typing import Any
 from urllib.parse import urlparse
 
+from utils.channel_quality import is_channel_result_valid
 from utils.config import config
 from utils.config import resource_path
 import utils.constants as constants
@@ -180,11 +181,7 @@ def _resolution_value(value: str | None) -> int:
 
 
 def _is_valid(item: dict) -> bool:
-    if item.get("origin") in {"whitelist", "hls"}:
-        return True
-    speed = item.get("speed")
-    delay = item.get("delay")
-    return isinstance(speed, (int, float)) and speed > 0 and not math.isinf(speed) and delay != -1
+    return is_channel_result_valid(item, retain_special=True)
 
 
 def _merge_channel_items(base_items: list, tested_items: list, selected_items: list) -> list[dict]:

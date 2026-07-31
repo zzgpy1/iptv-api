@@ -14,6 +14,7 @@ from typing import cast
 import utils.constants as constants
 from utils.artifacts import ArtifactWriter
 from utils.alias import Alias
+from utils.channel_quality import channel_result_rejection, is_channel_result_valid
 from utils.config import config
 from utils.channel_repository import upsert_stream_screenshot
 from utils.db import sync_result_data
@@ -58,10 +59,7 @@ ip_checker = IPChecker()
 location_list = config.location
 isp_list = config.isp
 open_supply = config.open_supply
-open_filter_speed = config.open_filter_speed
 min_speed = config.min_speed
-open_filter_resolution = config.open_filter_resolution
-min_resolution_value = config.min_resolution_value
 resolution_speed_map = config.resolution_speed_map
 open_history = config.open_history
 open_local = config.open_local
@@ -176,13 +174,10 @@ def check_channel_need_frozen(info) -> bool:
     """
     Check if the channel need to be frozen
     """
-    delay = info.get("delay", 0)
-    if delay == -1 or info.get("speed", 0) == 0:
-        return True
-    if info.get("resolution"):
-        if get_resolution_value(info["resolution"]) < min_resolution_value:
-            return True
-    return False
+    return channel_result_rejection(
+        info,
+        retain_special=True,
+    ) in {"unreachable", "filtered_resolution"}
 
 
 def get_channel_data_from_file(channels, file, whitelist_maps, blacklist,
@@ -805,30 +800,7 @@ def is_valid_speed_result(info) -> bool:
     """
     Check if the speed test result is valid
     """
-    try:
-        delay = info.get("delay")
-        if delay is None or delay == -1:
-            return False
-
-        res_str = info.get("resolution") or ""
-        speed_val = info.get("speed", 0) or 0
-        if not speed_val or math.isinf(speed_val):
-            return False
-        if open_filter_speed:
-            if speed_val < resolution_speed_map.get(res_str, min_speed):
-                return False
-
-        if open_filter_resolution:
-            try:
-                res_value = get_resolution_value(res_str)
-            except Exception:
-                res_value = 0
-            if res_value < min_resolution_value:
-                return False
-
-        return True
-    except Exception:
-        return False
+    return is_channel_result_valid(info)
 
 
 def get_speed_test_status(info, is_valid: bool) -> str:
@@ -839,14 +811,9 @@ def get_speed_test_status(info, is_valid: bool) -> str:
         return "valid"
     delay = info.get("delay")
     speed = info.get("speed") or 0
-    resolution = info.get("resolution")
     if delay is None or delay == -1 or not speed:
         return status or "unreachable"
-    if open_filter_speed and speed < resolution_speed_map.get(resolution or "", min_speed):
-        return "filtered_speed"
-    if open_filter_resolution and get_resolution_value(resolution or "") < min_resolution_value:
-        return "filtered_resolution"
-    return status or "invalid"
+    return channel_result_rejection(info) or status or "invalid"
 
 
 def format_speed_test_record(record):

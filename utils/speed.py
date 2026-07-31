@@ -11,6 +11,7 @@ from aiohttp import ClientSession, ClientTimeout, TCPConnector
 import m3u8
 
 import utils.constants as constants
+from utils.channel_quality import is_channel_result_valid
 from utils.config import config
 from utils.ffmpeg import probe_url, ffmpeg_url
 from utils.i18n import t
@@ -656,20 +657,20 @@ def get_sort_result(
     for result in results:
         if not ipv6_support and result["ipv_type"] == "ipv6":
             result.update(default_ipv6_result)
-        result_speed, result_delay, resolution = (
-            result.get("speed") or 0,
-            result.get("delay"),
-            result.get("resolution")
-        )
-        if result_delay == -1:
+            total_result.append(result)
             continue
-        if not supply:
-            if filter_speed and result_speed < resolution_speed_map.get(resolution, min_speed):
-                continue
-            if filter_resolution and resolution:
-                resolution_value = get_resolution_value(resolution)
-                if resolution_value < min_resolution or resolution_value > max_resolution:
-                    continue
+        if not is_channel_result_valid(
+                result,
+                retain_special=True,
+                supply=supply,
+                filter_speed=filter_speed,
+                min_speed=min_speed,
+                resolution_speed_map=resolution_speed_map,
+                filter_resolution=filter_resolution,
+                min_resolution=min_resolution,
+                max_resolution=max_resolution,
+        ):
+            continue
         total_result.append(result)
 
     def sort_key(item):
