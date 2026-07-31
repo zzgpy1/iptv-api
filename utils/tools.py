@@ -534,17 +534,21 @@ def get_result_file_content(path=None, show_content=False, file_type=None):
     """
     Get the content of the result file
     """
+    requested_type = file_type.lower() if isinstance(file_type, str) else file_type
+    if requested_type is None and config.open_m3u_result:
+        requested_type = "m3u"
     result_file = (
-        os.path.splitext(path)[0] + f".{file_type}"
-        if file_type
+        os.path.splitext(path)[0] + f".{requested_type}"
+        if requested_type
         else path
     )
     if os.path.exists(result_file):
-        if config.open_m3u_result:
-            if file_type == "m3u" or not file_type:
-                result_file = os.path.splitext(path)[0] + ".m3u"
-            if file_type != "txt" and show_content == False:
-                return send_file(resource_path(result_file), as_attachment=True)
+        extension = os.path.splitext(result_file)[1].lower()
+        if extension == ".gz" or (
+                not show_content
+                and requested_type not in {None, "txt"}
+        ):
+            return send_file(resource_path(result_file), as_attachment=True)
         with open(result_file, "r", encoding="utf-8") as file:
             content = file.read()
     else:
