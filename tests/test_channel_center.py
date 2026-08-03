@@ -130,7 +130,7 @@ class ChannelCenterViewTests(unittest.TestCase):
             self.assertFalse(page.category_sidebar.isHidden())
             self.assertTrue(page.channel_table.isColumnHidden(8))
             self.assertEqual(page.category_tree.topLevelItemCount(), 3)
-            self.assertEqual(page.smart_tree.topLevelItemCount(), 3)
+            self.assertEqual(page.smart_tree.topLevelItemCount(), 4)
             self.assertEqual(
                 [
                     page.category_tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole)
@@ -164,6 +164,42 @@ class ChannelCenterViewTests(unittest.TestCase):
             page._set_view_mode("list")
             self.assertTrue(page.category_sidebar.isHidden())
             self.assertFalse(page.channel_table.isColumnHidden(8))
+
+    def test_smart_collections_include_healthy_channels(self):
+        connection = sqlite3.connect(self.db_path)
+        connection.execute(
+            """
+            INSERT INTO channels(
+                channel_key, category, name, health, total_results,
+                valid_results, selected_results, updated_at
+            ) VALUES ('news-healthy', 'News', 'Healthy News', 'healthy', 0, 0, 0, 1)
+            """
+        )
+        connection.commit()
+        connection.close()
+        with (
+            patch.object(constants, "channel_results_path", self.db_path),
+            patch.object(constants, "whitelist_path", self.whitelist_path),
+            patch.object(constants, "blacklist_path", self.blacklist_path),
+            patch("desktop_ui.pages.channels.resource_path", return_value=self.template_path),
+        ):
+            page = ChannelCenterPage()
+            self.addCleanup(page.deleteLater)
+
+            self.assertEqual(
+                [
+                    page.smart_tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole)
+                    for index in range(page.smart_tree.topLevelItemCount())
+                ],
+                [
+                    ("health", "healthy"),
+                    ("health", "warning"),
+                    ("health", "offline"),
+                    ("health", "unknown"),
+                ],
+            )
+            page._smart_item_clicked(page._smart_items[("health", "healthy")], 0)
+            self.assertEqual([row["name"] for row in page.channel_model.rows], ["Healthy News"])
 
     def test_view_mode_is_restored_and_updated(self):
         self.settings.setValue("appearance/channel_center_view", "list")

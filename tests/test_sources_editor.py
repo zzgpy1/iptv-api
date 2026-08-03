@@ -5,6 +5,7 @@ import unittest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QSettings, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from desktop_ui.pages.sources import SourceEditor
@@ -197,6 +198,25 @@ class SourceEditorTests(unittest.TestCase):
                     editor.check_header._state,
                     Qt.CheckState.Unchecked,
                 )
+
+    def test_checked_source_row_can_be_unchecked_by_clicking_its_checkbox(self):
+        path = self._write("blacklist.txt", "Keyword 1\nKeyword 2\n")
+        editor = self._editor("blacklist", path)
+        editor.show()
+        self.app.processEvents()
+
+        editor._toggle_visible_rows(True)
+        item = editor.table.item(0, 0)
+        QTest.mouseClick(
+            editor.table.viewport(),
+            Qt.MouseButton.LeftButton,
+            pos=editor.table.visualItemRect(item).center(),
+        )
+        self.app.processEvents()
+
+        self.assertEqual(item.checkState(), Qt.CheckState.Unchecked)
+        self.assertEqual(editor._selected_row_indices(), {1})
+        self.assertEqual(editor.check_header._state, Qt.CheckState.PartiallyChecked)
 
 
 if __name__ == "__main__":

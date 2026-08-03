@@ -320,7 +320,7 @@ class ChannelCenterPage(QWidget):
         self.smart_heading = StrongBodyLabel(t("desktop.smart_collections"), sidebar)
         layout.addWidget(self.smart_heading)
         self.smart_tree = self._directory_tree(sidebar)
-        self.smart_tree.setMaximumHeight(128)
+        self.smart_tree.setMaximumHeight(164)
         self.smart_tree.itemClicked.connect(self._smart_item_clicked)
         layout.addWidget(self.smart_tree)
         return sidebar
@@ -699,6 +699,7 @@ class ChannelCenterPage(QWidget):
         matched_by_name = {row["category"]: row for row in matched_categories}
         matched_count = sum(int(row.get("channel_count") or 0) for row in matched_categories)
         matched_health = {
+            "healthy": sum(int(row.get("healthy_count") or 0) for row in matched_categories),
             "warning": sum(int(row.get("warning_count") or 0) for row in matched_categories),
             "offline": sum(int(row.get("offline_count") or 0) for row in matched_categories),
             "unknown": matched_count - sum(
@@ -735,6 +736,7 @@ class ChannelCenterPage(QWidget):
             self._category_items[route].setToolTip(0, category)
 
         for health, label, icon in (
+            ("healthy", t("desktop.health_healthy"), FluentIcon.ACCEPT),
             ("warning", t("desktop.health_warning"), FluentIcon.INFO),
             ("offline", t("desktop.health_offline"), FluentIcon.CANCEL),
             ("unknown", t("desktop.health_unknown"), FluentIcon.QUESTION),

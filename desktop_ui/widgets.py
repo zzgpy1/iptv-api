@@ -129,14 +129,20 @@ class TableCheckBoxDelegate(TableItemDelegate):
     def editorEvent(self, event, model, option, index):
         if event.type() == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
             if option.rect.contains(event.position().toPoint()):
-                checked = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
+                checked = (
+                    _table_check_state(index.data(Qt.ItemDataRole.CheckStateRole))
+                    == Qt.CheckState.Checked
+                )
                 return model.setData(
                     index,
                     Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked,
                     Qt.ItemDataRole.CheckStateRole,
                 )
         if event.type() == QEvent.Type.KeyPress and event.key() in (Qt.Key.Key_Space, Qt.Key.Key_Select):
-            checked = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
+            checked = (
+                _table_check_state(index.data(Qt.ItemDataRole.CheckStateRole))
+                == Qt.CheckState.Checked
+            )
             return model.setData(
                 index,
                 Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked,
