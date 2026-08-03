@@ -72,13 +72,25 @@ class LogsPage(QWidget):
             with open(path, "rb") as file:
                 file.seek(offset)
                 content = file.read().decode("utf-8", errors="replace")
+        # QPlainTextEdit does not need a trailing empty line, and normalizing it
+        # keeps file-backed refreshes consistent with append_runtime().
+        content = content.rstrip("\r\n")
         term = self.search.text().strip().lower()
         if term:
             content = "\n".join(line for line in content.splitlines() if term in line.lower())
-        if self.viewer.toPlainText() != content:
-            self.viewer.setPlainText(content)
-            if self.autoscroll.isChecked():
-                self.viewer.verticalScrollBar().setValue(self.viewer.verticalScrollBar().maximum())
+        self._set_viewer_content(content)
+
+    def _set_viewer_content(self, content: str):
+        if self.viewer.toPlainText() == content:
+            return
+        scrollbar = self.viewer.verticalScrollBar()
+        value = scrollbar.value()
+        was_at_bottom = value >= scrollbar.maximum()
+        self.viewer.setPlainText(content)
+        if self.autoscroll.isChecked() and was_at_bottom:
+            scrollbar.setValue(scrollbar.maximum())
+        else:
+            scrollbar.setValue(min(value, scrollbar.maximum()))
 
     def clear_view(self):
         path = self.paths[max(0, self.selector.currentIndex())][1]
@@ -96,12 +108,14 @@ class LogsPage(QWidget):
     def append_runtime(self, content: str):
         if self.selector.currentIndex() != 0 or self.search.text().strip():
             return
-        text = content.rstrip()
+        text = content.rstrip("\r\n")
         if not text:
             return
+        scrollbar = self.viewer.verticalScrollBar()
+        was_at_bottom = scrollbar.value() >= scrollbar.maximum()
         self.viewer.appendPlainText(text)
-        if self.autoscroll.isChecked():
-            self.viewer.verticalScrollBar().setValue(self.viewer.verticalScrollBar().maximum())
+        if self.autoscroll.isChecked() and was_at_bottom:
+            scrollbar.setValue(scrollbar.maximum())
 
     def retranslate(self):
         index = self.selector.currentIndex()
