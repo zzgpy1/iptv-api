@@ -279,10 +279,10 @@ class ChannelCenterPage(QWidget):
         self.channel_header.setSortIndicator(1, Qt.SortOrder.AscendingOrder)
         configure_table_columns(
             self.channel_table,
-            [42, 190, 78, 68, 68, 92, 78, 100, 96, 78, 78, 158],
-            "channel_center.channels",
+            [42, 190, 78, 68, 68, 96, 78, 78, 158],
+            "channel_center.channels.v2",
             fixed_widths={0: 42},
-            minimum_widths={1: 175, 2: 68, 3: 58, 4: 58, 7: 90, 11: 158},
+            minimum_widths={1: 175, 2: 68, 3: 58, 4: 58, 5: 90, 8: 158},
         )
         self.channel_table.setIconSize(QSize(32, 24))
         self.channel_table.setItemDelegateForColumn(0, TableCheckBoxDelegate(self.channel_table))
@@ -640,9 +640,6 @@ class ChannelCenterPage(QWidget):
             ("health", t("desktop.status"), _health),
             ("valid_results", t("desktop.column_valid"), None),
             ("total_results", t("desktop.column_results"), None),
-            ("best_speed", t("desktop.column_best_speed"), _speed),
-            ("min_delay", t("desktop.column_delay"), _delay),
-            ("max_resolution", t("desktop.column_resolution"), None),
             ("category", t("desktop.column_category"), None),
             ("whitelist_count", t("desktop.column_whitelist"), None),
             ("blacklist_count", t("desktop.column_blacklist"), None),
@@ -896,7 +893,7 @@ class ChannelCenterPage(QWidget):
         categorized = self._view_mode == "category"
         self.category_selector.setVisible(not categorized)
         self.category_sidebar.setVisible(categorized)
-        self.channel_table.setColumnHidden(8, categorized)
+        self.channel_table.setColumnHidden(5, categorized)
         adaptive_columns = getattr(self.channel_table.horizontalHeader(), "_adaptive_columns", None)
         if adaptive_columns:
             adaptive_columns.fit()

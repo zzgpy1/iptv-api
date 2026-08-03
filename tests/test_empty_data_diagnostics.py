@@ -146,6 +146,36 @@ class EmptyDataDiagnosticsTests(unittest.TestCase):
         page._apply_runtime_rows()
         self.assertEqual([row["name"] for row in page.channel_model.rows], ["Alpha", "Zulu"])
 
+    def test_dashboard_overview_table_only_searches_channel_names(self):
+        with (
+            patch.object(DashboardPage, "refresh_metrics"),
+            patch.object(DashboardPage, "refresh_schedule"),
+        ):
+            page = DashboardPage()
+        self.addCleanup(page.deleteLater)
+
+        self.assertEqual(
+            [column[0] for column in page.channel_model.columns],
+            [
+                "name",
+                "display_status",
+                "valid_results",
+                "selected_results",
+                "best_speed",
+                "max_resolution",
+                "total_results",
+                "updated_at",
+            ],
+        )
+        self.assertEqual(page.channels_title.text(), t("desktop.channel_result_status"))
+
+        page._runtime_rows = [
+            {"name": "News One", "category": "Sports"},
+            {"name": "Sports One", "category": "News"},
+        ]
+        page.channel_search.setText("sports")
+        self.assertEqual([row["name"] for row in page.channel_model.rows], ["Sports One"])
+
 
 if __name__ == "__main__":
     unittest.main()

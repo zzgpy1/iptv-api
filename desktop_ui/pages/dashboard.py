@@ -211,7 +211,7 @@ class DashboardPage(QWidget):
         channel_layout.setSpacing(8)
         self.channels_title = BodyLabel(t("desktop.channel_result_status"), self.channels_card)
         self.channel_search = AppSearchLineEdit(self.channels_card)
-        self.channel_search.setPlaceholderText(t("desktop.search_channels"))
+        self.channel_search.setPlaceholderText(t("desktop.search_channel_names"))
         self.channel_model = ChannelTableModel(self._channel_columns(), self, logo_loader=logo_loader)
         self.logo_loader = self.channel_model.logo_loader
         self.channel_table = TableView(self.channels_card)
@@ -220,7 +220,7 @@ class DashboardPage(QWidget):
         self.channel_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.channel_table.setSortingEnabled(True)
         self.channel_table.verticalHeader().setVisible(False)
-        configure_table_columns(self.channel_table, [260, 100, 85, 85, 105, 115, 110, 85, 170], "dashboard.channels")
+        configure_table_columns(self.channel_table, [260, 100, 85, 85, 105, 115, 85, 170], "dashboard.channels.v2")
         self.channel_table.setBorderVisible(False)
         self.channel_table.setIconSize(QSize(32, 24))
         self.play_delegate = ChannelNamePlayDelegate(
@@ -312,7 +312,6 @@ class DashboardPage(QWidget):
             ("selected_results", t("desktop.column_output"), None),
             ("best_speed", t("desktop.column_best_speed"), _speed),
             ("max_resolution", t("desktop.column_resolution"), None),
-            ("category", t("desktop.column_category"), None),
             ("total_results", t("desktop.column_results"), None),
             ("updated_at", t("desktop.column_updated"), _updated_at),
         ]
@@ -339,7 +338,7 @@ class DashboardPage(QWidget):
         term = self.channel_search.text().strip().lower()
         rows = [
             row for row in self._runtime_rows
-            if not term or term in str(row.get("name", "")).lower() or term in str(row.get("category", "")).lower()
+            if not term or term in str(row.get("name", "")).lower()
         ]
         self.channel_model.set_rows(rows)
         self.channel_stack.setCurrentWidget(self.channel_table if rows else self.empty_state)
@@ -615,7 +614,7 @@ class DashboardPage(QWidget):
         self.output_button.setText(t("desktop.open_output"))
         self.service_button.setText(t("desktop.browse_results"))
         self.channels_title.setText(t("desktop.channel_result_status"))
-        self.channel_search.setPlaceholderText(t("desktop.search_channels"))
+        self.channel_search.setPlaceholderText(t("desktop.search_channel_names"))
         self.empty_title.setText(t("desktop.channel_results_empty"))
         self.empty_hint.setText(t("desktop.channel_results_empty_hint"))
         self.configure_sources_button.setText(t("desktop.configure_sources"))

@@ -175,15 +175,15 @@ class ChannelCenterViewTests(unittest.TestCase):
             "appearance/channel_result_drawer_height"
         )
         self.previous_channel_header_state = self.settings.value(
-            "appearance/table_headers/channel_center.channels"
+            "appearance/table_headers/channel_center.channels.v2"
         )
         self.previous_channel_column_weights = self.settings.value(
-            "appearance/table_column_weights/channel_center.channels"
+            "appearance/table_column_weights/channel_center.channels.v2"
         )
         self.settings.setValue("appearance/channel_center_view", "category")
         self.settings.setValue("appearance/channel_result_drawer_height", 360)
-        self.settings.remove("appearance/table_headers/channel_center.channels")
-        self.settings.remove("appearance/table_column_weights/channel_center.channels")
+        self.settings.remove("appearance/table_headers/channel_center.channels.v2")
+        self.settings.remove("appearance/table_column_weights/channel_center.channels.v2")
         self.addCleanup(self._restore_settings)
 
     def _restore_settings(self):
@@ -200,11 +200,11 @@ class ChannelCenterViewTests(unittest.TestCase):
             )
         for key, value in (
             (
-                "appearance/table_headers/channel_center.channels",
+                "appearance/table_headers/channel_center.channels.v2",
                 self.previous_channel_header_state,
             ),
             (
-                "appearance/table_column_weights/channel_center.channels",
+                "appearance/table_column_weights/channel_center.channels.v2",
                 self.previous_channel_column_weights,
             ),
         ):
@@ -226,7 +226,21 @@ class ChannelCenterViewTests(unittest.TestCase):
             self.assertEqual(list(page.view_switch.items), ["category", "list"])
             self.assertEqual(page.view_switch.currentRouteKey(), "category")
             self.assertFalse(page.category_sidebar.isHidden())
-            self.assertTrue(page.channel_table.isColumnHidden(8))
+            self.assertTrue(page.channel_table.isColumnHidden(5))
+            self.assertEqual(
+                [column[0] for column in page.channel_model.columns],
+                [
+                    "batch_selected",
+                    "name",
+                    "health",
+                    "valid_results",
+                    "total_results",
+                    "category",
+                    "whitelist_count",
+                    "blacklist_count",
+                    "updated_at",
+                ],
+            )
             self.assertEqual(page.category_tree.topLevelItemCount(), 3)
             self.assertEqual(page.smart_tree.topLevelItemCount(), 5)
             self.assertEqual(
@@ -261,7 +275,7 @@ class ChannelCenterViewTests(unittest.TestCase):
 
             page._set_view_mode("list")
             self.assertTrue(page.category_sidebar.isHidden())
-            self.assertFalse(page.channel_table.isColumnHidden(8))
+            self.assertFalse(page.channel_table.isColumnHidden(5))
 
     def test_smart_collections_include_healthy_channels(self):
         connection = sqlite3.connect(self.db_path)
