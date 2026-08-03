@@ -3,13 +3,15 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QRect, Qt
+from PySide6.QtCore import QPoint, QRect, Qt
 from PySide6.QtGui import QImage, QPainter
-from PySide6.QtWidgets import QApplication
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QWidget
+from qfluentwidgets import TableView
 
 from desktop_ui.pages.settings import SettingsPage
-from desktop_ui.models import ConfigTableModel
-from desktop_ui.widgets import paint_table_checkbox
+from desktop_ui.models import ConfigTableModel, MappingTableModel
+from desktop_ui.widgets import TableCheckBoxHeader, paint_table_checkbox, warning_message_box
 
 
 class TableCheckBoxPaintingTests(unittest.TestCase):
@@ -82,6 +84,82 @@ class SettingsEditorLayoutTests(unittest.TestCase):
         )
         legacy_index = model.index(legacy_row, 1)
         self.assertFalse(model.flags(legacy_index) & Qt.ItemFlag.ItemIsEditable)
+
+
+class TableSortingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_mapping_and_config_models_sort_from_header_requests(self):
+        model = MappingTableModel([("value", "Value", None)])
+        model.set_rows([{"value": 2}, {"value": None}, {"value": 1}])
+        model.sort(0, Qt.SortOrder.AscendingOrder)
+        self.assertEqual(model.rows, [{"value": 1}, {"value": 2}, {"value": None}])
+        model.sort(0, Qt.SortOrder.DescendingOrder)
+        model.set_rows([{"value": 4}, {"value": 2}, {"value": 3}])
+        self.assertEqual(model.rows, [{"value": 4}, {"value": 3}, {"value": 2}])
+
+        config_model = ConfigTableModel()
+        config_model.filter("port")
+        config_model.sort(0, Qt.SortOrder.DescendingOrder)
+        keys = [row["key"] for row in config_model.rows]
+        self.assertEqual(keys, sorted(keys, reverse=True))
+
+    def test_checkable_header_click_toggles_direction_and_sorts_rows(self):
+        model = MappingTableModel([
+            ("batch_selected", "", None),
+            ("value", "Value", None),
+        ], checkable_key="batch_selected")
+        model.set_rows([
+            {"batch_selected": False, "value": 1},
+            {"batch_selected": False, "value": 3},
+            {"batch_selected": False, "value": 2},
+        ])
+        table = TableView()
+        self.addCleanup(table.deleteLater)
+        table.setModel(model)
+        table.setSortingEnabled(True)
+        table.resize(400, 200)
+        header = TableCheckBoxHeader(table)
+        table.setHorizontalHeader(header)
+        header.setSortIndicator(1, Qt.SortOrder.AscendingOrder)
+        table.show()
+        self.app.processEvents()
+
+        self.assertTrue(header.sectionsClickable())
+        self.assertTrue(header.isSortIndicatorShown())
+        click_position = QPoint(header.sectionViewportPosition(1) + 20, 10)
+        QTest.mouseClick(
+            header.viewport(),
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            click_position,
+        )
+        self.app.processEvents()
+        self.assertEqual(header.sortIndicatorOrder(), Qt.SortOrder.DescendingOrder)
+        self.assertEqual([row["value"] for row in model.rows], [3, 2, 1])
+
+        QTest.mouseClick(
+            header.viewport(),
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            click_position,
+        )
+        self.app.processEvents()
+        self.assertEqual(header.sortIndicatorOrder(), Qt.SortOrder.AscendingOrder)
+        self.assertEqual([row["value"] for row in model.rows], [1, 2, 3])
+
+    def test_warning_message_box_has_warning_icon(self):
+        parent = QWidget()
+        parent.resize(800, 600)
+        self.addCleanup(parent.deleteLater)
+        box = warning_message_box("Delete", "This cannot be undone.", parent)
+        self.addCleanup(box.deleteLater)
+
+        icon = box.findChild(QWidget, "warningIcon")
+        self.assertIsNotNone(icon)
+        self.assertFalse(box.windowIcon().isNull())
 
 
 if __name__ == "__main__":

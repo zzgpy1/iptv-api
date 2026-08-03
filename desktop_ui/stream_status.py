@@ -63,6 +63,21 @@ def build_channel_stream_states(snapshot: dict) -> dict[str, dict]:
     return states
 
 
+def build_result_stream_states(snapshot: dict) -> dict[str, dict]:
+    states = {}
+    for stream in snapshot.get("streams", []):
+        result_key = stream.get("result_key")
+        if not result_key:
+            continue
+        state = states.setdefault(result_key, {
+            "streaming": True,
+            "stream_state": "starting",
+        })
+        if stream.get("state") != "starting":
+            state["stream_state"] = "active"
+    return states
+
+
 def apply_channel_stream_state(row: dict, states: dict[str, dict]) -> dict:
     clean = {
         key: value
@@ -70,6 +85,21 @@ def apply_channel_stream_state(row: dict, states: dict[str, dict]) -> dict:
         if not key.startswith("stream_") and key != "streaming"
     }
     return {**clean, **states.get(row.get("channel_key"), {"streaming": False})}
+
+
+def apply_result_stream_state(row: dict, states: dict[str, dict]) -> dict:
+    clean = {
+        key: value
+        for key, value in row.items()
+        if not key.startswith("stream_") and key != "streaming"
+    }
+    return {
+        **clean,
+        **states.get(
+            row.get("result_key"),
+            {"streaming": False, "stream_state": "idle"},
+        ),
+    }
 
 
 class StreamingStatusDelegate(TableItemDelegate):

@@ -5,13 +5,13 @@ import pytz
 from PySide6.QtCore import QEvent, QRectF, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QPainter
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, InfoBar, MessageBox, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableView, isDarkTheme
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, InfoBar, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableView, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
 from desktop_ui.stream_status import StreamingStatusDelegate, apply_channel_stream_state, build_channel_stream_states
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, configure_table_columns, metric_row, play_circle_icon
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, configure_table_columns, metric_row, play_circle_icon, warning_message_box
 from utils.channel_repository import latest_successful_run, list_categories, list_channel_results, list_channels, set_channel_logo
 from utils.config import config
 from utils.i18n import t
@@ -218,6 +218,7 @@ class DashboardPage(QWidget):
         self.channel_table.setModel(self.channel_model)
         self.channel_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.channel_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.channel_table.setSortingEnabled(True)
         self.channel_table.verticalHeader().setVisible(False)
         configure_table_columns(self.channel_table, [260, 100, 85, 85, 105, 115, 110, 85, 170], "dashboard.channels")
         self.channel_table.setBorderVisible(False)
@@ -528,7 +529,7 @@ class DashboardPage(QWidget):
         result_keys = list(row.get("stream_result_keys") or [])
         if not result_keys:
             return
-        box = MessageBox(
+        box = warning_message_box(
             t("desktop.stop_channel_streams"),
             t("desktop.stop_channel_streams_confirm").format(
                 name=row.get("name") or "--",

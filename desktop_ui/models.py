@@ -33,6 +33,28 @@ ADVANCED_CONFIG_KEYS = {
 }
 
 
+def _sortable_value(value):
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return 0, float(value)
+    if isinstance(value, bool):
+        return 0, int(value)
+    text = str(value).strip()
+    try:
+        return 0, float(text)
+    except (TypeError, ValueError):
+        return 1, text.casefold()
+
+
+def _sort_rows(rows, key, order):
+    present = [row for row in rows if row.get(key) is not None]
+    missing = [row for row in rows if row.get(key) is None]
+    present.sort(
+        key=lambda row: _sortable_value(row.get(key)),
+        reverse=order == Qt.SortOrder.DescendingOrder,
+    )
+    return present + missing
+
+
 def _framed_channel_icon(icon: QIcon) -> QIcon:
     rendered = icon.pixmap(QSize(64, 40))
     image = rendered.toImage()
@@ -124,10 +146,15 @@ class MappingTableModel(QAbstractTableModel):
         self.columns = columns
         self.rows: list[dict] = []
         self.checkable_key = checkable_key
+        self._sort_column = None
+        self._sort_order = Qt.SortOrder.AscendingOrder
 
     def set_rows(self, rows: list[dict]):
         self.beginResetModel()
         self.rows = list(rows)
+        if self._sort_column is not None:
+            key = self.columns[self._sort_column][0]
+            self.rows = _sort_rows(self.rows, key, self._sort_order)
         self.endResetModel()
 
     def set_columns(self, columns: list[tuple[str, str, Callable | None]]):
@@ -191,11 +218,12 @@ class MappingTableModel(QAbstractTableModel):
         if column < 0 or column >= len(self.columns):
             return
         key = self.columns[column][0]
+        if not self.rows:
+            return
+        self._sort_column = column
+        self._sort_order = order
         self.layoutAboutToBeChanged.emit()
-        self.rows.sort(
-            key=lambda row: (row.get(key) is None, row.get(key)),
-            reverse=order == Qt.SortOrder.DescendingOrder,
-        )
+        self.rows = _sort_rows(self.rows, key, order)
         self.layoutChanged.emit()
 
     def row(self, index: QModelIndex | int) -> dict | None:
@@ -370,6 +398,8 @@ class ConfigTableModel(QAbstractTableModel):
         super().__init__(parent)
         self.all_rows = []
         self.rows = []
+        self._sort_column = None
+        self._sort_order = Qt.SortOrder.AscendingOrder
         self.reload()
 
     def reload(self):
@@ -402,6 +432,7 @@ class ConfigTableModel(QAbstractTableModel):
                 "read_only": read_only,
             })
         self.rows = [row for row in self.all_rows if not row["advanced"]]
+        self._apply_sort()
         self.endResetModel()
 
     def filter(self, text: str):
@@ -422,6 +453,7 @@ class ConfigTableModel(QAbstractTableModel):
                 or (not term and not row["advanced"])
             )
         ]
+        self._apply_sort()
         self.endResetModel()
 
     def rowCount(self, parent=QModelIndex()):
@@ -481,6 +513,24 @@ class ConfigTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return (t("desktop.config_key"), t("desktop.config_value"), t("desktop.config_description"))[section]
         return super().headerData(section, orientation, role)
+
+    def sort(self, column, order=Qt.SortOrder.AscendingOrder):
+        if column < 0 or column >= self.columnCount():
+            return
+        if not self.rows:
+            return
+        key = ("key", "value", "description")[column]
+        self._sort_column = column
+        self._sort_order = order
+        self.layoutAboutToBeChanged.emit()
+        self.rows = _sort_rows(self.rows, key, order)
+        self.layoutChanged.emit()
+
+    def _apply_sort(self):
+        if self._sort_column is None:
+            return
+        key = ("key", "value", "description")[self._sort_column]
+        self.rows = _sort_rows(self.rows, key, self._sort_order)
 
     def save(self):
         for row in self.all_rows:

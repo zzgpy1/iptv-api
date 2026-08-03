@@ -6,14 +6,16 @@ from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QEvent, QItemSelectionModel, QPointF, QSettings, Qt
+from PySide6.QtCore import QEvent, QItemSelectionModel, QPoint, QPointF, QSettings, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QPushButton
 
+from desktop_ui.controller import OperationWorker
 from desktop_ui.pages.channels import ChannelCenterPage
 import utils.constants as constants
-from utils.channel_repository import ensure_channel_repository, list_categories, list_channels
+from utils.channel_repository import delete_channel_results, ensure_channel_repository, list_categories, list_channel_results, list_channels
+from utils.i18n import t
 
 
 class ChannelRepositoryFilterTests(unittest.TestCase):
@@ -62,6 +64,80 @@ class ChannelRepositoryFilterTests(unittest.TestCase):
 
         self.assertEqual([row["channel_key"] for row in rows], ["sports-two"])
 
+    def test_delete_results_refreshes_channel_summary_and_runtime_records(self):
+        connection = sqlite3.connect(self.db_path)
+        connection.executemany(
+            """
+            INSERT INTO channel_results(
+                channel_key, result_key, url, speed, delay, resolution,
+                valid, selected_rank, last_seen_at, extra_data
+            ) VALUES ('news-world', ?, ?, ?, ?, ?, 1, ?, 1, '{}')
+            """,
+            [
+                ("keep", "https://example.invalid/keep", 2, 20, "1280x720", 1),
+                ("drop", "https://example.invalid/drop", 1, 30, "640x360", None),
+            ],
+        )
+        connection.execute(
+            """
+            INSERT INTO stream_screenshots(
+                result_key, filename, status, attempted_at
+            ) VALUES ('drop', 'drop.png', 'success', 1)
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO stream_samples(
+                sampled_at, result_key, clients, bw_in, bw_out,
+                bytes_in, bytes_out, active
+            ) VALUES (1, 'drop', 1, 0, 0, 0, 0, 1)
+            """
+        )
+        connection.commit()
+        connection.close()
+
+        deleted = delete_channel_results(self.db_path, "news-world", ["drop"])
+
+        self.assertEqual(deleted, ["drop"])
+        self.assertEqual(
+            [row["result_key"] for row in list_channel_results(self.db_path, "news-world")],
+            ["keep"],
+        )
+        connection = sqlite3.connect(self.db_path)
+        summary = connection.execute(
+            """
+            SELECT total_results, valid_results, selected_results,
+                   best_speed, min_delay, max_resolution, health
+            FROM channels WHERE channel_key='news-world'
+            """
+        ).fetchone()
+        self.assertEqual(summary, (1, 1, 1, 2.0, 20.0, "1280x720", "warning"))
+        self.assertEqual(
+            connection.execute(
+                "SELECT COUNT(*) FROM stream_screenshots WHERE result_key='drop'"
+            ).fetchone()[0],
+            0,
+        )
+        self.assertEqual(
+            connection.execute(
+                "SELECT COUNT(*) FROM stream_samples WHERE result_key='drop'"
+            ).fetchone()[0],
+            0,
+        )
+        connection.close()
+
+
+class OperationProgressTests(unittest.TestCase):
+    def test_operation_worker_initializes_and_clamps_progress(self):
+        worker = OperationWorker("retest_channel", {})
+        progress = []
+        worker.progress.connect(lambda _name, value: progress.append(value))
+
+        worker._progress(5, 10, "Channel")
+        worker._progress(2, 10, "Channel")
+
+        self.assertEqual(progress, [50])
+
 
 class ChannelCenterViewTests(unittest.TestCase):
     @classmethod
@@ -98,8 +174,16 @@ class ChannelCenterViewTests(unittest.TestCase):
         self.previous_drawer_height = self.settings.value(
             "appearance/channel_result_drawer_height"
         )
+        self.previous_channel_header_state = self.settings.value(
+            "appearance/table_headers/channel_center.channels"
+        )
+        self.previous_channel_column_weights = self.settings.value(
+            "appearance/table_column_weights/channel_center.channels"
+        )
         self.settings.setValue("appearance/channel_center_view", "category")
         self.settings.setValue("appearance/channel_result_drawer_height", 360)
+        self.settings.remove("appearance/table_headers/channel_center.channels")
+        self.settings.remove("appearance/table_column_weights/channel_center.channels")
         self.addCleanup(self._restore_settings)
 
     def _restore_settings(self):
@@ -114,6 +198,20 @@ class ChannelCenterViewTests(unittest.TestCase):
                 "appearance/channel_result_drawer_height",
                 self.previous_drawer_height,
             )
+        for key, value in (
+            (
+                "appearance/table_headers/channel_center.channels",
+                self.previous_channel_header_state,
+            ),
+            (
+                "appearance/table_column_weights/channel_center.channels",
+                self.previous_channel_column_weights,
+            ),
+        ):
+            if value is None:
+                self.settings.remove(key)
+            else:
+                self.settings.setValue(key, value)
 
     def test_category_view_filters_rows_and_list_view_restores_category_column(self):
         with (
@@ -130,7 +228,7 @@ class ChannelCenterViewTests(unittest.TestCase):
             self.assertFalse(page.category_sidebar.isHidden())
             self.assertTrue(page.channel_table.isColumnHidden(8))
             self.assertEqual(page.category_tree.topLevelItemCount(), 3)
-            self.assertEqual(page.smart_tree.topLevelItemCount(), 4)
+            self.assertEqual(page.smart_tree.topLevelItemCount(), 5)
             self.assertEqual(
                 [
                     page.category_tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole)
@@ -196,10 +294,128 @@ class ChannelCenterViewTests(unittest.TestCase):
                     ("health", "warning"),
                     ("health", "offline"),
                     ("health", "unknown"),
+                    ("streaming", True),
                 ],
             )
             page._smart_item_clicked(page._smart_items[("health", "healthy")], 0)
             self.assertEqual([row["name"] for row in page.channel_model.rows], ["Healthy News"])
+
+    def test_stream_snapshot_updates_channel_result_status_and_streaming_filter(self):
+        connection = sqlite3.connect(self.db_path)
+        connection.execute(
+            """
+            INSERT INTO channel_results(
+                channel_key, result_key, url, speed, delay, valid,
+                selected_rank, last_seen_at
+            ) VALUES ('sports-one', 'stream-result', 'https://example.invalid/stream',
+                      1, 20, 1, 1, 1)
+            """
+        )
+        connection.commit()
+        connection.close()
+        with (
+            patch.object(constants, "channel_results_path", self.db_path),
+            patch.object(constants, "whitelist_path", self.whitelist_path),
+            patch.object(constants, "blacklist_path", self.blacklist_path),
+            patch("desktop_ui.pages.channels.resource_path", return_value=self.template_path),
+        ):
+            page = ChannelCenterPage()
+            self.addCleanup(page.deleteLater)
+            page.set_stream_snapshot(
+                {
+                    "streams": [
+                        {
+                            "channel_key": "sports-one",
+                            "result_key": "stream-result",
+                            "state": "active",
+                            "clients": 2,
+                            "bw_out": 1000,
+                        }
+                    ]
+                }
+            )
+
+            channel_index = next(
+                page.channel_model.index(index, 1)
+                for index, row in enumerate(page.channel_model.rows)
+                if row["channel_key"] == "sports-one"
+            )
+            self.assertIn(
+                t("desktop.stream_running_badge"),
+                page.channel_model.data(channel_index, Qt.ItemDataRole.DisplayRole),
+            )
+            page._drawer_channel_key = "sports-one"
+            page._load_results("sports-one")
+            self.assertEqual(page.result_model.rows[0]["stream_state"], "active")
+            self.assertEqual(
+                page.result_model.data(
+                    page.result_model.index(0, 2),
+                    Qt.ItemDataRole.DisplayRole,
+                ),
+                t("desktop.stream_running_badge"),
+            )
+            stream_requests = []
+            page.stream_control_many_requested.connect(
+                lambda action, keys: stream_requests.append((action, keys))
+            )
+            with patch("desktop_ui.pages.channels.warning_message_box") as message_box:
+                message_box.return_value.exec.return_value = True
+                page._stop_selected_result_streams()
+            self.assertEqual(stream_requests, [("stop", ["stream-result"])])
+
+            streaming_item = page._smart_items[("streaming", True)]
+            self.assertEqual(streaming_item.text(1), "1")
+            page._smart_item_clicked(streaming_item, 0)
+            self.assertEqual(
+                [row["channel_key"] for row in page.channel_model.rows],
+                ["sports-one"],
+            )
+            page.channel_table.selectRow(0)
+            page._update_selection_label()
+            self.assertTrue(page.stop_stream_button.isHidden())
+            self.assertTrue(page.channel_stop_stream_action.isEnabled())
+            self.assertFalse(page.channel_delete_action.isEnabled())
+            self.assertFalse(page.delete_result_action.isEnabled())
+
+    def test_stream_status_menu_does_not_open_channel_drawer(self):
+        connection = sqlite3.connect(self.db_path)
+        connection.execute(
+            """
+            INSERT INTO channel_results(
+                channel_key, result_key, url, speed, delay, valid,
+                selected_rank, last_seen_at
+            ) VALUES ('sports-one', 'stream-result', 'https://example.invalid/stream',
+                      1, 20, 1, 1, 1)
+            """
+        )
+        connection.commit()
+        connection.close()
+        with (
+            patch.object(constants, "channel_results_path", self.db_path),
+            patch.object(constants, "whitelist_path", self.whitelist_path),
+            patch.object(constants, "blacklist_path", self.blacklist_path),
+            patch("desktop_ui.pages.channels.resource_path", return_value=self.template_path),
+            patch("desktop_ui.pages.channels.RoundMenu.exec"),
+        ):
+            page = ChannelCenterPage()
+            self.addCleanup(page.deleteLater)
+            page.set_stream_snapshot({
+                "streams": [{
+                    "channel_key": "sports-one",
+                    "result_key": "stream-result",
+                    "state": "active",
+                }],
+            })
+            row = next(row for row in page.channel_model.rows if row["channel_key"] == "sports-one")
+            page._show_stream_menu(row, QPoint(0, 0))
+            index = next(
+                page.channel_model.index(index, 1)
+                for index, row in enumerate(page.channel_model.rows)
+                if row["channel_key"] == "sports-one"
+            )
+            with patch.object(page, "show_result_drawer") as show_drawer:
+                page._channel_clicked(index)
+                show_drawer.assert_not_called()
 
     def test_view_mode_is_restored_and_updated(self):
         self.settings.setValue("appearance/channel_center_view", "list")
@@ -220,6 +436,160 @@ class ChannelCenterViewTests(unittest.TestCase):
             self.assertEqual(
                 self.settings.value("appearance/channel_center_view"),
                 "category",
+            )
+
+    def test_playback_defaults_to_best_valid_result_and_groups_actions(self):
+        connection = sqlite3.connect(self.db_path)
+        connection.executemany(
+            """
+            INSERT INTO channel_results(
+                channel_key, result_key, url, speed, delay, valid,
+                selected_rank, last_seen_at
+            ) VALUES ('sports-one', ?, ?, ?, 20, ?, ?, 1)
+            """,
+            [
+                ("invalid-top", "https://example.invalid/invalid", 99, 0, 1),
+                ("valid-ranked", "https://example.invalid/ranked", 1, 1, 2),
+                ("valid-fast", "https://example.invalid/fast", 100, 1, None),
+            ],
+        )
+        connection.commit()
+        connection.close()
+        with (
+            patch.object(constants, "channel_results_path", self.db_path),
+            patch.object(constants, "whitelist_path", self.whitelist_path),
+            patch.object(constants, "blacklist_path", self.blacklist_path),
+            patch("desktop_ui.pages.channels.resource_path", return_value=self.template_path),
+            patch("desktop_ui.pages.channels.QDesktopServices.openUrl") as open_url,
+        ):
+            page = ChannelCenterPage()
+            self.addCleanup(page.deleteLater)
+
+            self.assertEqual(page.add_result_button.text(), t("desktop.add_result"))
+            self.assertEqual(page.retest_channel_button.text(), t("desktop.retest_channel"))
+            self.assertTrue(page.retest_channel_button.isHidden())
+            self.assertEqual(page.stream_selected_button.text(), t("desktop.open_selected_streams"))
+            self.assertFalse(page.screenshot_button.isHidden())
+            self.assertTrue(page.stream_button.isHidden())
+            self.assertTrue(page.stop_result_stream_button.isHidden())
+            self.assertIn(page.start_result_stream_action, page.result_more_menu.actions())
+            self.assertIn(page.stop_result_stream_action, page.result_more_menu.actions())
+            self.assertEqual(page.stop_result_stream_action.text(), t("desktop.stop_stream"))
+            self.assertFalse(page.copy_button.isHidden())
+            self.assertIn(page.copy_action, page.copy_menu.actions())
+            self.assertIn(page.copy_stream_action, page.copy_menu.actions())
+            self.assertEqual(page.copy_action.text(), t("desktop.copy_source_url"))
+            self.assertFalse(page.channel_more_button.isHidden())
+            self.assertIn(page.channel_add_action, page.channel_more_menu.actions())
+            self.assertIn(page.channel_add_result_action, page.channel_more_menu.actions())
+            self.assertIn(page.channel_stream_action, page.channel_more_menu.actions())
+            self.assertIn(page.channel_delete_action, page.channel_more_menu.actions())
+            self.assertIn(page.channel_play_action, page.channel_menu.actions())
+            self.assertIn(page.channel_stream_action, page.channel_menu.actions())
+            self.assertIn(page.channel_stop_stream_action, page.channel_menu.actions())
+            self.assertIs(page.channel_more_menu.actions()[0], page.channel_retest_action)
+            self.assertIs(page.channel_more_menu.actions()[-1], page.channel_delete_action)
+            self.assertNotIn(page.preview_screenshot_action, page.result_more_menu.actions())
+            self.assertNotIn(page.copy_action, page.result_more_menu.actions())
+            self.assertNotIn(page.copy_stream_action, page.result_more_menu.actions())
+
+            channel_index = next(
+                page.channel_model.index(index, 1)
+                for index, row in enumerate(page.channel_model.rows)
+                if row["channel_key"] == "sports-one"
+            )
+            page.channel_table.selectRow(channel_index.row())
+            page._update_selection_label()
+            self.assertTrue(page.play_selected_button.isEnabled())
+            page._play_selected_channels()
+            self.assertEqual(open_url.call_count, 1)
+            self.assertEqual(open_url.call_args.args[0].toString(), "https://example.invalid/ranked")
+
+            page._drawer_channel_key = "sports-one"
+            page._load_results("sports-one")
+            self.assertEqual(
+                [row["result_key"] for row in page.selected_results()],
+                ["valid-ranked"],
+            )
+            page._open_result()
+            self.assertEqual(open_url.call_count, 2)
+            self.assertEqual(open_url.call_args.args[0].toString(), "https://example.invalid/ranked")
+
+    def test_table_sorting_persists_after_channel_refresh(self):
+        connection = sqlite3.connect(self.db_path)
+        connection.executemany(
+            """
+            INSERT INTO channel_results(
+                channel_key, result_key, url, speed, delay, valid,
+                selected_rank, last_seen_at
+            ) VALUES ('sports-one', ?, ?, ?, 20, 1, ?, 1)
+            """,
+            [
+                ("result-slow", "https://example.invalid/slow", 1, 1),
+                ("result-fast", "https://example.invalid/fast", 3, 2),
+            ],
+        )
+        connection.commit()
+        connection.close()
+        with (
+            patch.object(constants, "channel_results_path", self.db_path),
+            patch.object(constants, "whitelist_path", self.whitelist_path),
+            patch.object(constants, "blacklist_path", self.blacklist_path),
+            patch("desktop_ui.pages.channels.resource_path", return_value=self.template_path),
+        ):
+            page = ChannelCenterPage()
+            self.addCleanup(page.deleteLater)
+            page.resize(1100, 700)
+            page.show()
+            self.app.processEvents()
+
+            header = page.channel_header
+            click_position = header.viewport().rect().center()
+            click_position.setX(header.sectionViewportPosition(1) + 20)
+            QTest.mouseClick(
+                header.viewport(),
+                Qt.MouseButton.LeftButton,
+                pos=click_position,
+            )
+            self.app.processEvents()
+            self.assertEqual(header.sortIndicatorOrder(), Qt.SortOrder.DescendingOrder)
+            sorted_names = [row["name"] for row in page.channel_model.rows]
+            self.assertEqual(sorted_names, ["World News", "Sports One"])
+
+            page.reload()
+            self.assertEqual(page.channel_header.sortIndicatorOrder(), Qt.SortOrder.DescendingOrder)
+            self.assertEqual(
+                [row["name"] for row in page.channel_model.rows],
+                sorted_names,
+            )
+
+            page._drawer_channel_key = "sports-one"
+            page._load_results("sports-one")
+            page.result_drawer.show()
+            page.result_drawer.setGeometry(page._drawer_geometry())
+            self.app.processEvents()
+            result_header = page.result_header
+            result_position = result_header.viewport().rect().center()
+            result_position.setX(result_header.sectionViewportPosition(3) + 20)
+            QTest.mouseClick(
+                result_header.viewport(),
+                Qt.MouseButton.LeftButton,
+                pos=result_position,
+            )
+            self.app.processEvents()
+            self.assertEqual(
+                [row["result_key"] for row in page.result_model.rows],
+                ["result-slow", "result-fast"],
+            )
+            QTest.mouseClick(
+                result_header.viewport(),
+                Qt.MouseButton.LeftButton,
+                pos=result_position,
+            )
+            self.app.processEvents()
+            self.assertEqual(
+                [row["result_key"] for row in page.result_model.rows],
+                ["result-fast", "result-slow"],
             )
 
     def test_result_drawer_stays_open_for_buttons_menus_and_dialogs(self):
@@ -382,14 +752,14 @@ class ChannelCenterViewTests(unittest.TestCase):
         connection.executemany(
             """
             INSERT INTO channel_results(
-                channel_key, result_key, url, speed, delay, valid,
+                channel_key, result_key, url, origin, speed, delay, valid,
                 selected_rank, last_seen_at
-            ) VALUES (?, ?, ?, 1, 20, 1, ?, 1)
+            ) VALUES (?, ?, ?, ?, 1, 20, 1, ?, 1)
             """,
             [
-                ("sports-one", "result-one", "https://example.invalid/one", 1),
-                ("sports-one", "result-two", "https://example.invalid/two", None),
-                ("news-world", "news-result", "https://example.invalid/news", 1),
+                ("sports-one", "result-one", "https://example.invalid/one", "subscribe", 1),
+                ("sports-one", "result-two", "https://example.invalid/two", "whitelist", None),
+                ("news-world", "news-result", "https://example.invalid/news", "local", 1),
             ],
         )
         connection.commit()
@@ -409,12 +779,34 @@ class ChannelCenterViewTests(unittest.TestCase):
                 [row["result_key"] for row in page.selected_results()],
                 ["result-one"],
             )
+            origin_column = next(
+                index
+                for index, column in enumerate(page.result_model.columns)
+                if column[0] == "origin"
+            )
+            self.assertEqual(
+                page.result_model.data(
+                    page.result_model.index(0, origin_column),
+                    Qt.ItemDataRole.DisplayRole,
+                ),
+                t("name.subscribe"),
+            )
             self.assertFalse(page.result_model.rows[0]["batch_selected"])
             self.assertTrue(page.play_button.isEnabled())
             self.assertTrue(page.retest_result_button.isEnabled())
             self.assertTrue(page.screenshot_button.isEnabled())
             self.assertTrue(page.stream_button.isEnabled())
+            self.assertTrue(page.start_result_stream_action.isEnabled())
             self.assertTrue(page.more_button.isEnabled())
+            self.assertIn(page.play_result_action, page.result_menu.actions())
+            self.assertIn(page.retest_result_action, page.result_menu.actions())
+
+            retested = []
+            page.retest_result_requested.connect(
+                lambda row: retested.append(row["result_key"])
+            )
+            page.retest_result_action.trigger()
+            self.assertEqual(retested, ["result-one"])
 
             automatic_captures = []
             page.capture_screenshot_requested.connect(
@@ -449,7 +841,8 @@ class ChannelCenterViewTests(unittest.TestCase):
             self.assertFalse(page.play_button.isEnabled())
             self.assertTrue(page.retest_result_button.isEnabled())
             self.assertFalse(page.screenshot_button.isEnabled())
-            self.assertFalse(page.stream_button.isEnabled())
+            self.assertTrue(page.stream_button.isEnabled())
+            self.assertTrue(page.start_result_stream_action.isEnabled())
             self.assertTrue(page.capture_screenshot_action.isEnabled())
 
             captured_batches = []
@@ -505,6 +898,29 @@ class ChannelCenterViewTests(unittest.TestCase):
             self.assertFalse(page.play_button.isEnabled())
             self.assertFalse(page.screenshot_button.isEnabled())
             self.assertFalse(page.more_button.isEnabled())
+
+    def test_task_progress_stays_with_its_originating_surface(self):
+        with patch.object(constants, "channel_results_path", self.db_path):
+            page = ChannelCenterPage()
+            self.addCleanup(page.deleteLater)
+
+            page.show_result_drawer()
+            page.set_task_started("retest_result")
+            self.assertTrue(page.task_row.isHidden())
+            self.assertFalse(page.drawer_task_row.isHidden())
+            page.set_task_progress("Sports One", 42)
+            self.assertEqual(page.drawer_task_progress.value(), 42)
+            self.assertIn("Sports One", page.drawer_task_label.text())
+            page.set_task_finished()
+            self.assertTrue(page.drawer_task_row.isHidden())
+
+            page.set_task_started("retest_channel")
+            self.assertFalse(page.task_row.isHidden())
+            self.assertFalse(page.task_label.isHidden())
+            self.assertFalse(page.task_progress.isHidden())
+            self.assertFalse(page.task_percent_label.isHidden())
+            self.assertTrue(page.drawer_task_row.isHidden())
+            page.set_task_finished()
 
 
 if __name__ == "__main__":

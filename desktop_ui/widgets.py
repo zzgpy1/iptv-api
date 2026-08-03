@@ -1,7 +1,7 @@
 from PySide6.QtCore import QEvent, QObject, QPointF, QRect, QSettings, QTimer, Signal, Qt
 from PySide6.QtGui import QBrush, QColor, QIcon, QMouseEvent, QPainter, QPen, QPixmap, QPolygonF
-from PySide6.QtWidgets import QHeaderView, QHBoxLayout, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, TableItemDelegate, isDarkTheme, qconfig, setCustomStyleSheet
+from PySide6.QtWidgets import QHeaderView, QHBoxLayout, QLabel, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, MessageBox, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, TableItemDelegate, isDarkTheme, qconfig, setCustomStyleSheet
 
 
 def apply_input_border_style(widget, selector):
@@ -64,6 +64,8 @@ class TableCheckBoxHeader(QHeaderView):
         super().__init__(Qt.Orientation.Horizontal, parent)
         self._state = Qt.CheckState.Unchecked
         self._resizing = False
+        self.setSectionsClickable(True)
+        self.setSortIndicatorShown(True)
 
     def set_check_state(self, state):
         if state != self._state:
@@ -96,6 +98,30 @@ class TableCheckBoxHeader(QHeaderView):
             event.accept()
             return
         super().mousePressEvent(event)
+
+
+def warning_message_box(title: str, content: str, parent=None):
+    box = MessageBox(title, content, parent)
+    warning_icon = box.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
+    box.setWindowIcon(warning_icon)
+    title_label = box.findChild(QLabel, "titleLabel")
+    if title_label and title_label.parentWidget() and title_label.parentWidget().layout():
+        title_layout = title_label.parentWidget().layout()
+        title_layout.removeWidget(title_label)
+        title_row = QHBoxLayout()
+        title_row.setContentsMargins(0, 0, 0, 0)
+        title_row.setSpacing(10)
+        icon_label = QLabel(title_label.parentWidget())
+        icon_label.setObjectName("warningIcon")
+        icon_label.setFixedSize(22, 22)
+        icon_label.setPixmap(warning_icon.pixmap(20, 20))
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_label.setToolTip(title)
+        title_row.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        title_row.addWidget(title_label, 1, Qt.AlignmentFlag.AlignVCenter)
+        title_layout.insertLayout(0, title_row)
+    return box
 
 
 class TableCheckBoxDelegate(TableItemDelegate):
@@ -154,13 +180,17 @@ class TableCheckBoxDelegate(TableItemDelegate):
 class _AdaptiveTableColumns(QObject):
     """Keep interactive table columns fitted to the viewport."""
 
-    def __init__(self, table, widths: list[int], state_key: str, fixed_widths=None):
+    def __init__(self, table, widths: list[int], state_key: str, fixed_widths=None, minimum_widths=None):
         super().__init__(table)
         self.table = table
         self.viewport = table.viewport()
         self.header = table.horizontalHeader()
         self.state_key = state_key
         self.fixed_widths = dict(fixed_widths or {})
+        self.minimum_widths = {
+            column: max(1, int(width))
+            for column, width in (minimum_widths or {}).items()
+        }
         self._applying = False
         self._weights = self._load_weights(widths)
         self._save_timer = QTimer(self)
@@ -221,6 +251,10 @@ class _AdaptiveTableColumns(QObject):
             return
 
         minimum = self.header.minimumSectionSize()
+        minimums = {
+            column: max(minimum, self.minimum_widths.get(column, minimum))
+            for column in visible
+        }
         fixed = {
             column: width
             for column, width in self.fixed_widths.items()
@@ -228,33 +262,24 @@ class _AdaptiveTableColumns(QObject):
         }
         sizes = dict(fixed)
         pending = [column for column in visible if column not in fixed]
-        remaining = max(
-            available - sum(fixed.values()),
-            minimum * len(pending),
-        )
-        while pending:
-            weight_total = sum(self._weights[column] for column in pending)
-            constrained = [
-                column
-                for column in pending
-                if remaining * self._weights[column] / weight_total < minimum
-            ]
-            if not constrained:
-                break
-            for column in constrained:
-                sizes[column] = minimum
-                remaining -= minimum
-                pending.remove(column)
+        remaining = available - sum(fixed.values())
+        minimum_total = sum(minimums[column] for column in pending)
+        for column in pending:
+            sizes[column] = minimums[column]
 
-        pending_weight = sum(self._weights[column] for column in pending)
-        for position, column in enumerate(pending):
-            if position == len(pending) - 1:
-                sizes[column] = remaining
-            else:
-                size = round(remaining * self._weights[column] / pending_weight)
-                sizes[column] = size
-                remaining -= size
-                pending_weight -= self._weights[column]
+        # Keep important columns readable even when the viewport is too narrow.
+        # The table can then scroll horizontally instead of eliding their data.
+        if remaining > minimum_total and pending:
+            extra = remaining - minimum_total
+            weight_total = sum(self._weights[column] for column in pending)
+            for position, column in enumerate(pending):
+                if position == len(pending) - 1:
+                    sizes[column] += extra
+                else:
+                    share = round(extra * self._weights[column] / weight_total)
+                    sizes[column] += share
+                    extra -= share
+                    weight_total -= self._weights[column]
 
         self._applying = True
         self.header.blockSignals(True)
@@ -296,7 +321,7 @@ class _AdaptiveTableColumns(QObject):
         )
 
 
-def configure_table_columns(table, widths: list[int], state_key: str, fixed_widths=None):
+def configure_table_columns(table, widths: list[int], state_key: str, fixed_widths=None, minimum_widths=None):
     header = table.horizontalHeader()
     header.setCascadingSectionResizes(False)
     header.setMinimumSectionSize(40)
@@ -311,14 +336,23 @@ def configure_table_columns(table, widths: list[int], state_key: str, fixed_widt
         existing is not None
         and existing.state_key == state_key
         and existing.fixed_widths == dict(fixed_widths or {})
+        and existing.minimum_widths == {
+            column: max(1, int(width))
+            for column, width in (minimum_widths or {}).items()
+        }
     ):
+        header.setSectionsClickable(True)
+        header.setSortIndicatorShown(True)
         return
     header._adaptive_columns = _AdaptiveTableColumns(
         table,
         widths,
         state_key,
         fixed_widths=fixed_widths,
+        minimum_widths=minimum_widths,
     )
+    header.setSectionsClickable(True)
+    header.setSortIndicatorShown(True)
 
 
 class AppLineEdit(LineEdit):

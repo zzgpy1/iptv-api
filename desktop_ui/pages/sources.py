@@ -5,10 +5,10 @@ from collections import defaultdict
 from PySide6.QtCore import QIODevice, QSaveFile, QSettings, QSignalBlocker, QSize, QTimer, Signal, Qt
 from PySide6.QtGui import QColor, QPalette, QTextCursor
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHeaderView, QHBoxLayout, QLabel, QSplitter, QStackedWidget, QTabWidget, QTableWidget, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, MessageBox, PushButton, SegmentedWidget, StrongBodyLabel, ToolButton, TreeWidget, isDarkTheme, qconfig
+from qfluentwidgets import BodyLabel, CardWidget, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PushButton, SegmentedWidget, StrongBodyLabel, ToolButton, TreeWidget, isDarkTheme, qconfig
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, AppSearchLineEdit, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, AppSearchLineEdit, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns, warning_message_box
 from utils.config import config, resource_path
 from utils.i18n import t
 
@@ -106,9 +106,11 @@ class SourceEditor(QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.verticalHeader().setVisible(False)
+        self.table.setSortingEnabled(True)
         self.check_header = TableCheckBoxHeader(self.table)
         self.table.setHorizontalHeader(self.check_header)
         self.table.setItemDelegateForColumn(0, TableCheckBoxDelegate(self.table))
+        self.check_header.sortIndicatorChanged.connect(self._schedule_table_order_sync)
         self.search = AppSearchLineEdit(self)
         self.search.setPlaceholderText(t("desktop.search_source_data"))
         self.search.setMaximumWidth(320)
@@ -470,11 +472,18 @@ class SourceEditor(QWidget):
             )
             if target is None:
                 return
+            box = warning_message_box(
+                t("desktop.delete_category"),
+                t("desktop.delete_category_with_items_confirm").format(name=group),
+                self,
+            )
+            if not box.exec():
+                return
             destination = "" if target == self.UNGROUPED else target
             for row in affected:
                 row["group"] = destination
         else:
-            box = MessageBox(
+            box = warning_message_box(
                 t("desktop.delete_category"),
                 t("desktop.delete_category_confirm").format(name=group),
                 self,
@@ -698,6 +707,8 @@ class SourceEditor(QWidget):
 
     def _rebuild_table(self):
         self._syncing = True
+        sorting_enabled = self.table.isSortingEnabled()
+        self.table.setSortingEnabled(False)
         headers = self._headers()
         self.table.clear()
         self.table.setColumnCount(len(headers))
@@ -713,6 +724,7 @@ class SourceEditor(QWidget):
         )
         if self.kind == "alias":
             self.table.verticalHeader().setDefaultSectionSize(46)
+        self.table.setSortingEnabled(sorting_enabled)
         self._syncing = False
         self._rebuild_category_tree()
         self._apply_template_view_mode()
@@ -772,8 +784,21 @@ class SourceEditor(QWidget):
     def _visual_changed(self, *_):
         if self._syncing:
             return
-        self.rows = [self._read_row(row) for row in range(self.table.rowCount())]
-        self.raw_editor.setPlainText(self._serialize())
+        self._sync_rows_from_table()
+
+    def _schedule_table_order_sync(self, *_):
+        if not self._syncing:
+            QTimer.singleShot(0, self._sync_rows_from_table)
+
+    def _sync_rows_from_table(self):
+        if self._syncing:
+            return
+        self._syncing = True
+        try:
+            self.rows = [self._read_row(row) for row in range(self.table.rowCount())]
+            self.raw_editor.setPlainText(self._serialize())
+        finally:
+            self._syncing = False
         if self.kind == "template":
             self._filter_rows()
 
@@ -954,11 +979,19 @@ class SourceEditor(QWidget):
 
     def delete_items(self):
         selected = sorted(self._selected_row_indices(), reverse=True)
+        if not selected:
+            return
+        box = warning_message_box(
+            t("desktop.delete_item"),
+            t("desktop.delete_items_confirm").format(count=len(selected)),
+            self,
+        )
+        if not box.exec():
+            return
         for row in selected:
             del self.rows[row]
-        if selected:
-            self._rebuild_table()
-            self._visual_changed()
+        self._rebuild_table()
+        self._visual_changed()
 
     def _filter_rows(self, *_):
         term = self.search.text().strip().lower()

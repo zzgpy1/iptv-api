@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -125,7 +126,9 @@ class SourceEditorTests(unittest.TestCase):
 
         editor._active_group = "Renamed"
         editor._category_target_dialog = lambda *_: "Group A"
-        editor.delete_category()
+        with patch("desktop_ui.pages.sources.warning_message_box") as message_box:
+            message_box.return_value.exec.return_value = True
+            editor.delete_category()
 
         self.assertEqual(editor.group_order, ["Group A"])
         self.assertEqual(editor.rows[0]["group"], "Group A")
@@ -191,7 +194,9 @@ class SourceEditorTests(unittest.TestCase):
                 editor.table.item(0, 0).setCheckState(Qt.CheckState.Unchecked)
                 self.assertEqual(editor._selected_row_indices(), {1})
 
-                editor.delete_items()
+                with patch("desktop_ui.pages.sources.warning_message_box") as message_box:
+                    message_box.return_value.exec.return_value = True
+                    editor.delete_items()
 
                 self.assertEqual(len(editor.rows), 1)
                 self.assertEqual(
@@ -217,6 +222,29 @@ class SourceEditorTests(unittest.TestCase):
         self.assertEqual(item.checkState(), Qt.CheckState.Unchecked)
         self.assertEqual(editor._selected_row_indices(), {1})
         self.assertEqual(editor.check_header._state, Qt.CheckState.PartiallyChecked)
+
+    def test_sorting_keeps_source_row_actions_aligned_with_visual_order(self):
+        path = self._write(
+            "local.txt",
+            "Channel 1,http://example.com/1\nChannel 2,http://example.com/2\n",
+        )
+        editor = self._editor("local", path)
+        editor.show()
+        self.app.processEvents()
+
+        editor.check_header.setSortIndicator(1, Qt.SortOrder.DescendingOrder)
+        self.app.processEvents()
+        self.assertEqual(
+            [row["channel"] for row in editor.rows],
+            ["Channel 2", "Channel 1"],
+        )
+
+        editor.table.item(0, 0).setCheckState(Qt.CheckState.Checked)
+        with patch("desktop_ui.pages.sources.warning_message_box") as message_box:
+            message_box.return_value.exec.return_value = True
+            editor.delete_items()
+
+        self.assertEqual([row["channel"] for row in editor.rows], ["Channel 1"])
 
 
 if __name__ == "__main__":

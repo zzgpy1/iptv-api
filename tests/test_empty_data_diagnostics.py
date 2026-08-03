@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from desktop_ui.pages.dashboard import DashboardPage
@@ -113,6 +115,36 @@ class EmptyDataDiagnosticsTests(unittest.TestCase):
         self.assertEqual(page.empty_title.text(), t("desktop.channel_results_empty_after_run"))
         self.assertEqual(destinations, ["sources"])
         page.deleteLater()
+
+    def test_dashboard_channel_sorting_survives_runtime_refresh(self):
+        with (
+            patch.object(DashboardPage, "refresh_metrics"),
+            patch.object(DashboardPage, "refresh_schedule"),
+        ):
+            page = DashboardPage()
+        self.addCleanup(page.deleteLater)
+        page._runtime_rows = [
+            {"name": "Zulu", "category": "News"},
+            {"name": "Alpha", "category": "News"},
+        ]
+        page._apply_runtime_rows()
+        page.show()
+        self.app.processEvents()
+
+        header = page.channel_table.horizontalHeader()
+        click_position = header.viewport().rect().center()
+        click_position.setX(header.sectionViewportPosition(0) + 20)
+        QTest.mouseClick(
+            header.viewport(),
+            Qt.MouseButton.LeftButton,
+            pos=click_position,
+        )
+        self.app.processEvents()
+        self.assertEqual([row["name"] for row in page.channel_model.rows], ["Alpha", "Zulu"])
+
+        page._runtime_rows = list(reversed(page._runtime_rows))
+        page._apply_runtime_rows()
+        self.assertEqual([row["name"] for row in page.channel_model.rows], ["Alpha", "Zulu"])
 
 
 if __name__ == "__main__":

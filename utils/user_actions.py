@@ -92,3 +92,19 @@ def delete_channels(channel_names: list[str]) -> int:
 
 def add_manual_channel_result(channel_name: str, url: str) -> bool:
     return _append_unique(constants.local_path, f"{channel_name.strip()},{url.strip()}")
+
+
+def delete_manual_channel_results(channel_name: str, urls: list[str]) -> int:
+    target, lines = _read_lines(constants.local_path)
+    values = {
+        f"{channel_name.strip()},{url.strip()}"
+        for url in urls
+        if channel_name.strip() and url.strip()
+    }
+    if not values:
+        return 0
+    filtered = [line for line in lines if line.strip() not in values]
+    removed = len(lines) - len(filtered)
+    if removed:
+        _write_lines(target, filtered)
+    return removed

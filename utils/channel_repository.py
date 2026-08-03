@@ -184,6 +184,49 @@ def _is_valid(item: dict) -> bool:
     return is_channel_result_valid(item, retain_special=True)
 
 
+def _refresh_channel_summary(conn, channel_key: str) -> None:
+    rows = conn.execute(
+        """
+        SELECT speed, delay, resolution, valid, selected_rank
+        FROM channel_results
+        WHERE channel_key=?
+        """,
+        (channel_key,),
+    ).fetchall()
+    valid_rows = [row for row in rows if row[3]]
+    speeds = [
+        row[0]
+        for row in valid_rows
+        if isinstance(row[0], (int, float)) and math.isfinite(row[0])
+    ]
+    delays = [
+        row[1]
+        for row in valid_rows
+        if isinstance(row[1], (int, float)) and math.isfinite(row[1]) and row[1] >= 0
+    ]
+    resolutions = [row[2] for row in valid_rows if row[2]]
+    health = "healthy" if len(valid_rows) >= 2 else "warning" if valid_rows else "offline"
+    conn.execute(
+        """
+        UPDATE channels SET
+            total_results=?, valid_results=?, selected_results=?, best_speed=?,
+            min_delay=?, max_resolution=?, health=?, updated_at=?
+        WHERE channel_key=?
+        """,
+        (
+            len(rows),
+            len(valid_rows),
+            sum(row[4] is not None for row in rows),
+            max(speeds, default=None),
+            min(delays, default=None),
+            max(resolutions, key=_resolution_value, default=None),
+            health,
+            time.time(),
+            channel_key,
+        ),
+    )
+
+
 def _merge_channel_items(base_items: list, tested_items: list, selected_items: list) -> list[dict]:
     merged: dict[str, dict] = {}
     tested_keys = set()
@@ -633,11 +676,103 @@ def delete_channel_records(db_path: str, channel_keys: list[str]) -> int:
     conn = get_db_connection(db_path)
     try:
         conn.execute("PRAGMA foreign_keys=ON")
+        result_placeholders = ",".join("?" for _ in keys)
+        result_keys = [
+            row[0]
+            for row in conn.execute(
+                f"SELECT result_key FROM channel_results WHERE channel_key IN ({result_placeholders})",
+                keys,
+            )
+        ]
         cursor = conn.execute(f"DELETE FROM channels WHERE channel_key IN ({placeholders})", keys)
+        if result_keys:
+            result_key_placeholders = ",".join("?" for _ in result_keys)
+            remaining = {
+                row[0]
+                for row in conn.execute(
+                    f"SELECT DISTINCT result_key FROM channel_results WHERE result_key IN ({result_key_placeholders})",
+                    result_keys,
+                )
+            }
+            orphaned = [key for key in result_keys if key not in remaining]
+            if orphaned:
+                orphan_placeholders = ",".join("?" for _ in orphaned)
+                conn.execute(
+                    f"DELETE FROM stream_samples WHERE result_key IN ({orphan_placeholders})",
+                    orphaned,
+                )
+                conn.execute(
+                    f"DELETE FROM stream_screenshots WHERE result_key IN ({orphan_placeholders})",
+                    orphaned,
+                )
         conn.commit()
         return cursor.rowcount
     finally:
         return_db_connection(db_path, conn)
+
+
+def delete_channel_results(
+    db_path: str,
+    channel_key: str,
+    result_keys: list[str],
+) -> list[str]:
+    keys = list(dict.fromkeys(str(key) for key in result_keys if key))
+    if not channel_key or not keys:
+        return []
+    ensure_channel_repository(db_path)
+    placeholders = ",".join("?" for _ in keys)
+    with _LOCK:
+        conn = get_db_connection(db_path)
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            existing = [
+                row[0]
+                for row in conn.execute(
+                    f"""
+                    SELECT result_key
+                    FROM channel_results
+                    WHERE channel_key=? AND result_key IN ({placeholders})
+                    """,
+                    [channel_key, *keys],
+                )
+            ]
+            if not existing:
+                conn.commit()
+                return []
+            key_placeholders = ",".join("?" for _ in existing)
+            conn.execute(
+                f"""
+                DELETE FROM channel_results
+                WHERE channel_key=? AND result_key IN ({key_placeholders})
+                """,
+                [channel_key, *existing],
+            )
+            remaining = {
+                row[0]
+                for row in conn.execute(
+                    f"SELECT DISTINCT result_key FROM channel_results WHERE result_key IN ({key_placeholders})",
+                    existing,
+                )
+            }
+            orphaned = [key for key in existing if key not in remaining]
+            if orphaned:
+                orphan_placeholders = ",".join("?" for _ in orphaned)
+                conn.execute(
+                    f"DELETE FROM stream_samples WHERE result_key IN ({orphan_placeholders})",
+                    orphaned,
+                )
+                conn.execute(
+                    f"DELETE FROM stream_screenshots WHERE result_key IN ({orphan_placeholders})",
+                    orphaned,
+                )
+            _refresh_channel_summary(conn, channel_key)
+            conn.commit()
+            return existing
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            return_db_connection(db_path, conn)
 
 
 def add_manual_result(db_path: str, channel_key: str, url: str) -> str:
