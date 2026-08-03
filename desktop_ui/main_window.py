@@ -1079,8 +1079,14 @@ class MainWindow(FluentWindow):
             InfoBar.success(t("desktop.task_completed"), t(f"desktop.{operation}", operation), parent=self, position=InfoBarPosition.TOP)
 
     def _operation_failed(self, operation: str, message: str):
+        operation_label = t(f"desktop.{operation}", operation)
+        failure_detail = message.strip() if message else operation
+        self._append_runtime_log(
+            f"{t('desktop.task_failed')}: {operation_label}\n"
+            f"{failure_detail}\n"
+        )
         self._mark_logs_error()
-        args = {"operation": t(f"desktop.{operation}", operation)}
+        args = {"operation": operation_label}
         self._set_navigation_status(
             "channels", FluentIcon.CANCEL, "#DC2626",
             "desktop.nav_channel_task_failed", args, dismiss_on_visit=True,

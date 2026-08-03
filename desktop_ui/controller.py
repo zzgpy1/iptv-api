@@ -151,6 +151,7 @@ class OperationWorker(QObject):
         self.payload = payload
         self.loop = None
         self.task = None
+        self._last_progress = 0
 
     @Slot()
     def run(self):
@@ -178,6 +179,9 @@ class OperationWorker(QObject):
 
     def _progress(self, current: int, total: int, name: str):
         percent = int(current / total * 100) if total else 0
+        if percent < self._last_progress:
+            return
+        self._last_progress = percent
         self.progress.emit(name, percent)
 
 
@@ -241,8 +245,8 @@ class ChannelOperationController(QObject):
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self._finished)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
         self.task_started.emit(operation)
+        self.thread.start()
 
     def _finished(self):
         self.worker = None
