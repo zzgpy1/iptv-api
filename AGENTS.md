@@ -1,5 +1,15 @@
 # Repository agent guidelines
 
+## Test execution
+
+- For a focused code change, run only the directly related test module(s)
+  before reporting completion.
+- Run the full suite (`pipenv run python -m unittest discover -s tests -v`)
+  for release work, shared-module changes, or when requested by the user.
+- Keep CI's existing full suite for now: it is deterministic and completes in
+  seconds locally. Do not split it into separate jobs unless a measured slow
+  test category emerges.
+
 ## GUI screenshot updates
 
 - Regenerate the checked-in Chinese and English GUI screenshots only when a

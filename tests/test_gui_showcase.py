@@ -53,7 +53,7 @@ class GuiShowcaseFixtureTests(unittest.TestCase):
             if line.strip() and not line.lstrip().startswith("#")
         }
         self.assertIn("scripts/gui_showcase", dockerignore)
-        self.assertIn("tests/test_gui_showcase.py", dockerignore)
+        self.assertIn("tests", dockerignore)
         self.assertIn("output/screenshots", dockerignore)
         for spec_path in (
             ROOT / "desktop_ui" / "desktop_ui.spec",
