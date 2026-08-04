@@ -1,12 +1,13 @@
 import datetime
 import os
 
-from PySide6.QtCore import QSize, Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QPixmap
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QDialog, QFormLayout, QHBoxLayout, QLabel, QStackedLayout, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, FluentIcon, IndeterminateProgressRing, PushButton, StrongBodyLabel, isDarkTheme
 
 import utils.constants as constants
+from desktop_ui.playback import play_url
 from utils.i18n import t
 
 
@@ -88,9 +89,7 @@ class StreamScreenshotDialog(QDialog):
         self.close_button = PushButton(FluentIcon.CLOSE, t("desktop.close"), self)
         self.capture_button.setToolTip(t("desktop.capture_screenshot_hint"))
         self.capture_button.clicked.connect(self.request_capture)
-        self.play_button.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl(self.result.get("url") or ""))
-        )
+        self.play_button.clicked.connect(lambda: play_url(self.result.get("url") or "", self))
         self.close_button.clicked.connect(self.reject)
 
         buttons = QHBoxLayout()

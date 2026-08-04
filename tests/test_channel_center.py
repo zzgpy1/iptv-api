@@ -474,7 +474,7 @@ class ChannelCenterViewTests(unittest.TestCase):
             patch.object(constants, "whitelist_path", self.whitelist_path),
             patch.object(constants, "blacklist_path", self.blacklist_path),
             patch("desktop_ui.pages.channels.resource_path", return_value=self.template_path),
-            patch("desktop_ui.pages.channels.QDesktopServices.openUrl") as open_url,
+            patch("desktop_ui.pages.channels.play_url") as play_url,
         ):
             page = ChannelCenterPage()
             self.addCleanup(page.deleteLater)
@@ -516,8 +516,8 @@ class ChannelCenterViewTests(unittest.TestCase):
             page._update_selection_label()
             self.assertTrue(page.play_selected_button.isEnabled())
             page._play_selected_channels()
-            self.assertEqual(open_url.call_count, 1)
-            self.assertEqual(open_url.call_args.args[0].toString(), "https://example.invalid/ranked")
+            self.assertEqual(play_url.call_count, 1)
+            self.assertEqual(play_url.call_args.args[0], "https://example.invalid/ranked")
 
             page._drawer_channel_key = "sports-one"
             page._load_results("sports-one")
@@ -526,8 +526,8 @@ class ChannelCenterViewTests(unittest.TestCase):
                 ["valid-ranked"],
             )
             page._open_result()
-            self.assertEqual(open_url.call_count, 2)
-            self.assertEqual(open_url.call_args.args[0].toString(), "https://example.invalid/ranked")
+            self.assertEqual(play_url.call_count, 2)
+            self.assertEqual(play_url.call_args.args[0], "https://example.invalid/ranked")
 
     def test_table_sorting_persists_after_channel_refresh(self):
         connection = sqlite3.connect(self.db_path)

@@ -2,13 +2,14 @@ import datetime
 import math
 import re
 
-from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QRectF, QSettings, QSize, QSignalBlocker, QTimer, Signal, Qt, QUrl
-from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QPainter, QPen
+from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QRectF, QSettings, QSize, QSignalBlocker, QTimer, Signal, Qt
+from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QSizePolicy, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, IndeterminateProgressRing, InfoBar, InfoBarPosition, ProgressRing, PushButton, RoundMenu, SegmentedWidget, StrongBodyLabel, TableView, ToolButton, TreeWidget, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
+from desktop_ui.playback import play_url
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
 from desktop_ui.screenshot_dialog import StreamScreenshotDialog
 from desktop_ui.stream_status import (
@@ -1707,7 +1708,7 @@ class ChannelCenterPage(QWidget):
         for channel in self.selected_channels():
             row = self._best_channel_playback_result(channel)
             if row:
-                QDesktopServices.openUrl(QUrl(row["url"]))
+                play_url(row["url"], self)
 
     def _request_result_retest(self):
         rows = self.selected_results()
@@ -1960,7 +1961,7 @@ class ChannelCenterPage(QWidget):
         if not self._is_valid_result(row):
             row = self._best_valid_result(self.result_model.rows)
         if row:
-            QDesktopServices.openUrl(QUrl(row["url"]))
+            play_url(row["url"], self)
 
     def _stream_playback(self):
         row = self.selected_result()

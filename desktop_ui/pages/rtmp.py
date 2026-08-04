@@ -4,13 +4,14 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 from PySide6.QtCharts import QChart, QChartView, QDateTimeAxis, QLineSeries, QValueAxis
-from PySide6.QtCore import QDateTime, QItemSelectionModel, QMargins, QSignalBlocker, Signal, Qt, QUrl
-from PySide6.QtGui import QBrush, QColor, QDesktopServices, QGuiApplication, QPainter, QPalette, QPen
+from PySide6.QtCore import QDateTime, QItemSelectionModel, QMargins, QSignalBlocker, Signal, Qt
+from PySide6.QtGui import QBrush, QColor, QGuiApplication, QPainter, QPalette, QPen
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QHBoxLayout, QListWidget, QListWidgetItem, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CaptionLabel, CardWidget, CheckBox, ComboBox, FluentIcon, InfoBar, InfoBarPosition, PushButton, StrongBodyLabel, TableView, ToolButton, isDarkTheme, qconfig
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
+from desktop_ui.playback import play_url
 from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, configure_table_columns
 from utils.channel_repository import list_streamable_results
 from utils.config import config
@@ -623,7 +624,7 @@ class RtmpPage(QWidget):
     def _play_direct(self):
         rows = self._selected_results()
         if len(rows) == 1:
-            QDesktopServices.openUrl(QUrl(rows[0]["url"]))
+            play_url(rows[0]["url"], self)
 
     def _stream_and_play(self):
         rows = self._selected_results()
@@ -631,7 +632,7 @@ class RtmpPage(QWidget):
             return
         row = rows[0]
         self.stream_control_requested.emit("start", row["result_key"])
-        QDesktopServices.openUrl(QUrl(self._stream_url(row["result_key"])))
+        play_url(self._stream_url(row["result_key"]), self)
 
     def _request_selected_control(self, action: str):
         keys = [row["result_key"] for row in self._selected_results()]
@@ -659,7 +660,7 @@ class RtmpPage(QWidget):
     def _open_active_stream(self):
         rows = self._selected_streams()
         if len(rows) == 1:
-            QDesktopServices.openUrl(QUrl(self._stream_url(rows[0]["result_key"])))
+            play_url(self._stream_url(rows[0]["result_key"]), self)
 
     def _copy_selected_result_stream(self):
         rows = self._selected_results()

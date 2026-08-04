@@ -4,6 +4,7 @@ from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, Tab
 
 from desktop_ui.delegates import ConfigValueDelegate, ElidedDescriptionDelegate
 from desktop_ui.models import ConfigTableModel
+from desktop_ui.playback import PlaybackPreferencesDialog
 from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, configure_table_columns
 from utils.config import ConfigValidationError
 from utils.i18n import t
@@ -20,6 +21,7 @@ class SettingsPage(QWidget):
         self.search.setPlaceholderText(t("desktop.search_settings"))
         self.save_button = AccentPushButton(FluentIcon.SAVE, t("desktop.save_settings"), self)
         self.reload_button = PushButton(FluentIcon.SYNC, t("desktop.reload"), self)
+        self.playback_button = PushButton(FluentIcon.PLAY, t("desktop.playback_preferences"), self)
         self.table = TableView(self)
         self.table.setModel(self.model)
         self.table.setItemDelegateForColumn(1, ConfigValueDelegate(self.table))
@@ -39,6 +41,7 @@ class SettingsPage(QWidget):
         actions = QHBoxLayout()
         actions.addWidget(self.search, 1)
         actions.addWidget(self.reload_button)
+        actions.addWidget(self.playback_button)
         actions.addWidget(self.save_button)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 16)
@@ -47,6 +50,7 @@ class SettingsPage(QWidget):
         layout.addWidget(self.table, 1)
         self.search.textChanged.connect(self.model.filter)
         self.reload_button.clicked.connect(self._reload_settings)
+        self.playback_button.clicked.connect(self._open_playback_preferences)
         self.save_button.clicked.connect(self.save)
         self.model.modelReset.connect(lambda: QTimer.singleShot(0, self._open_editors))
         QTimer.singleShot(0, self._open_editors)
@@ -55,6 +59,7 @@ class SettingsPage(QWidget):
         self.search.setPlaceholderText(t("desktop.search_settings"))
         self.save_button.setText(t("desktop.save_settings"))
         self.reload_button.setText(t("desktop.reload"))
+        self.playback_button.setText(t("desktop.playback_preferences"))
         self.model.reload()
 
     def _open_editors(self):
@@ -69,6 +74,9 @@ class SettingsPage(QWidget):
         self.model.reload()
         if search_text.strip():
             self.model.filter(search_text)
+
+    def _open_playback_preferences(self):
+        PlaybackPreferencesDialog(self).exec()
 
     def _clear_editor_selection(self):
         for editor in self.table.findChildren(QLineEdit):

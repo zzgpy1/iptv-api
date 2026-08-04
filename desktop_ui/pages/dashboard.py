@@ -4,11 +4,12 @@ import os
 import pytz
 from PySide6.QtCore import QEvent, QRectF, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QPainter
-from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, InfoBar, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableView, isDarkTheme
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
+from qfluentwidgets import Action, BodyLabel, CardWidget, DropDownPushButton, FluentIcon, IconWidget, InfoBar, ProgressBar, PushButton, RoundMenu, StrongBodyLabel, TableView, isDarkTheme
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel
+from desktop_ui.playback import play_url
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
 from desktop_ui.stream_status import StreamingStatusDelegate, apply_channel_stream_state, build_channel_stream_states
 from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, MetricCard, configure_table_columns, metric_row, play_circle_icon, warning_message_box
@@ -540,34 +541,26 @@ class DashboardPage(QWidget):
             self.stream_control_many_requested.emit("stop", result_keys)
 
     def _play_channel(self, row):
+        url = row.get("best_url")
         results = list(row.get("playable_results") or [])
-        if not results and row.get("channel_key"):
+        if not url and not results and row.get("channel_key"):
             try:
                 results = [item for item in list_channel_results(constants.channel_results_path, row["channel_key"]) if item.get("valid") and item.get("url")]
             except Exception:
                 results = []
-        if len(results) == 1:
-            QDesktopServices.openUrl(QUrl(results[0]["url"]))
+        if not url and results:
+            def speed_score(item):
+                try:
+                    return float(item.get("speed") or 0)
+                except (TypeError, ValueError):
+                    return 0
+
+            best = max(results, key=speed_score, default=None)
+            url = best.get("url") if best else None
+        if url:
+            play_url(url, self)
+        else:
             return
-        if not results:
-            return
-        dialog = QDialog(self)
-        dialog.setWindowTitle(t("desktop.choose_playback_source"))
-        layout = QFormLayout(dialog)
-        selector = ComboBox(dialog)
-        for result in results:
-            speed = _speed(result.get("speed"), result)
-            resolution = result.get("resolution") or "--"
-            selector.addItem(f"{speed} · {resolution} · {result['url']}", userData=result["url"])
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Open | QDialogButtonBox.StandardButton.Cancel, parent=dialog)
-        buttons.button(QDialogButtonBox.StandardButton.Open).setText(t("desktop.confirm"))
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addRow(t("desktop.playback_source"), selector)
-        layout.addRow(buttons)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            QDesktopServices.openUrl(QUrl(selector.currentData()))
 
     def _channel_clicked(self, index):
         if self.channel_model.columns[index.column()][0] != "name" or not is_channel_logo_click(self.channel_table, index):
