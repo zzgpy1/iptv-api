@@ -14,6 +14,7 @@ from utils.i18n import get_language, t
 
 
 CONFIG_OPTIONS = {
+    "speed_test_mode": ["quick", "full", "manual"],
     "update_time_position": ["top", "bottom"],
     "update_mode": ["interval", "time"],
     "public_scheme": ["http", "https"],
@@ -23,6 +24,9 @@ CONFIG_OPTIONS = {
     "logo_type": ["png", "jpg", "jpeg"],
     "rtmp_transcode_mode": ["copy", "auto"],
 }
+
+LEGACY_CONFIG_KEYS = {"urls_limit", "speed_test_target"}
+PATH_CONFIG_KEYS = {"source_file", "final_file"}
 
 ADVANCED_CONFIG_KEYS = {
     "app_port",
@@ -123,6 +127,8 @@ def _config_descriptions() -> dict[str, str]:
 
 
 def _config_kind(key: str, value: str) -> str:
+    if key in PATH_CONFIG_KEYS:
+        return "path"
     if key == "update_times":
         return "times"
     if key == "update_interval":
@@ -407,7 +413,7 @@ class ConfigTableModel(QAbstractTableModel):
         self.all_rows = []
         descriptions = _config_descriptions()
         for key, value in config.config.items("Settings"):
-            if key == "language":
+            if key == "language" or key in LEGACY_CONFIG_KEYS:
                 continue
             if key == "service_port":
                 value = str(config.service_port)

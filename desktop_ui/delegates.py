@@ -1,9 +1,10 @@
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QStyledItemDelegate, QToolTip, QWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QHBoxLayout, QStyledItemDelegate, QToolTip, QWidget
 from qfluentwidgets import ComboBox, DoubleSpinBox, FluentIcon, SpinBox, SwitchButton, TableItemDelegate, TimeEdit, ToolButton
 
 from desktop_ui.models import ConfigTableModel
 from desktop_ui.widgets import AppEditableComboBox, AppLineEdit, apply_input_border_style
+from utils.i18n import t
 
 
 class _WheelGuard:
@@ -20,6 +21,39 @@ class SettingsLineEdit(AppLineEdit):
 
 class SettingsEditableComboBox(AppEditableComboBox):
     pass
+
+
+class SettingsPathEditor(QWidget):
+    def __init__(self, key: str, parent=None):
+        super().__init__(parent)
+        self.key = key
+        self.line_edit = SettingsLineEdit(self)
+        self.browse_button = ToolButton(FluentIcon.FOLDER, self)
+        self.browse_button.setToolTip(t("desktop.select_file"))
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(2, 1, 2, 1)
+        layout.setSpacing(4)
+        layout.addWidget(self.line_edit, 1)
+        layout.addWidget(self.browse_button)
+        self.browse_button.clicked.connect(self._browse)
+
+    def _browse(self):
+        current = self.line_edit.text().strip()
+        if self.key == "source_file":
+            value, _ = QFileDialog.getOpenFileName(self, t("desktop.select_source_file"), current)
+        else:
+            value, _ = QFileDialog.getSaveFileName(self, t("desktop.select_output_file"), current)
+        if value:
+            self.line_edit.setText(value)
+
+    def text(self):
+        return self.line_edit.text()
+
+    def setText(self, value):
+        self.line_edit.setText(str(value or ""))
+
+    def setFocus(self, reason=Qt.FocusReason.OtherFocusReason):
+        self.line_edit.setFocus(reason)
 
 
 class SettingsSpinBox(_WheelGuard, SpinBox):
@@ -173,6 +207,15 @@ class ConfigValueDelegate(QStyledItemDelegate):
             editor.addItems(index.data(ConfigTableModel.OptionsRole) or [])
             editor.currentTextChanged.connect(lambda value: index.model().setData(index, value))
             return self._prepare_editor(editor)
+        if kind == "path":
+            key = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+            editor = SettingsPathEditor(index.data(Qt.ItemDataRole.UserRole + 2) or key, parent)
+            # The model exposes the configuration key in column 0; use it
+            # directly so source_file opens and final_file saves.
+            editor.key = str(index.siblingAtColumn(0).data(Qt.ItemDataRole.DisplayRole))
+            editor.line_edit.textChanged.connect(lambda value: index.model().setData(index, value))
+            self._focus_filter.register(editor.line_edit)
+            return editor
         if kind == "int":
             editor = SettingsSpinBox(parent)
             editor.setRange(-1_000_000, 1_000_000)
@@ -226,6 +269,10 @@ class ConfigValueDelegate(QStyledItemDelegate):
             editor.setValue(value)
         elif kind == "timezone":
             editor.setCurrentText(str(value))
+        elif kind == "path":
+            text = str(value or "")
+            if editor.text() != text:
+                editor.setText(text)
         else:
             text = str(value or "")
             # textChanged writes through to the model immediately.  That emits
@@ -248,12 +295,17 @@ class ConfigValueDelegate(QStyledItemDelegate):
             value = editor.value()
         elif kind == "timezone":
             value = editor.currentText()
+        elif kind == "path":
+            value = editor.text()
         else:
             value = editor.text()
         model.setData(index, value)
 
     def updateEditorGeometry(self, editor, option, index):
-        editor.setGeometry(option.rect.adjusted(6, 3, -6, -3))
+        if index.data(ConfigTableModel.KindRole) == "path":
+            editor.setGeometry(option.rect.adjusted(2, 1, -2, -1))
+        else:
+            editor.setGeometry(option.rect.adjusted(6, 3, -6, -3))
 
 
 class ElidedDescriptionDelegate(TableItemDelegate):

@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, TableView
 
 from desktop_ui.delegates import ConfigValueDelegate, ElidedDescriptionDelegate
@@ -35,6 +35,7 @@ class SettingsPage(QWidget):
         self.table.setWordWrap(False)
         self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.table.clicked.connect(self._show_description)
         actions = QHBoxLayout()
         actions.addWidget(self.search, 1)
         actions.addWidget(self.reload_button)
@@ -45,7 +46,7 @@ class SettingsPage(QWidget):
         layout.addLayout(actions)
         layout.addWidget(self.table, 1)
         self.search.textChanged.connect(self.model.filter)
-        self.reload_button.clicked.connect(self.model.reload)
+        self.reload_button.clicked.connect(self._reload_settings)
         self.save_button.clicked.connect(self.save)
         self.model.modelReset.connect(lambda: QTimer.singleShot(0, self._open_editors))
         QTimer.singleShot(0, self._open_editors)
@@ -63,6 +64,12 @@ class SettingsPage(QWidget):
                 self.table.openPersistentEditor(index)
         QTimer.singleShot(0, self._clear_editor_selection)
 
+    def _reload_settings(self):
+        search_text = self.search.text()
+        self.model.reload()
+        if search_text.strip():
+            self.model.filter(search_text)
+
     def _clear_editor_selection(self):
         for editor in self.table.findChildren(QLineEdit):
             editor.setCursorPosition(0)
@@ -70,6 +77,28 @@ class SettingsPage(QWidget):
             editor.clearFocus()
         self.table.clearSelection()
         self.search.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _show_description(self, index):
+        if not index.isValid() or index.column() != 2:
+            return
+        description = str(index.data(Qt.ItemDataRole.DisplayRole) or "").strip()
+        if not description:
+            return
+        key = str(self.model.index(index.row(), 0).data(Qt.ItemDataRole.DisplayRole) or "")
+        dialog = QDialog(self)
+        dialog.setWindowTitle(key)
+        dialog.setMinimumWidth(520)
+        dialog.resize(680, 220)
+        layout = QVBoxLayout(dialog)
+        label = QLabel(description, dialog)
+        label.setWordWrap(True)
+        label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, dialog)
+        buttons.button(QDialogButtonBox.StandardButton.Close).setText(t("desktop.close"))
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(label)
+        layout.addWidget(buttons)
+        dialog.exec()
 
     def save(self):
         try:
