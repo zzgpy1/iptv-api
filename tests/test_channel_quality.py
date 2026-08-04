@@ -13,7 +13,14 @@ from utils.channel import (
 from utils.channel_quality import is_channel_result_valid
 from utils.channel_repository import (
     _is_valid,
+    list_candidate_history,
+    list_candidate_measurements,
+    list_candidate_pool,
+    list_output_snapshot,
     list_channel_results,
+    reset_channel_selection,
+    set_channel_selection,
+    start_run,
     sync_channel_snapshot,
 )
 from utils.config import config
@@ -91,6 +98,105 @@ class ChannelQualityTests(unittest.TestCase):
             self.assertEqual(self.sort_results(result), [])
             self.assertEqual(len(rows), 1)
             self.assertFalse(rows[0]["valid"])
+
+    def test_repository_keeps_unmeasured_candidates_separate_from_tested_results(self):
+        tested = make_result()
+        pending = make_result()
+        pending["url"] = "https://example.net/live.m3u8"
+        pending["id"] = stable_result_id(pending["url"])
+        data = {"News": {"Demo": [tested, pending]}}
+
+        with self.quality_config(), tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "channels.db")
+            sync_channel_snapshot(
+                db_path,
+                data,
+                tested_data={"News": {"Demo": [tested]}},
+                selected_data={"News": {"Demo": [tested]}},
+            )
+            channel_key = stable_channel_id("News", "Demo")
+            rows = list_channel_results(db_path, channel_key)
+
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(sum(row["test_state"] == "untested" for row in rows), 1)
+
+    def test_manual_output_selection_survives_next_snapshot(self):
+        first = make_result()
+        second = make_result()
+        second["url"] = "https://example.net/live.m3u8"
+        second["id"] = stable_result_id(second["url"])
+        third = make_result()
+        third["url"] = "https://example.org/live.m3u8"
+        third["id"] = stable_result_id(third["url"])
+        data = {"News": {"Demo": [first, second, third]}}
+
+        with self.quality_config(), tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "channels.db")
+            run_id = start_run(db_path)
+            sync_channel_snapshot(
+                db_path,
+                data,
+                tested_data=data,
+                selected_data={"News": {"Demo": [first, second]}},
+                run_id=run_id,
+            )
+            channel_key = stable_channel_id("News", "Demo")
+            set_channel_selection(db_path, channel_key, [second])
+            sync_channel_snapshot(
+                db_path,
+                data,
+                tested_data=data,
+                selected_data={"News": {"Demo": [first, second, third]}},
+                run_id=run_id,
+            )
+            rows = list_channel_results(db_path, channel_key)
+            selected = [row for row in rows if row.get("selected_rank") is not None]
+
+            self.assertEqual([row["url"] for row in selected], [second["url"]])
+            self.assertEqual([row["result_key"] for row in list_output_snapshot(db_path, run_id)], [second["id"]])
+
+    def test_candidate_history_and_measurement_snapshots_are_recorded(self):
+        result = make_result()
+        data = {"News": {"Demo": [result]}}
+
+        with self.quality_config(), tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "channels.db")
+            run_id = start_run(db_path)
+            sync_channel_snapshot(db_path, data, tested_data=data, run_id=run_id)
+            history = list_candidate_history(db_path)
+            measurements = list_candidate_measurements(db_path)
+            pool = list_candidate_pool(db_path)
+
+            self.assertEqual(len(history), 1)
+            self.assertEqual(history[0]["run_id"], run_id)
+            self.assertEqual(len(measurements), 1)
+            self.assertEqual(measurements[0]["test_status"], "valid")
+            self.assertEqual(pool[0]["seen_count"], 1)
+
+            next_run = start_run(db_path)
+            sync_channel_snapshot(db_path, data, tested_data=data, run_id=next_run)
+            refreshed_pool = list_candidate_pool(db_path)
+            self.assertEqual(refreshed_pool[0]["seen_count"], 2)
+            self.assertEqual(refreshed_pool[0]["first_seen_at"], pool[0]["first_seen_at"])
+
+    def test_reset_selection_recomputes_automatic_output(self):
+        slow = make_result(speed=2.0)
+        fast = make_result(speed=8.0)
+        fast["url"] = "https://example.net/live.m3u8"
+        fast["id"] = stable_result_id(fast["url"])
+        data = {"News": {"Demo": [slow, fast]}}
+
+        with self.quality_config(), tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "channels.db")
+            with patch.object(type(config), "output_urls_limit", new=PropertyMock(return_value=1)):
+                sync_channel_snapshot(db_path, data, tested_data=data)
+                channel_key = stable_channel_id("News", "Demo")
+                set_channel_selection(db_path, channel_key, [slow])
+                reset_channel_selection(db_path, channel_key)
+                rows = list_channel_results(db_path, channel_key)
+
+            selected = [row for row in rows if row.get("selected_rank") is not None]
+            self.assertEqual([row["url"] for row in selected], [fast["url"]])
 
     def test_missing_resolution_is_allowed_when_measurement_is_reachable(self):
         result = make_result(resolution=None)

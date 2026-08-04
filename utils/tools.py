@@ -165,8 +165,8 @@ def filter_by_date(data):
     recent_data_len = len(recent_data)
     if recent_data_len == 0:
         recent_data = unrecent_data
-    elif recent_data_len < config.urls_limit:
-        recent_data.extend(unrecent_data[: config.urls_limit - len(recent_data)])
+    elif recent_data_len < config.output_urls_limit:
+        recent_data.extend(unrecent_data[: config.output_urls_limit - len(recent_data)])
     return recent_data
 
 
@@ -258,7 +258,7 @@ def get_total_urls(
         else:
             categorized_urls[origin]["all"].append(info)
 
-    urls_limit = config.urls_limit if apply_limit else None
+    urls_limit = config.output_urls_limit if apply_limit else None
 
     def fill_urls(categorized):
         for origin in origin_type_prefer:
@@ -289,11 +289,11 @@ def get_total_urls_from_sorted_data(data):
     """
     Get the total urls with filter by date and duplicate from sorted data
     """
-    if len(data) > config.urls_limit:
+    if len(data) > config.output_urls_limit:
         total_urls = [channel_data["url"] for channel_data, _ in filter_by_date(data)]
     else:
         total_urls = [channel_data["url"] for channel_data, _ in data]
-    return list(dict.fromkeys(total_urls))[: config.urls_limit]
+    return list(dict.fromkeys(total_urls))[: config.output_urls_limit]
 
 
 def check_ipv6_support():

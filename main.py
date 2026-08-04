@@ -29,6 +29,7 @@ from utils.tools import (
     get_urls_from_file,
     get_version_info,
     get_urls_len,
+    get_total_urls,
     get_public_url,
     parse_times,
     to_serializable,
@@ -358,6 +359,26 @@ class UpdateSource:
         write_to_xml(self.epg_result, constants.epg_result_path)
         compress_to_gz(constants.epg_result_path, constants.epg_gz_result_path)
 
+    @staticmethod
+    def _count_exported_items(data: CategoryChannelData) -> int:
+        """Count records that the configured playlist renderer will export."""
+        ipv_type_prefer = list(config.ipv_type_prefer)
+        if any(value == "auto" for value in ipv_type_prefer):
+            ipv_type_prefer = ["ipv4", "ipv6"]
+        total = 0
+        unmatch_category = t("content.unmatch_channel")
+        for category, channels in (data or {}).items():
+            for items in channels.values():
+                total += len(
+                    get_total_urls(
+                        items,
+                        ipv_type_prefer,
+                        config.origin_type_prefer,
+                        apply_limit=category != unmatch_category,
+                    )
+                )
+        return total
+
     # ----------------------------
     # stage 3: aggregator lifecycle
     # ----------------------------
@@ -368,7 +389,7 @@ class UpdateSource:
             ipv6_support=self.ipv6_support,
             write_interval=10.0,
             flush_debounce=2.0,
-            min_items_before_flush=max(25, config.urls_limit),
+            min_items_before_flush=max(25, config.output_urls_limit),
             result=cache,
             channel_catalog=self.channel_items,
             reporter=self.reporter,
@@ -637,11 +658,15 @@ class UpdateSource:
 
             await self._start_aggregator(cache)
             try:
-                if config.open_speed_test:
+                if config.speed_test_mode != "manual":
                     clear_cache()
                     await self._run_speed_test()
                 else:
-                    self.aggregator.test_results = self.channel_data
+                    # Manual mode only refreshes the candidate pool. Do not
+                    # mark candidates as measured merely because they were
+                    # collected; GUI retest actions create measurements.
+                    self.aggregator.test_results = {}
+                    self.aggregator.result = {}
                     self.aggregator.is_last = True
                     completed_channels = 0
                     channel_total = sum(len(channels) for channels in self.channel_data.values())
@@ -696,7 +721,7 @@ class UpdateSource:
                 raise
             else:
                 final_result = await self._stop_aggregator(flush=True)
-                self.source_metrics["output_items"] = get_urls_len(final_result)
+                self.source_metrics["output_items"] = self._count_exported_items(final_result)
                 try:
                     await asyncio.to_thread(
                         prune_stream_screenshots,
@@ -729,7 +754,7 @@ class UpdateSource:
                 )
             )
             self.reporter.stop_progress()
-            if config.open_speed_test:
+            if config.speed_test_mode != "manual":
                 summary_metrics = [
                     (t("summary.channels"), self.run_metrics.get("channels", len(self.channel_names))),
                     (t("summary.planned"), self.run_metrics.get("planned", 0)),

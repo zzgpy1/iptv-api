@@ -135,7 +135,7 @@
 | open_epg                 | 开启 EPG 功能，支持频道显示预告内容                                                                                                 | True                                     |
 | open_subscribe_epg       | 开启从订阅源 m3u 头部 url-tvg/x-tvg-url 自动提取 EPG 地址，并入 EPG 源一起合并，无需手动维护 `config/epg.txt`；epg.txt 源优先，订阅源仅补充未覆盖频道；需 open_epg = True | True                                     |
 | open_m3u_result          | 开启转换生成 m3u 文件类型结果链接，支持显示频道图标                                                                                         | True                                     |
-| urls_limit               | 单个频道接口数量                                                                                                             | 5                                        |
+| output_urls_limit       | 每个频道最终导出的接口数量；旧版 `urls_limit` 仍兼容                                                                           | 5                                        |
 | update_time_position     | 更新时间显示位置，需要开启 open_update_time 才能生效，可选值: top、bottom；top: 显示于结果顶部，bottom: 显示于结果底部                                     | top                                      |
 | language                 | 系统语言设置；可选值: zh_CN、en                                                                                                 | zh_CN                                    |
 | update_mode              | 定时执行更新时间模式，不作用于工作流；可选值: interval、time； interval: 按间隔时间执行，time: 按指定时间点执行                                              | interval                                 |
@@ -161,13 +161,16 @@
 | open_headers             | 开启使用 M3U 内含的请求头验证信息，用于测速等操作，个别播放器可能不支持播放这类含验证信息的接口                                                          | True                                     |
 | user_agent               | 全局请求 User-Agent，用于拉取订阅源、测速以及写入 m3u 结果（无需开启 open_headers），留空则使用内置默认 UA；优先级：接口自带 UA > 订阅地址 UA > 全局 UA > 内置默认 UA                            |                                          |
 | open_speed_test          | 开启测速功能，获取响应时间、速率、分辨率                                                                                                 | True                                     |
+| speed_test_mode          | 测速工作模式：`quick`、`full` 或 `manual`；`manual` 仅采集候选，测速由 GUI 操作触发                                                       | quick                                    |
+| speed_test_target        | 快速测速每个频道的有效结果目标；设为 `0` 跟随 `output_urls_limit`                                                                 | 0                                        |
+| quick_test_target        | `speed_test_target` 的可读别名；非 0 时优先作为快速测速目标                                                               | 0                                        |
 | open_stream_screenshot   | 自动为可播放候选接口获取播放截图；会增加 FFmpeg 解码开销和更新时间，关闭时仍可在 GUI 手动获取                                             | False                                    |
 | stream_screenshot_timeout | 单个接口截图超时时长，单位秒(s)                                                                                                          | 5                                        |
 | stream_screenshot_width  | 播放截图最大宽度，按原始宽高比缩放                                                                                                       | 640                                      |
 | open_filter_resolution   | 开启分辨率过滤，低于最小分辨率（min_resolution）的接口将会被过滤，GUI 用户需要手动安装 FFmpeg，程序会自动调用 FFmpeg 获取接口分辨率，推荐开启，虽然会增加测速阶段耗时，但能更有效地区分是否可播放的接口 | True                                     |
 | open_filter_speed        | 开启速率过滤，低于最小速率（min_speed）的接口将会被过滤                                                                                     | True                                     |
 | open_filter_ad           | 开启广告过滤，自动识别并过滤无信号/广告等循环占位源（含 #EXT-X-ENDLIST 的短循环列表，或片段地址包含广告关键字），复用测速阶段已抓取的播放列表进行判断，不增加额外请求与测速耗时                            | True                                     |
-| open_full_speed_test     | 开启全量测速，频道下所有接口（白名单除外）都进行测速，关闭则当测速有效结果数量达到urls_limit后停止剩余接口测速                                                         | False                                    |
+| open_full_speed_test     | 开启全量测速，频道下所有候选接口（白名单除外）都进行测速；关闭时达到 `speed_test_target` 后停止该频道剩余测速                   | False                                    |
 | open_supply              | 开启补偿机制模式，用于控制当频道接口数量不足时，自动将不满足条件（例如低于最小速率）但可能可用的接口添加至结果中，从而避免结果为空的情况；开启后，不符合 location/isp 归属地或运营商的接口也不再直接丢弃，而是降权排到该频道结果的末尾作为补充                                                 | False                                    |
 | sort_by                  | 结果排序维度，控制每个频道内接口的排序优先级，按从前到后的顺序依次比较，逗号分隔；可选值: speed（速率，高优先）、delay（延迟，低优先）、resolution（分辨率，高优先），例如: resolution,speed                                              | speed                                    |
 | min_resolution           | 接口最小分辨率，需要开启 open_filter_resolution 才能生效                                                                             | 1280x720                                 |

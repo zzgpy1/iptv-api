@@ -29,7 +29,7 @@ class ResultAggregator:
             first_channel_name: Optional[str] = None,
             ipv6_support: bool = True,
             write_interval: float = 5.0,
-            min_items_before_flush: int = config.urls_limit,
+            min_items_before_flush: int = config.output_urls_limit,
             flush_debounce: Optional[float] = None,
             stat_logger=None,
             result: Optional[Dict[str, Dict[str, list]]] = None,
@@ -225,6 +225,7 @@ class ResultAggregator:
             snapshot_base,
             snapshot_tests,
             snapshot_selected,
+            self.reporter.run_id if self.reporter else None,
         )
 
     async def flush_once(self, force: bool = False) -> None:

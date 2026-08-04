@@ -82,6 +82,56 @@ class ChannelOperations:
             finish_operation(self.db_path, operation_id, "failed", str(exc))
             raise
 
+    async def retest_results(
+        self,
+        channel_key: str,
+        result_keys: list[str],
+        progress=None,
+    ) -> list[dict]:
+        """Retest a user-selected subset of a channel's candidate pool."""
+        operation_id = begin_operation(self.db_path, "retest_results", "channel", channel_key)
+        try:
+            channel = get_channel(self.db_path, channel_key)
+            rows = list_channel_results(self.db_path, channel_key)
+            requested = list(dict.fromkeys(key for key in result_keys if key))
+            row_map = {row["result_key"]: row for row in rows}
+            targets = [row_map[key] for key in requested if key in row_map]
+            if not channel or len(targets) != len(requested):
+                raise ValueError(t("msg.channel_result_not_found"))
+            total = len(targets)
+            concurrency = max(1, min(config.performance_settings.speed_test_concurrency, total or 1))
+            semaphore = asyncio.Semaphore(concurrency)
+            completed = 0
+
+            async def test_one(row):
+                nonlocal completed
+                item = _as_channel_item(row)
+                invalidate_speed_cache(item)
+                async with semaphore:
+                    measured = await get_speed(
+                        item,
+                        headers=item.get("headers"),
+                        filter_resolution=config.open_filter_resolution,
+                        timeout=config.speed_test_timeout,
+                    )
+                merged = {**item, **measured}
+                update_result_measurement(self.db_path, channel_key, row["result_key"], merged)
+                completed += 1
+                if progress:
+                    progress(completed, total, channel["name"])
+                return merged
+
+            results = await asyncio.gather(*(test_one(row) for row in targets))
+            self._resort_and_publish(channel_key)
+            finish_operation(self.db_path, operation_id, "success")
+            return results
+        except asyncio.CancelledError:
+            finish_operation(self.db_path, operation_id, "cancelled")
+            raise
+        except Exception as exc:
+            finish_operation(self.db_path, operation_id, "failed", str(exc))
+            raise
+
     async def capture_result_screenshot(
         self,
         channel_key: str,
@@ -311,6 +361,13 @@ class ChannelOperations:
         if not channel:
             return
         items = [_as_channel_item(row) for row in rows]
+        if channel.get("selection_mode") == "manual":
+            selected = [row for row in rows if row.get("selected_rank") is not None]
+            selected.sort(key=lambda row: row.get("selected_rank") or 0)
+            set_channel_selection(self.db_path, channel_key, selected, mode="manual")
+            snapshot = load_selected_snapshot(self.db_path)
+            write_channel_to_file(snapshot, ipv6=config.ipv6_support, skip_print=True, is_last=True)
+            return
         base = defaultdict(lambda: defaultdict(list))
         tested = defaultdict(lambda: defaultdict(list))
         base[channel["category"]][channel["name"]] = items
@@ -324,6 +381,6 @@ class ChannelOperations:
             name=channel["name"],
         )
         selected = sorted_data.get(channel["category"], {}).get(channel["name"], [])
-        set_channel_selection(self.db_path, channel_key, selected)
+        set_channel_selection(self.db_path, channel_key, selected, mode="auto")
         snapshot = load_selected_snapshot(self.db_path)
         write_channel_to_file(snapshot, ipv6=config.ipv6_support, skip_print=True, is_last=True)

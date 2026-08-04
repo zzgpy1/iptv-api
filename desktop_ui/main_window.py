@@ -180,6 +180,15 @@ class MainWindow(FluentWindow):
                 {"channel_key": row["channel_key"], "result_key": row["result_key"]},
             )
         )
+        self.channels.retest_results_requested.connect(
+            lambda rows: self.operation_controller.enqueue(
+                "retest_results",
+                {
+                    "channel_key": rows[0]["channel_key"],
+                    "result_keys": [row["result_key"] for row in rows],
+                },
+            )
+        )
         self.channels.capture_screenshot_requested.connect(
             lambda row: self.operation_controller.enqueue(
                 "capture_result_screenshot",

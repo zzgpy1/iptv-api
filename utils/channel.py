@@ -136,7 +136,7 @@ def _get_total_urls_cached(
         origin_key,
         rtmp_key,
         bool(apply_limit),
-        config.urls_limit,
+        config.output_urls_limit,
     )
     cached = _TOTAL_URLS_CACHE.get(cache_key)
     if cached is not None:
@@ -873,7 +873,7 @@ async def test_speed(
     Test speed of channel data
     """
     ipv6_proxy_url = None if (not config.open_ipv6 or ipv6) else constants.ipv6_proxy
-    open_full_speed_test = config.open_full_speed_test
+    open_full_speed_test = config.speed_test_mode == "full" or config.open_full_speed_test
     needs_ffmpeg = config.open_filter_resolution or config.open_stream_screenshot
     ffmpeg_available = check_ffmpeg_installed_status() if needs_ffmpeg else False
     get_resolution = config.open_filter_resolution and ffmpeg_available
@@ -908,7 +908,9 @@ async def test_speed(
     completed = 0
     grouped_results = {}
     completed_by_channel = defaultdict(int)
-    urls_limit = config.urls_limit
+    # This target controls quick testing only. Candidate retention and file
+    # export use separate limits.
+    speed_test_target = config.speed_test_target
     valid_count_by_channel = defaultdict(int)
     stopped_channels = set()
 
@@ -930,9 +932,12 @@ async def test_speed(
         reached_limit = False
         if is_valid:
             valid_count_by_channel[(cate, name)] += 1
-            if not open_full_speed_test and valid_count_by_channel[(cate, name)] >= urls_limit:
+            if (
+                not open_full_speed_test
+                and valid_count_by_channel[(cate, name)] >= speed_test_target
+            ):
                 stopped_channels.add((cate, name))
-                reached_limit = valid_count_by_channel[(cate, name)] == urls_limit
+                reached_limit = valid_count_by_channel[(cate, name)] == speed_test_target
 
         record = build_speed_test_record(
             cate,
@@ -1002,9 +1007,23 @@ async def test_speed(
                                 probe_semaphore=probe_semaphore,
                             )
                     except TimeoutError:
-                        result = {"test_status": "timeout"}
+                        result = {
+                            "speed": 0,
+                            "delay": -1,
+                            "resolution": None,
+                            "fps": None,
+                            "video_codec": None,
+                            "audio_codec": None,
+                            "test_status": "timeout",
+                        }
                     except Exception as exc:
                         result = {
+                            "speed": 0,
+                            "delay": -1,
+                            "resolution": None,
+                            "fps": None,
+                            "video_codec": None,
+                            "audio_codec": None,
                             "test_status": "request_error",
                             "error_type": type(exc).__name__,
                         }

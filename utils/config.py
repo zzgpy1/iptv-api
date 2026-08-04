@@ -86,7 +86,13 @@ BOOLEAN_KEYS = {
 
 CONFIG_SCHEMA = {
     **{key: ConfigRule(kind="boolean") for key in BOOLEAN_KEYS},
+    # ``urls_limit`` is retained as a backwards-compatible alias.  New
+    # configurations should use the output and speed-test settings below.
     "urls_limit": ConfigRule(kind="integer", minimum=1),
+    "output_urls_limit": ConfigRule(kind="integer", minimum=1),
+    "speed_test_target": ConfigRule(kind="integer", minimum=0),
+    "quick_test_target": ConfigRule(kind="integer", minimum=0),
+    "speed_test_mode": ConfigRule(kind="enum", choices=("quick", "full", "manual")),
     "app_port": ConfigRule(kind="integer", minimum=1, maximum=65535),
     "service_port": ConfigRule(kind="integer", minimum=1, maximum=65535),
     "nginx_http_port": ConfigRule(kind="integer", minimum=1, maximum=65535),
@@ -338,7 +344,7 @@ class ConfigManager:
     @property
     def source_limits(self):
         return {
-            "all": self.urls_limit,
+            "all": self.output_urls_limit,
             "local": self.local_num,
             "subscribe": self.subscribe_num,
         }
@@ -365,7 +371,66 @@ class ConfigManager:
 
     @property
     def urls_limit(self):
+        """Deprecated compatibility alias for the per-channel output limit."""
+        return self.output_urls_limit
+
+    @property
+    def output_urls_limit(self):
+        configured = self.config.get("Settings", "output_urls_limit", fallback="").strip()
+        output_source = self._sources.get(("Settings", "output_urls_limit"))
+        legacy_source = self._sources.get(("Settings", "urls_limit"))
+        # A legacy value from the user file must continue to override the
+        # shipped default output value during migration.
+        if (
+            legacy_source
+            and legacy_source != self._default_config_path
+            and output_source == self._default_config_path
+        ):
+            return self.config.getint("Settings", "urls_limit", fallback=10)
+        if configured:
+            return max(1, int(configured))
         return self.config.getint("Settings", "urls_limit", fallback=10)
+
+    @property
+    def speed_test_target(self):
+        """Number of valid results targeted by quick speed testing.
+
+        A value of zero follows the output limit.  ``open_full_speed_test``
+        still takes precedence and tests the entire candidate pool.
+        """
+        # ``quick_test_target`` is the descriptive name used by the layered
+        # candidate model; retain ``speed_test_target`` for compatibility.
+        quick_value = self.config.getint("Settings", "quick_test_target", fallback=0)
+        value = quick_value or self.config.getint("Settings", "speed_test_target", fallback=0)
+        return self.output_urls_limit if value <= 0 else value
+
+    @property
+    def quick_test_target(self):
+        """Compatibility/readability alias for :attr:`speed_test_target`."""
+        return self.speed_test_target
+
+    @property
+    def speed_test_mode(self):
+        """Return the explicit speed-test workflow with legacy migration."""
+        mode = self.config.get("Settings", "speed_test_mode", fallback="").strip().lower()
+        mode_source = self._sources.get(("Settings", "speed_test_mode"))
+        legacy_source = self._sources.get(("Settings", "open_speed_test"))
+        full_source = self._sources.get(("Settings", "open_full_speed_test"))
+        if (
+            mode_source == self._default_config_path
+            and (
+                (legacy_source and legacy_source != self._default_config_path)
+                or (full_source and full_source != self._default_config_path)
+            )
+        ):
+            if not self.config.getboolean("Settings", "open_speed_test", fallback=True):
+                return "manual"
+            return "full" if self.config.getboolean("Settings", "open_full_speed_test", fallback=False) else "quick"
+        if mode in {"quick", "full", "manual"}:
+            return mode
+        if not self.config.getboolean("Settings", "open_speed_test", fallback=True):
+            return "manual"
+        return "full" if self.open_full_speed_test else "quick"
 
     @property
     def open_url_info(self):

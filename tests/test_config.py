@@ -254,6 +254,59 @@ sort_by = speed,quality
         self.assertIn("速率应为不小于 0 的数字", message)
         self.assertIn('"quality" 无效', message)
 
+    def test_output_limit_supersedes_legacy_setting_and_target_follows_it(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+urls_limit = 5
+output_urls_limit = 8
+speed_test_target = 0
+"""
+        )
+
+        self.assertEqual(manager.output_urls_limit, 8)
+        self.assertEqual(manager.urls_limit, 8)
+        self.assertEqual(manager.speed_test_target, 8)
+
+    def test_legacy_user_output_limit_is_preserved_during_migration(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+output_urls_limit = 5
+""",
+            """\
+[Settings]
+urls_limit = 3
+""",
+        )
+
+        self.assertEqual(manager.output_urls_limit, 3)
+        self.assertEqual(manager.speed_test_target, 3)
+
+    def test_speed_test_mode_migrates_legacy_switches_and_accepts_explicit_mode(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+speed_test_mode = quick
+open_speed_test = True
+open_full_speed_test = False
+""",
+            """\
+[Settings]
+open_speed_test = False
+""",
+        )
+        self.assertEqual(manager.speed_test_mode, "manual")
+
+        explicit, _, _ = self._manager(
+            """\
+[Settings]
+speed_test_mode = manual
+open_speed_test = True
+"""
+        )
+        self.assertEqual(explicit.speed_test_mode, "manual")
+
     def test_save_validates_before_overwriting_user_config(self):
         manager, _, user_path = self._manager(
             """\
