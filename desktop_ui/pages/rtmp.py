@@ -4,15 +4,15 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 from PySide6.QtCharts import QChart, QChartView, QDateTimeAxis, QLineSeries, QValueAxis
-from PySide6.QtCore import QDateTime, QItemSelectionModel, QMargins, QSignalBlocker, Signal, Qt
-from PySide6.QtGui import QBrush, QColor, QGuiApplication, QPainter, QPalette, QPen
+from PySide6.QtCore import QDateTime, QEasingCurve, QItemSelectionModel, QMargins, QSignalBlocker, Signal, Qt, QVariantAnimation
+from PySide6.QtGui import QBrush, QColor, QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QHBoxLayout, QListWidget, QListWidgetItem, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CaptionLabel, CardWidget, CheckBox, ComboBox, FluentIcon, InfoBar, InfoBarPosition, PushButton, StrongBodyLabel, TableView, ToolButton, isDarkTheme, qconfig
 
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
 from desktop_ui.playback import play_url
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, GlassCard, configure_table_columns
 from utils.channel_repository import list_streamable_results
 from utils.config import config
 from utils.i18n import t
@@ -324,21 +324,26 @@ class RtmpPage(QWidget):
         self.stream_stack.addWidget(self.table)
         self.stream_stack.setMinimumHeight(300)
 
-        self.chart_card = CardWidget(self)
-        self.chart_card.setBorderRadius(10)
+        self.chart_card = GlassCard(self)
         self.chart_card.setFixedWidth(240)
         self.chart_card.setFixedHeight(240)
         chart_layout = QVBoxLayout(self.chart_card)
         chart_layout.setContentsMargins(14, 12, 14, 10)
-        chart_layout.setSpacing(2)
+        chart_layout.setSpacing(4)
         self.chart_title = StrongBodyLabel(t("desktop.bandwidth_trend"), self.chart_card)
+        self.chart_status = CaptionLabel(t("desktop.not_streaming"), self.chart_card)
+        chart_header = QHBoxLayout()
+        chart_header.setContentsMargins(0, 0, 0, 0)
+        chart_header.addWidget(self.chart_title)
+        chart_header.addStretch(1)
+        chart_header.addWidget(self.chart_status)
         self.chart_value = StrongBodyLabel("0.0 Kbit/s", self.chart_card)
         chart_value_font = self.chart_value.font()
         chart_value_font.setPointSize(18)
         chart_value_font.setBold(True)
         self.chart_value.setFont(chart_value_font)
         self.chart_meta = CaptionLabel(t("desktop.stream_chart_meta").format(streams=0, clients=0), self.chart_card)
-        chart_layout.addWidget(self.chart_title)
+        chart_layout.addLayout(chart_header)
         chart_layout.addWidget(self.chart_value)
         chart_layout.addWidget(self.chart_meta)
 
@@ -362,6 +367,13 @@ class RtmpPage(QWidget):
         self.chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.chart_view.setMinimumHeight(120)
         chart_layout.addWidget(self.chart_view, 1)
+        self.chart_card.hide()
+        self._displayed_bandwidth = 0.0
+        self._bandwidth_target = 0.0
+        self.bandwidth_animation = QVariantAnimation(self)
+        self.bandwidth_animation.setDuration(220)
+        self.bandwidth_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.bandwidth_animation.valueChanged.connect(self._set_displayed_bandwidth)
 
         main_row = QHBoxLayout()
         main_row.setSpacing(10)
@@ -397,6 +409,7 @@ class RtmpPage(QWidget):
         self.reload_channels()
         self._set_monitor_visibility(False)
         self._apply_chart_theme()
+        self._set_bandwidth_idle_state()
 
     @staticmethod
     def _stream_columns():
@@ -493,8 +506,34 @@ class RtmpPage(QWidget):
                 QDateTime.fromMSecsSinceEpoch(int(self.samples[-1][0] + 1000)),
             )
         self.value_axis.setRange(0, max(10, max((value for _, value in self.samples), default=0) * 1.15))
-        self.chart_value.setText(f"{bw_out / 1000:.1f} Kbit/s")
-        self.chart_meta.setText(t("desktop.stream_chart_meta").format(streams=len(streams), clients=clients))
+        if streams:
+            target = bw_out / 1000
+            self.chart_card.show()
+            self.chart_value.show()
+            self.chart_meta.show()
+            self.chart_status.setText(t("desktop.stream_running_badge"))
+            self.chart_status.setStyleSheet("color: #059669;")
+            self.chart_meta.setText(t("desktop.stream_chart_meta").format(streams=len(streams), clients=clients))
+            self.chart_card.set_accent("#2563EB")
+            if abs(target - self._bandwidth_target) >= 0.1:
+                self._bandwidth_target = target
+                self.bandwidth_animation.stop()
+                self.bandwidth_animation.setStartValue(self._displayed_bandwidth)
+                self.bandwidth_animation.setEndValue(target)
+                self.bandwidth_animation.start()
+                self.chart_card.pulse()
+        else:
+            self._set_bandwidth_idle_state()
+
+    def _set_displayed_bandwidth(self, value):
+        self._displayed_bandwidth = float(value)
+        self.chart_value.setText(f"{self._displayed_bandwidth:.1f} Kbit/s")
+
+    def _set_bandwidth_idle_state(self):
+        self.bandwidth_animation.stop()
+        self._displayed_bandwidth = 0.0
+        self._bandwidth_target = 0.0
+        self.chart_card.hide()
 
     def set_installing(self, installing: bool):
         self._installing = installing
@@ -706,20 +745,14 @@ class RtmpPage(QWidget):
 
     def _apply_chart_theme(self, *_):
         dark = isDarkTheme()
-        background = QColor("#202124" if dark else "#FFFFFF")
-        page_background = QColor("#202124" if dark else "#F3F3F3")
         line = QColor("#60A5FA" if dark else "#2563EB")
-        self.chart.setBackgroundBrush(QBrush(background))
-        self.chart.setPlotAreaBackgroundBrush(QBrush(background))
-        self.chart.setPlotAreaBackgroundVisible(True)
-        self.chart_view.setBackgroundBrush(QBrush(background))
-        self.chart_view.setStyleSheet("border: none;")
-        for widget in (self, self.chart_card, self.chart_view.viewport()):
-            palette = widget.palette()
-            palette.setColor(QPalette.ColorRole.Window, page_background if widget is self else background)
-            palette.setColor(QPalette.ColorRole.Base, page_background if widget is self else background)
-            widget.setPalette(palette)
-            widget.setAutoFillBackground(True)
+        # Let the chart canvas inherit the rounded CardWidget surface.  Filling it
+        # with white here previously left a square background inside the card.
+        self.chart.setBackgroundVisible(False)
+        self.chart.setPlotAreaBackgroundVisible(False)
+        self.chart_view.setBackgroundBrush(QBrush(Qt.BrushStyle.NoBrush))
+        self.chart_view.setStyleSheet("QChartView { background: transparent; border: none; }")
+        self.chart_view.viewport().setAutoFillBackground(False)
         self.series.setPen(QPen(line, 2.2))
         self.chart_value.setStyleSheet(f"color: {line.name()};")
         self.chart_view.viewport().update()

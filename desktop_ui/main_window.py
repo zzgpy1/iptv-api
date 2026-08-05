@@ -5,7 +5,7 @@ import threading
 
 import pytz
 from PySide6.QtCore import QRect, QSettings, QTimer, QUrl, Signal, Qt
-from PySide6.QtGui import QAction, QColor, QDesktopServices, QGuiApplication, QIcon, QPainter
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QFontMetrics, QGuiApplication, QIcon, QPainter
 from PySide6.QtWidgets import QApplication, QCheckBox, QDialog, QDialogButtonBox, QLabel, QMenu, QMessageBox, QSystemTrayIcon, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, FluentWindow, InfoBar, InfoBarPosition, NavigationItemPosition, Theme, isDarkTheme, setTheme
 
@@ -28,38 +28,6 @@ from utils.rtmp_runtime import install_rtmp_runtime
 from utils.tools import get_public_url, get_version_info
 
 
-class NavigationResizeHandle(QWidget):
-    width_changed = Signal(int)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.drag_origin = None
-        self.start_width = 0
-        self.setFixedWidth(6)
-        self.setCursor(Qt.CursorShape.SizeHorCursor)
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.drag_origin = event.globalPosition().x()
-            self.start_width = self.parentWidget().width()
-            event.accept()
-
-    def mouseMoveEvent(self, event):
-        if self.drag_origin is not None:
-            self.width_changed.emit(self.start_width + int(event.globalPosition().x() - self.drag_origin))
-            event.accept()
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.drag_origin = None
-            event.accept()
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setPen(QColor("#475569" if isDarkTheme() else "#D7DEE8"))
-        painter.drawLine(self.width() - 1, 0, self.width() - 1, self.height())
-
-
 class MainWindow(FluentWindow):
     rtmp_install_finished = Signal(dict)
     rtmp_install_output = Signal(str)
@@ -77,14 +45,17 @@ class MainWindow(FluentWindow):
         self._window_geometry_timer.setInterval(300)
         self._window_geometry_timer.timeout.connect(self._save_window_geometry)
         self._configure_initial_geometry()
+        # The navigation stack's pop-up animation offsets pages vertically.
+        # Keep page changes stationary so they cannot be mistaken for window resizing.
+        self.stackedWidget.setAnimationEnabled(False)
+        self.navigationInterface.setIndicatorAnimationEnabled(False)
         self.navigationInterface.setReturnButtonVisible(False)
         if sys.platform == "darwin":
             self.setSystemTitleBarButtonVisible(True)
             self.titleBar.minBtn.hide()
             self.titleBar.maxBtn.hide()
             self.titleBar.closeBtn.hide()
-        self.navigation_width = int(QSettings().value("appearance/navigation_width", 220))
-        self.navigationInterface.setExpandWidth(self.navigation_width)
+        self.navigationInterface.setExpandWidth(220)
         self.navigationInterface.setMinimumExpandWidth(840)
         self.channel_logo_loader = ChannelLogoLoader(self)
         self.dashboard = DashboardPage(self, self.channel_logo_loader)
@@ -140,12 +111,10 @@ class MainWindow(FluentWindow):
         panel.vBoxLayout.setContentsMargins(0, 48, 0, 5)
         panel.topLayout.removeWidget(panel.menuButton)
         panel.bottomLayout.addWidget(panel.menuButton, 0, Qt.AlignmentFlag.AlignBottom)
-        self.navigation_resize_handle = NavigationResizeHandle(self.navigationInterface)
-        self.navigation_resize_handle.width_changed.connect(self.set_navigation_width)
-        panel.expandAni.valueChanged.connect(lambda _: self._position_navigation_resize_handle())
         self._update_language_item()
         self._update_theme_item()
-        self._position_navigation_resize_handle()
+        self._remove_navigation_tooltips()
+        self._fit_navigation_width()
         self.controller = UpdateController(self)
         self._update_activity_state = "idle"
         self._update_progress_value = 0
@@ -256,12 +225,29 @@ class MainWindow(FluentWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self._position_navigation_resize_handle()
-        if self.isVisible():
-            self._window_geometry_timer.start()
         if sys.platform == "darwin":
             self.titleBar.move(90, 0)
             self.titleBar.resize(max(0, self.width() - 90), self.titleBar.height())
+        if self.isVisible():
+            self._window_geometry_timer.start()
+
+    def switchTo(self, interface):
+        """Publish a fully laid-out page in one paint instead of exposing transition frames."""
+        if self.stackedWidget.currentWidget() is interface:
+            return
+        view = self.stackedWidget.view
+        view.setUpdatesEnabled(False)
+        try:
+            interface.ensurePolished()
+            interface.setGeometry(view.contentsRect())
+            super().switchTo(interface)
+            layout = view.layout()
+            if layout:
+                layout.activate()
+        finally:
+            view.setUpdatesEnabled(True)
+        view.repaint()
+        self.repaint()
 
     def moveEvent(self, event):
         super().moveEvent(event)
@@ -309,17 +295,39 @@ class MainWindow(FluentWindow):
         setTheme(Theme.DARK if dark else Theme.LIGHT)
         QSettings().setValue("appearance/theme", "dark" if dark else "light")
         self._update_theme_item()
-        self.navigation_resize_handle.update()
 
     def _update_theme_item(self):
         text = t("desktop.light_mode" if isDarkTheme() else "desktop.dark_mode")
         self.theme_item.setText(text)
-        self.theme_item.setToolTip(text)
 
     def _update_language_item(self):
         text = t("desktop.chinese" if get_language().startswith("en") else "desktop.english")
         self.language_item.setText(text)
-        self.language_item.setToolTip(text)
+
+    def _fit_navigation_width(self):
+        """Fit the expanded rail to its longest current label without wasting content space."""
+        items = [item for item, _, _ in self._navigation_items.values()]
+        items.extend((self.language_item, self.theme_item))
+        longest = max(QFontMetrics(item.font()).horizontalAdvance(item.text()) for item in items)
+        width = max(164, longest + 83)  # 44px icon inset, 13px end inset, plus panel padding.
+        self.navigationInterface.setExpandWidth(width)
+        panel = self.navigationInterface.panel
+        if not panel.isCollapsed():
+            panel.resize(width, panel.height())
+            for item in items:
+                if not item.isCompacted:
+                    item.setFixedWidth(width - 10)
+
+    def _remove_navigation_tooltips(self):
+        """Remove qfluent's default hover filters and native tooltip text from the rail."""
+        items = [item for item, _, _ in self._navigation_items.values()]
+        items.extend((self.language_item, self.theme_item))
+        for item in items:
+            item.setToolTip("")
+            for child in item.children():
+                if child.__class__.__name__ == "NavigationToolTipFilter":
+                    item.removeEventFilter(child)
+                    child.deleteLater()
 
     def retranslate(self, _language=None):
         navigation_items = (
@@ -335,7 +343,6 @@ class MainWindow(FluentWindow):
         for item, key in navigation_items:
             text = t(key)
             item.setText(text)
-            item.setToolTip(text)
         for page in (
             self.dashboard,
             self.channels,
@@ -351,6 +358,7 @@ class MainWindow(FluentWindow):
             self._refresh_tray_menu()
         self._update_language_item()
         self._update_theme_item()
+        self._fit_navigation_width()
         self._refresh_navigation_statuses()
 
     def _set_navigation_status(
@@ -383,20 +391,18 @@ class MainWindow(FluentWindow):
         if indicator:
             indicator.hide()
         if name in self._navigation_items:
-            item, title_key, _ = self._navigation_items[name]
-            title = t(title_key)
-            item.setToolTip(title)
+            item, _, _ = self._navigation_items[name]
+            item.setToolTip("")
 
     def _refresh_navigation_status(self, name: str):
         status = self._navigation_statuses.get(name)
         if not status:
             return
-        item, title_key, _ = self._navigation_items[name]
-        title = t(title_key)
+        item, _, _ = self._navigation_items[name]
         detail = t(status["status_key"]).format(**status["status_args"])
-        item.setToolTip(f"{title} · {detail}")
+        item.setToolTip("")
         indicator = self._navigation_indicators[name]
-        indicator.setToolTip(detail)
+        indicator.setToolTip("")
         if self.stackedWidget.currentWidget() is self._navigation_items[name][2]:
             indicator.hide()
         else:
@@ -413,30 +419,6 @@ class MainWindow(FluentWindow):
             if page is current and status and status.get("dismiss_on_visit"):
                 self._clear_navigation_status(name)
         self._refresh_navigation_statuses()
-
-    def _position_navigation_resize_handle(self):
-        if not hasattr(self, "navigation_resize_handle"):
-            return
-        navigation = self.navigationInterface
-        expanded = navigation.width() > 48
-        self.navigation_resize_handle.setVisible(expanded)
-        if expanded:
-            self.navigation_resize_handle.setGeometry(
-                navigation.width() - self.navigation_resize_handle.width(),
-                48,
-                self.navigation_resize_handle.width(),
-                max(0, navigation.height() - 48),
-            )
-            self.navigation_resize_handle.raise_()
-
-    def set_navigation_width(self, width: int):
-        self.navigation_width = max(180, min(360, int(width)))
-        QSettings().setValue("appearance/navigation_width", self.navigation_width)
-        self.navigationInterface.setExpandWidth(self.navigation_width)
-        panel = self.navigationInterface.panel
-        if not panel.isCollapsed():
-            panel.resize(self.navigation_width, panel.height())
-        self._position_navigation_resize_handle()
 
     def show_and_raise(self):
         if sys.platform == "darwin":

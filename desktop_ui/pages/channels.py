@@ -5,7 +5,7 @@ import re
 from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QRectF, QSettings, QSize, QSignalBlocker, QTimer, Signal, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen
 from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QSizePolicy, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, IndeterminateProgressRing, InfoBar, InfoBarPosition, ProgressRing, PushButton, RoundMenu, SegmentedWidget, StrongBodyLabel, TableView, ToolButton, TreeWidget, isDarkTheme
+from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, IndeterminateProgressRing, InfoBar, InfoBarPosition, ProgressRing, PushButton, RoundMenu, SegmentedWidget, StrongBodyLabel, TableView, ToolButton, TreeWidget, isDarkTheme, qconfig
 
 import utils.constants as constants
 from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTableModel
@@ -19,7 +19,7 @@ from desktop_ui.stream_status import (
     build_channel_stream_states,
     build_result_stream_states,
 )
-from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns, warning_message_box
+from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, ContinuousTreeItemDelegate, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns, warning_message_box
 from utils.channel import write_channel_to_file
 from utils.channel_repository import add_manual_result, delete_channel_records, delete_channel_results, get_channel, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, load_selected_snapshot, reset_channel_selection, set_channel_logo, set_channel_selection, upsert_manual_channel
 from utils.config import config, resource_path
@@ -411,6 +411,17 @@ class ChannelCenterPage(QWidget):
         tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         tree.setBorderVisible(False)
+        tree.setItemDelegate(ContinuousTreeItemDelegate(tree))
+        tree.setStyleSheet(
+            """
+            QTreeWidget, QTreeWidget::viewport { background-color: transparent; border: none; }
+            QTreeWidget::item, QTreeWidget::item:selected { background-color: transparent; margin: 0; }
+            """
+        )
+        tree.setAutoFillBackground(False)
+        tree.viewport().setAutoFillBackground(False)
+        qconfig.themeChanged.connect(lambda *_: tree.viewport().update())
+        qconfig.themeChangedFinished.connect(lambda *_: tree.viewport().update())
         tree.header().setStretchLastSection(False)
         tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)

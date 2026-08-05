@@ -1,6 +1,9 @@
+import math
+import time
+
 from PySide6.QtCore import QEvent, QObject, QPointF, QRect, QSettings, QTimer, Signal, Qt
-from PySide6.QtGui import QBrush, QColor, QIcon, QMouseEvent, QPainter, QPen, QPixmap, QPolygonF
-from PySide6.QtWidgets import QHeaderView, QHBoxLayout, QLabel, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
+from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QMouseEvent, QPainter, QPalette, QPen, QPixmap, QPolygonF, QRadialGradient
+from PySide6.QtWidgets import QGraphicsDropShadowEffect, QHeaderView, QHBoxLayout, QLabel, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, MessageBox, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, TableItemDelegate, isDarkTheme, qconfig, setCustomStyleSheet
 
 
@@ -55,6 +58,49 @@ def paint_table_checkbox(painter, rect, state):
     elif state == Qt.CheckState.PartiallyChecked:
         painter.drawLine(box.left() + 4, box.center().y(), box.right() - 4, box.center().y())
     painter.restore()
+
+
+class ContinuousTreeItemDelegate(QStyledItemDelegate):
+    """Paint tree selection as one uninterrupted rounded row across columns."""
+
+    def paint(self, painter, option, index):
+        selected = bool(option.state & QStyle.StateFlag.State_Selected)
+        hovered = bool(option.state & QStyle.StateFlag.State_MouseOver)
+        if selected or hovered:
+            painter.save()
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setPen(Qt.PenStyle.NoPen)
+            if selected:
+                if isDarkTheme():
+                    color = QColor("#1D4ED8")
+                    color.setAlpha(175)
+                else:
+                    color = QColor("#BFDBFE")
+                    color.setAlpha(230)
+            else:
+                color = QColor(255, 255, 255, 12) if isDarkTheme() else QColor(15, 23, 42, 10)
+            painter.setBrush(color)
+            self._draw_row_segment(painter, option, index)
+            painter.restore()
+
+        clean_option = QStyleOptionViewItem(option)
+        clean_option.state &= ~(QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver)
+        if selected:
+            text_color = QColor("#F8FAFC" if isDarkTheme() else "#1E3A8A")
+        else:
+            text_color = QColor("#E2E8F0" if isDarkTheme() else "#1F2937")
+        clean_option.palette.setColor(QPalette.ColorRole.Text, text_color)
+        super().paint(painter, clean_option, index)
+
+    def _draw_row_segment(self, painter, option, index):
+        view = self.parent()
+        if index.column() != 0:
+            return
+        rect = view.viewport().rect()
+        rect.setTop(option.rect.top() + 2)
+        rect.setBottom(option.rect.bottom() - 2)
+        rect.adjust(2, 0, -2, 0)
+        painter.drawRoundedRect(rect, 4.0, 4.0)
 
 
 class TableCheckBoxHeader(QHeaderView):
@@ -440,17 +486,146 @@ def play_circle_icon(color="#FFFFFF"):
     return QIcon(pixmap)
 
 
-class MetricCard(CardWidget):
-    def __init__(self, title: str, value: str = "--", detail: str = "", icon=None, parent=None, accent="#0E5CAD"):
+class MetricIconWidget(QWidget):
+    """Icon renderer that can rotate without a costly graphics effect."""
+
+    def __init__(self, icon=None, parent=None):
+        super().__init__(parent)
+        self._icon = icon or QIcon()
+        self._angle = 0.0
+
+    def setIcon(self, icon):
+        self._icon = icon or QIcon()
+        self.update()
+
+    def set_angle(self, angle: float):
+        self._angle = angle
+        self.update()
+
+    def paintEvent(self, _event):
+        if self._icon.isNull():
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter.translate(self.width() / 2, self.height() / 2)
+        painter.rotate(self._angle)
+        size = min(self.width(), self.height())
+        self._icon.paint(painter, QRect(-size // 2, -size // 2, size, size))
+
+
+class GlassCard(CardWidget):
+    """A lightweight glass surface for focused, low-density dashboard content."""
+
+    def __init__(self, parent=None, accent="#2563EB"):
         super().__init__(parent)
         self._accent = QColor(accent)
+        self._pulse_until = 0.0
+        self._pulse_timer = QTimer(self)
+        self._pulse_timer.setInterval(33)
+        self._pulse_timer.timeout.connect(self._advance_pulse)
+        self.setBorderRadius(12)
+        self._shadow = QGraphicsDropShadowEffect(self)
+        self._shadow.setBlurRadius(18)
+        self._shadow.setOffset(0, 3)
+        self.setGraphicsEffect(self._shadow)
+        qconfig.themeChangedFinished.connect(self._apply_surface_style)
+        self._apply_surface_style()
+
+    def set_accent(self, accent: str):
+        self._accent = QColor(accent)
+        self.update()
+
+    def pulse(self, duration_ms: int = 360):
+        self._pulse_until = max(self._pulse_until, time.monotonic() + duration_ms / 1000)
+        if not self._pulse_timer.isActive():
+            self._pulse_timer.start()
+        self.update()
+
+    def _advance_pulse(self):
+        if time.monotonic() >= self._pulse_until:
+            self._pulse_timer.stop()
+        self.update()
+
+    def _apply_surface_style(self, *_):
+        shadow = QColor("#000000")
+        shadow.setAlpha(70 if isDarkTheme() else 24)
+        self._shadow.setColor(shadow)
+
+    def paintEvent(self, _event):
+        now = time.monotonic()
+        pulse = 0.0
+        if now < self._pulse_until:
+            remaining = (self._pulse_until - now) / 0.36
+            pulse = math.sin(max(0.0, min(1.0, remaining)) * math.pi)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        radius = 12.0
+        accent = QColor(self._accent)
+        glass = QLinearGradient(0, rect.top(), 0, rect.bottom())
+        if isDarkTheme():
+            glass.setColorAt(0, QColor(39, 51, 70, 198 if self.isHover else 186))
+            glass.setColorAt(1, QColor(22, 30, 45, 178 if self.isHover else 164))
+            highlight = QColor(255, 255, 255, 42)
+            border = QColor(255, 255, 255, 38)
+        else:
+            glass.setColorAt(0, QColor(255, 255, 255, 222 if self.isHover else 208))
+            glass.setColorAt(1, QColor(241, 245, 249, 200 if self.isHover else 184))
+            highlight = QColor(255, 255, 255, 178)
+            border = QColor(148, 163, 184, 48)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(glass)
+        painter.drawRoundedRect(rect, radius, radius)
+        radial = QRadialGradient(rect.right() - 12, rect.top() + 10, max(48, rect.width() * 0.36))
+        tint = QColor(accent)
+        tint.setAlpha(int((24 if isDarkTheme() else 14) + pulse * 24))
+        radial.setColorAt(0, tint)
+        radial.setColorAt(1, QColor(accent.red(), accent.green(), accent.blue(), 0))
+        painter.setBrush(radial)
+        painter.drawRoundedRect(rect, radius, radius)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(highlight, 1.0))
+        painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), radius - 1, radius - 1)
+        if pulse:
+            border = QColor(accent)
+            border.setAlpha(int(42 + pulse * 126))
+        painter.setPen(QPen(border, 1.0))
+        painter.drawRoundedRect(rect, radius, radius)
+
+
+class MetricCard(CardWidget):
+    def __init__(
+        self,
+        title: str,
+        value: str = "--",
+        detail: str = "",
+        icon=None,
+        parent=None,
+        accent="#0E5CAD",
+        animate_value_updates: bool = False,
+    ):
+        super().__init__(parent)
+        self._accent = QColor(accent)
+        self._animate_value_updates = animate_value_updates
+        self._activity = False
+        self._rotate_icon = False
+        self._activity_delay = 0.0
+        self._activity_started_at = 0.0
+        self._pulse_until = 0.0
+        self._animation_timer = QTimer(self)
+        self._animation_timer.setInterval(33)  # 30 fps is ample for small dashboard accents.
+        self._animation_timer.timeout.connect(self._advance_animation)
         self.setMinimumHeight(104)
-        self.setBorderRadius(8)
+        self.setBorderRadius(12)
+        self._shadow = QGraphicsDropShadowEffect(self)
+        self._shadow.setBlurRadius(18)
+        self._shadow.setOffset(0, 3)
+        self.setGraphicsEffect(self._shadow)
         root = QHBoxLayout(self)
         root.setContentsMargins(18, 14, 18, 14)
         root.setSpacing(14)
         self.icon_container = QWidget(self) if icon else None
-        self.icon_widget = IconWidget(icon.icon(color=QColor(accent)) if hasattr(icon, "icon") else icon, self.icon_container) if icon else None
+        self.icon_widget = MetricIconWidget(icon.icon(color=QColor(accent)) if hasattr(icon, "icon") else icon, self.icon_container) if icon else None
         if self.icon_widget:
             self.icon_container.setFixedSize(42, 42)
             color = QColor(accent)
@@ -477,7 +652,9 @@ class MetricCard(CardWidget):
         layout.addWidget(self.detail_label)
         root.addLayout(layout, 1)
         qconfig.themeChangedFinished.connect(self._apply_text_colors)
+        qconfig.themeChangedFinished.connect(self._apply_surface_style)
         self._apply_text_colors()
+        self._apply_surface_style()
 
     def _apply_text_colors(self, *_):
         dark = isDarkTheme()
@@ -488,14 +665,115 @@ class MetricCard(CardWidget):
         self.value_label.setStyleSheet(f"color: {value};")
         self.detail_label.setStyleSheet(f"color: {detail};")
 
+    def _apply_surface_style(self, *_):
+        shadow = QColor("#000000")
+        shadow.setAlpha(70 if isDarkTheme() else 24)
+        self._shadow.setColor(shadow)
+
     def set_clickable(self, clickable: bool = True):
         self.setClickEnabled(clickable)
         self.setCursor(Qt.CursorShape.PointingHandCursor if clickable else Qt.CursorShape.ArrowCursor)
 
     def set_value(self, value, detail: str | None = None):
+        changed = self.value_label.text() != str(value)
         self.value_label.setText(str(value))
         if detail is not None:
             self.detail_label.setText(detail)
+        if changed and self._activity and self._animate_value_updates:
+            self.pulse()
+
+    def set_activity(self, active: bool, *, delay_ms: int = 0, rotate_icon: bool = False):
+        """Enable the restrained running-state animation for this dashboard card."""
+        self._activity = active
+        self._rotate_icon = active and rotate_icon
+        self._activity_delay = delay_ms / 1000
+        if active:
+            self._activity_started_at = time.monotonic()
+            if not self._animation_timer.isActive():
+                self._animation_timer.start()
+        elif time.monotonic() >= self._pulse_until:
+            self._animation_timer.stop()
+        self.update()
+
+    def pulse(self, duration_ms: int = 360):
+        """Briefly acknowledge a metric change without changing the layout."""
+        self._pulse_until = max(self._pulse_until, time.monotonic() + duration_ms / 1000)
+        if not self._animation_timer.isActive():
+            self._animation_timer.start()
+
+    def _advance_animation(self):
+        now = time.monotonic()
+        self._advance_icon_rotation()
+        if not self._activity and now >= self._pulse_until:
+            self._animation_timer.stop()
+        self.update()
+
+    def paintEvent(self, event):
+        now = time.monotonic()
+        elapsed = now - self._activity_started_at - self._activity_delay
+        phase = max(0.0, elapsed) / 2.8
+        pulse = 0.0
+        if now < self._pulse_until:
+            remaining = (self._pulse_until - now) / 0.36
+            pulse = math.sin(max(0.0, min(1.0, remaining)) * math.pi)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        radius = 12.0
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        accent = QColor(self._accent)
+
+        # A translucent two-layer surface reads as glass while keeping the
+        # rendering path cheap and identical on every supported platform.
+        glass = QLinearGradient(0, rect.top(), 0, rect.bottom())
+        if isDarkTheme():
+            glass.setColorAt(0, QColor(39, 51, 70, 204 if self.isHover else 190))
+            glass.setColorAt(1, QColor(22, 30, 45, 184 if self.isHover else 170))
+            highlight = QColor(255, 255, 255, 42)
+            border_base = QColor(255, 255, 255, 38)
+        else:
+            glass.setColorAt(0, QColor(255, 255, 255, 224 if self.isHover else 210))
+            glass.setColorAt(1, QColor(241, 245, 249, 202 if self.isHover else 186))
+            highlight = QColor(255, 255, 255, 178)
+            border_base = QColor(148, 163, 184, 48)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(glass)
+        painter.drawRoundedRect(rect, radius, radius)
+
+        radial = QRadialGradient(rect.right() - 12, rect.top() + 10, max(48, rect.width() * 0.36))
+        tint = QColor(accent)
+        tint.setAlpha(24 if isDarkTheme() else 14)
+        tint.setAlpha(int(tint.alpha() + pulse * 20))
+        radial.setColorAt(0, tint)
+        radial.setColorAt(1, QColor(accent.red(), accent.green(), accent.blue(), 0))
+        painter.setBrush(radial)
+        painter.drawRoundedRect(rect, radius, radius)
+
+        # An inner top highlight makes the material feel layered rather than flat.
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(highlight, 1.0))
+        painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), radius - 1, radius - 1)
+        if self._activity:
+            # A very low-opacity travelling wash gives activity context without obscuring text.
+            width = max(1, rect.width())
+            offset = (phase % 1.0) * width * 1.8 - width * 0.8
+            glow = QLinearGradient(offset, 0, offset + width * 0.7, 0)
+            transparent = QColor(accent)
+            transparent.setAlpha(0)
+            highlight = QColor(accent)
+            highlight.setAlpha(16 if not isDarkTheme() else 24)
+            glow.setColorAt(0, transparent)
+            glow.setColorAt(0.5, highlight)
+            glow.setColorAt(1, transparent)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(glow)
+            painter.drawRoundedRect(rect, radius, radius)
+        border = QColor(accent)
+        border.setAlpha(int(28 + pulse * 105 + (math.sin(phase * math.tau) + 1) * 8 if self._activity else 32 + pulse * 120))
+        if not self._activity and pulse == 0:
+            border = border_base
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(border, 1.0))
+        painter.drawRoundedRect(rect, radius, radius)
 
     def set_visual(self, icon=None, accent=None):
         """Update the card icon and accent colors without rebuilding its layout."""
@@ -510,6 +788,11 @@ class MetricCard(CardWidget):
                 f"background-color: rgba({color.red()}, {color.green()}, {color.blue()}, 38); border-radius: 10px;"
             )
         self._apply_text_colors()
+
+    def _advance_icon_rotation(self):
+        if self.icon_widget:
+            elapsed = max(0.0, time.monotonic() - self._activity_started_at - self._activity_delay)
+            self.icon_widget.set_angle((elapsed * 90) % 360 if self._rotate_icon else 0)
 
 
 class NavigationStatusIndicator(QWidget):

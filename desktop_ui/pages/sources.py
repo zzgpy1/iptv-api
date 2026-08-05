@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFor
 from qfluentwidgets import BodyLabel, CardWidget, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PushButton, SegmentedWidget, StrongBodyLabel, ToolButton, TreeWidget, isDarkTheme, qconfig
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, AppSearchLineEdit, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns, warning_message_box
+from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, AppSearchLineEdit, ContinuousTreeItemDelegate, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns, warning_message_box
 from utils.config import config, resource_path
 from utils.i18n import t
 
@@ -222,6 +222,8 @@ class SourceEditor(QWidget):
         self.category_tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.category_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.category_tree.setBorderVisible(False)
+        self._apply_category_tree_surface(self.category_tree)
+        self.category_tree.setItemDelegate(ContinuousTreeItemDelegate(self.category_tree))
         self.category_tree.header().setStretchLastSection(False)
         self.category_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.category_tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -235,6 +237,20 @@ class SourceEditor(QWidget):
         self.delete_category_button.clicked.connect(self.delete_category)
         self._update_category_actions()
         return sidebar
+
+    @staticmethod
+    def _apply_category_tree_surface(tree):
+        """Keep the category list inside its rounded card rather than a white viewport."""
+        tree.setStyleSheet(
+            """
+            QTreeWidget, QTreeWidget::viewport { background-color: transparent; border: none; }
+            QTreeWidget::item, QTreeWidget::item:selected { background-color: transparent; margin: 0; }
+            """
+        )
+        tree.setAutoFillBackground(False)
+        tree.viewport().setAutoFillBackground(False)
+        qconfig.themeChanged.connect(lambda *_: tree.viewport().update())
+        qconfig.themeChangedFinished.connect(lambda *_: tree.viewport().update())
 
     def _save_category_width(self, *_):
         sizes = self.template_splitter.sizes()
@@ -567,8 +583,10 @@ class SourceEditor(QWidget):
             }}
             """
         )
-        self.setStyleSheet(f"QWidget#sourceEditor {{ background-color: {background}; }}")
-        self.stack.setStyleSheet(f"QStackedWidget {{ background-color: {background}; border: none; }}")
+        self.setStyleSheet("QWidget#sourceEditor { background-color: transparent; }")
+        self.stack.setStyleSheet("QStackedWidget { background-color: transparent; border: none; }")
+        if self.category_sidebar:
+            self._apply_category_tree_surface(self.category_tree)
 
     def path(self):
         return resource_path(self.path_provider(), persistent=True)
@@ -1089,7 +1107,7 @@ class SourcesPage(QWidget):
 
     def _apply_theme(self, *_):
         dark = isDarkTheme()
-        background = "#202020" if dark else "#FFFFFF"
+        background = "#202020" if dark else "#F3F4F6"
         tab_background = "#27272A" if dark else "#F1F5F9"
         tab_selected = "#323232" if dark else "#FFFFFF"
         foreground = "#CBD5E1" if dark else "#475569"
@@ -1102,7 +1120,7 @@ class SourcesPage(QWidget):
                 background-color: {background};
             }}
             QTabWidget#sourcesTabs::pane {{
-                background-color: {background};
+                background-color: transparent;
                 border: 1px solid {border};
             }}
             """

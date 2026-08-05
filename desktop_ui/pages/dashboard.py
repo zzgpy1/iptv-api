@@ -168,8 +168,12 @@ class DashboardPage(QWidget):
         self._active_channel = None
         self.last_update_outcome = None
         self.status_card = MetricCard(t("desktop.run_status"), t("desktop.idle"), icon=FluentIcon.POWER_BUTTON, accent="#64748B")
-        self.channel_card = MetricCard(t("desktop.channels"), "0", icon=FluentIcon.LIBRARY, accent="#7C3AED")
-        self.valid_card = MetricCard(t("desktop.valid_results"), "0", icon=FluentIcon.COMPLETED, accent="#059669")
+        self.channel_card = MetricCard(
+            t("desktop.channels"), "0", icon=FluentIcon.LIBRARY, accent="#7C3AED", animate_value_updates=True,
+        )
+        self.valid_card = MetricCard(
+            t("desktop.valid_results"), "0", icon=FluentIcon.COMPLETED, accent="#059669", animate_value_updates=True,
+        )
         self.service_card = MetricCard(
             t("desktop.service"),
             t("desktop.unknown"),
@@ -388,12 +392,16 @@ class DashboardPage(QWidget):
         self.cancel_button.setEnabled(running)
         self.cancel_button.setText(t("desktop.cancel"))
         self._set_run_status("running" if running else "idle")
+        self._set_metric_activity("running" if running else "idle")
         if running:
             self._active_channel = None
             self._apply_runtime_rows()
         else:
             if was_cancelling:
                 self.progress_title.setText(t("desktop.status_cancelled"))
+            elif self.last_update_outcome:
+                self.channel_card.pulse()
+                self.valid_card.pulse()
             self.refresh_metrics()
 
     def _toggle_paused(self):
@@ -403,6 +411,7 @@ class DashboardPage(QWidget):
         self.pause_button.setIcon(FluentIcon.PLAY if self._paused else FluentIcon.PAUSE)
         self.pause_button.setText(t("desktop.resume" if self._paused else "desktop.pause"))
         self._set_run_status("paused" if self._paused else "running")
+        self._set_metric_activity("paused" if self._paused else "running")
         self.progress_title.setText(t("desktop.paused" if self._paused else "desktop.resumed"))
         if self._paused:
             self.pause_requested.emit()
@@ -417,6 +426,7 @@ class DashboardPage(QWidget):
         self.cancel_button.setEnabled(False)
         self.cancel_button.setText(t("desktop.stopping"))
         self._set_run_status("stopping")
+        self._set_metric_activity("stopping")
         self.progress_title.setText(t("desktop.stopping"))
         self.cancel_requested.emit()
 
@@ -429,6 +439,13 @@ class DashboardPage(QWidget):
         }.get(state, ("desktop.unknown", FluentIcon.INFO, "#64748B"))
         self.status_card.set_visual(icon, accent)
         self.status_card.set_value(t(value_key))
+
+    def _set_metric_activity(self, state: str):
+        """Keep dashboard motion tied to real update work, never to passive refreshes."""
+        active = state == "running"
+        cards = (self.status_card, self.channel_card, self.valid_card, self.service_card)
+        for index, card in enumerate(cards):
+            card.set_activity(active, delay_ms=index * 140, rotate_icon=card is self.status_card)
 
     def set_progress(self, title: str, value: int, finished: bool = False, metadata=None, _now=None):
         if self._cancelling:
