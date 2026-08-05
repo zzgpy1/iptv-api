@@ -232,22 +232,8 @@ class MainWindow(FluentWindow):
             self._window_geometry_timer.start()
 
     def switchTo(self, interface):
-        """Publish a fully laid-out page in one paint instead of exposing transition frames."""
-        if self.stackedWidget.currentWidget() is interface:
-            return
-        view = self.stackedWidget.view
-        view.setUpdatesEnabled(False)
-        try:
-            interface.ensurePolished()
-            interface.setGeometry(view.contentsRect())
-            super().switchTo(interface)
-            layout = view.layout()
-            if layout:
-                layout.activate()
-        finally:
-            view.setUpdatesEnabled(True)
-        view.repaint()
-        self.repaint()
+        """Switch pages without forcing a repaint of the native title bar."""
+        super().switchTo(interface)
 
     def moveEvent(self, event):
         super().moveEvent(event)
