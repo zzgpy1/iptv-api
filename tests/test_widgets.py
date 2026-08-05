@@ -106,6 +106,25 @@ class TableSortingTests(unittest.TestCase):
         keys = [row["key"] for row in config_model.rows]
         self.assertEqual(keys, sorted(keys, reverse=True))
 
+    def test_mapping_model_skips_identical_refreshes_and_rejects_stale_indexes(self):
+        model = MappingTableModel([("value", "Value", None)])
+        model.set_rows([{"value": 1}])
+        reset_count = 0
+
+        def count_reset():
+            nonlocal reset_count
+            reset_count += 1
+
+        model.modelReset.connect(count_reset)
+        stale_index = model.index(0, 0)
+        model.set_rows([{"value": 1}])
+        self.assertEqual(reset_count, 0)
+
+        model.set_rows([])
+        self.assertEqual(reset_count, 1)
+        self.assertIsNone(model.data(stale_index))
+        self.assertFalse(model.setData(stale_index, Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole))
+
     def test_checkable_header_click_toggles_direction_and_sorts_rows(self):
         model = MappingTableModel([
             ("batch_selected", "", None),

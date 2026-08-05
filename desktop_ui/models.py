@@ -156,14 +156,19 @@ class MappingTableModel(QAbstractTableModel):
         self._sort_order = Qt.SortOrder.AscendingOrder
 
     def set_rows(self, rows: list[dict]):
+        rows = list(rows)
+        if rows == self.rows:
+            return
         self.beginResetModel()
-        self.rows = list(rows)
+        self.rows = rows
         if self._sort_column is not None:
             key = self.columns[self._sort_column][0]
             self.rows = _sort_rows(self.rows, key, self._sort_order)
         self.endResetModel()
 
     def set_columns(self, columns: list[tuple[str, str, Callable | None]]):
+        if columns == self.columns:
+            return
         self.beginResetModel()
         self.columns = columns
         self.endResetModel()
@@ -175,7 +180,13 @@ class MappingTableModel(QAbstractTableModel):
         return 0 if parent.isValid() else len(self.columns)
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if not index.isValid() or index.row() >= len(self.rows):
+        if (
+            not index.isValid()
+            or index.row() < 0
+            or index.row() >= len(self.rows)
+            or index.column() < 0
+            or index.column() >= len(self.columns)
+        ):
             return None
         row = self.rows[index.row()]
         key, _, formatter = self.columns[index.column()]
@@ -200,7 +211,14 @@ class MappingTableModel(QAbstractTableModel):
         return None
 
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-        if not index.isValid() or role != Qt.ItemDataRole.CheckStateRole:
+        if (
+            not index.isValid()
+            or index.row() < 0
+            or index.row() >= len(self.rows)
+            or index.column() < 0
+            or index.column() >= len(self.columns)
+            or role != Qt.ItemDataRole.CheckStateRole
+        ):
             return False
         key = self.columns[index.column()][0]
         if key != self.checkable_key:
@@ -211,7 +229,12 @@ class MappingTableModel(QAbstractTableModel):
 
     def flags(self, index):
         flags = super().flags(index)
-        if index.isValid() and self.columns[index.column()][0] == self.checkable_key:
+        if (
+            index.isValid()
+            and 0 <= index.row() < len(self.rows)
+            and 0 <= index.column() < len(self.columns)
+            and self.columns[index.column()][0] == self.checkable_key
+        ):
             flags |= Qt.ItemFlag.ItemIsUserCheckable
         return flags
 
@@ -375,7 +398,12 @@ class ChannelTableModel(MappingTableModel):
         return self._logo_loader
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if index.isValid() and role == Qt.ItemDataRole.DecorationRole:
+        if (
+            index.isValid()
+            and 0 <= index.row() < len(self.rows)
+            and 0 <= index.column() < len(self.columns)
+            and role == Qt.ItemDataRole.DecorationRole
+        ):
             key = self.columns[index.column()][0]
             if key == "name":
                 logo = str(self.rows[index.row()].get("logo") or "")
@@ -469,7 +497,13 @@ class ConfigTableModel(QAbstractTableModel):
         return 0 if parent.isValid() else 3
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if not index.isValid():
+        if (
+            not index.isValid()
+            or index.row() < 0
+            or index.row() >= len(self.rows)
+            or index.column() < 0
+            or index.column() >= 3
+        ):
             return None
         row = self.rows[index.row()]
         key = ("key", "value", "description")[index.column()]
@@ -491,7 +525,13 @@ class ConfigTableModel(QAbstractTableModel):
         return None
 
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-        if role != Qt.ItemDataRole.EditRole or index.column() != 1 or not index.isValid():
+        if (
+            role != Qt.ItemDataRole.EditRole
+            or not index.isValid()
+            or index.row() < 0
+            or index.row() >= len(self.rows)
+            or index.column() != 1
+        ):
             return False
         row = self.rows[index.row()]
         if row["env_name"] or row["read_only"]:
@@ -508,6 +548,7 @@ class ConfigTableModel(QAbstractTableModel):
         flags = super().flags(index)
         if (
             index.isValid()
+            and 0 <= index.row() < len(self.rows)
             and index.column() == 1
             and not self.rows[index.row()]["env_name"]
             and not self.rows[index.row()]["read_only"]
