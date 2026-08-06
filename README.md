@@ -9,11 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://ko-fi.com/govin"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi"/></a>
-</p>
-
-<p align="center">
   <a href="https://trendshift.io/repositories/12327" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12327" alt="Guovin%2Fiptv-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/12327?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-12327" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/12327/weekly" alt="Guovin%2Fiptv-api | Trendshift" width="250" height="55"/></a>
 </p>
 
 <p align="center">
@@ -57,7 +54,6 @@
       <img src="./docs/images/desktop-ui-dark.png" alt="IPTV-API 新版桌面端另一主题界面" width="100%"/>
     </picture>
   </details>
-  <br>
   <sub><strong>Windows / macOS 桌面 GUI</strong> · 界面直观，操作更高效</sub>
 </div>
 
