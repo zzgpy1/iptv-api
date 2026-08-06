@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget
 from qfluentwidgets import FluentIcon, NavigationPushButton
 
 from desktop_ui.pages.about import AboutPage
+from desktop_ui.changelog_dialog import ChangelogDialog, extract_release_notes
 from desktop_ui.main_window import MainWindow
 from desktop_ui.widgets import NavigationStatusIndicator
 
@@ -58,6 +59,35 @@ class NavigationStatusIndicatorTests(unittest.TestCase):
         self.assertEqual(statuses, [])
         self.assertTrue(page.auto_check_timer.isActive())
         self.assertEqual(page.auto_check_timer.interval(), page.AUTO_CHECK_INTERVAL_MS)
+
+    def test_about_page_exposes_changelog_action(self):
+        page = AboutPage()
+        self.addCleanup(page.deleteLater)
+
+        self.assertEqual(page.changelog_button.text(), "查看更新日志")
+        dialog = ChangelogDialog(str(page.info.get("version")), page)
+        self.addCleanup(dialog.deleteLater)
+        self.assertIn("v2.0.8", dialog.viewer.toPlainText())
+
+    def test_changelog_extracts_only_the_current_release_and_language(self):
+        markdown = """## v2.0.8
+
+中文内容
+
+<details>
+<summary>English</summary>
+
+English content
+</details>
+
+## v2.0.1
+
+旧版本内容
+"""
+        self.assertIn("中文内容", extract_release_notes(markdown, "2.0.8", "zh_CN"))
+        self.assertNotIn("English content", extract_release_notes(markdown, "2.0.8", "zh_CN"))
+        self.assertIn("English content", extract_release_notes(markdown, "2.0.8", "en"))
+        self.assertNotIn("旧版本内容", extract_release_notes(markdown, "2.0.8", "en"))
 
     def test_active_status_is_hidden_on_its_page_and_shown_elsewhere(self):
         host = self._status_host()

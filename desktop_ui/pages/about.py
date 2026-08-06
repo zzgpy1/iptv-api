@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, HyperlinkButton, InfoBar, InfoBarPosition, ProgressBar, PushButton, StrongBodyLabel, SubtitleLabel
 
 from desktop_ui.update_manager import REPOSITORY_URL, UpdateManager
+from desktop_ui.changelog_dialog import ChangelogDialog
 from desktop_ui.widgets import AccentPushButton
 from utils.config import resource_path
 from utils.i18n import t
@@ -60,15 +61,19 @@ class AboutPage(QWidget):
         actions.addWidget(self.check_button)
         actions.addWidget(self.download_button)
         actions.addWidget(self.release_button)
-        actions.addStretch(1)
         card_layout.addWidget(self.version_status)
         card_layout.addWidget(self.version_detail)
         card_layout.addWidget(self.progress)
         card_layout.addLayout(actions)
 
-        links = QHBoxLayout()
         self.repository_button = HyperlinkButton(FluentIcon.GITHUB, REPOSITORY_URL, t("desktop.github_repository"), self)
         self.author_button = HyperlinkButton(FluentIcon.PEOPLE, "https://github.com/Guovin", t("desktop.author_homepage"), self)
+        self.changelog_button = PushButton(FluentIcon.DOCUMENT, t("desktop.view_changelog"), self.version_card)
+        self.changelog_button.clicked.connect(self._show_changelog)
+        actions.addWidget(self.changelog_button)
+        actions.addStretch(1)
+
+        links = QHBoxLayout()
         links.addWidget(self.repository_button)
         links.addWidget(self.author_button)
         links.addStretch(1)
@@ -97,6 +102,10 @@ class AboutPage(QWidget):
             self.AUTO_CHECK_INITIAL_DELAY_MS,
             lambda: self.check_for_updates(automatic=True),
         )
+
+    def _show_changelog(self):
+        dialog = ChangelogDialog(str(self.info.get("version") or ""), self)
+        dialog.exec()
 
     def check_for_updates(self, automatic: bool = False):
         if self.manager.is_checking:
@@ -174,6 +183,7 @@ class AboutPage(QWidget):
         self.release_button.setText(t("desktop.open_release"))
         self.repository_button.setText(t("desktop.github_repository"))
         self.author_button.setText(t("desktop.author_homepage"))
+        self.changelog_button.setText(t("desktop.view_changelog"))
         if self._update_state == "not_checked":
             self.version_status.setText(t("desktop.update_not_checked"))
             self.version_detail.setText(t("desktop.update_check_desc"))
