@@ -2,10 +2,11 @@ import os
 import sys
 import time
 import ipaddress
+import socket
 import threading
 
 sys.path.append(os.path.dirname(sys.path[0]))
-from flask import Flask, send_from_directory, make_response, request, jsonify, Response
+from flask import Flask, cli as flask_cli, send_from_directory, make_response, request, jsonify, Response
 from utils.tools import get_result_file_content, resource_path, get_public_url, get_version_info
 from utils.config import config
 import utils.constants as constants
@@ -38,6 +39,14 @@ def _start_version_check():
 
 
 _start_version_check()
+
+
+def _service_port_is_open(port):
+    try:
+        with socket.create_connection(("127.0.0.1", int(port)), timeout=0.2):
+            return True
+    except OSError:
+        return False
 
 
 @app.route("/")
@@ -397,6 +406,8 @@ def _prompt_rtmp_install():
 def run_service(prompt_for_install=True):
     try:
         if not os.getenv("GITHUB_ACTIONS"):
+            if _service_port_is_open(config.app_port):
+                return
             if prompt_for_install:
                 _prompt_rtmp_install()
             rtmp_started = False
@@ -418,7 +429,8 @@ def run_service(prompt_for_install=True):
                     print(t("msg.rtmp_full_api").format(mode=m, api=f"{public_url}/hls"))
                 else:
                     print(t("msg.full_api").format(mode=m, api=public_url))
-            app.run(host="0.0.0.0", port=config.app_port)
+            flask_cli.show_server_banner = lambda *args, **kwargs: None
+            app.run(host="0.0.0.0", port=config.app_port, use_reloader=False)
     except Exception as e:
         print(t("msg.error_service_start_failed").format(info=e))
 
