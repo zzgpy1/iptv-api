@@ -10,6 +10,13 @@
   seconds locally. Do not split it into separate jobs unless a measured slow
   test category emerges.
 
+## Code comments
+
+- Do not add non-essential comments that explain a fix, patch rationale, or
+  transient implementation detail. Add comments only when needed for function
+  definitions, key classes or public interfaces, or genuinely complex logic
+  that would otherwise be difficult to understand.
+
 ## GUI screenshot updates
 
 - Regenerate the checked-in Chinese and English GUI screenshots only when a
