@@ -1,14 +1,21 @@
 import os
+import re
 
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import ComboBox, FluentIcon, InfoBar, InfoBarPosition, PushButton, SwitchButton
+from qfluentwidgets import Action, ComboBox, DropDownPushButton, FluentIcon, InfoBar, InfoBarPosition, PushButton, RoundMenu, SwitchButton
 
 import utils.constants as constants
 from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit
 from utils.diagnostics import export_logs
 from utils.i18n import t
+
+
+_TIMESTAMP_PREFIX = re.compile(
+    r"^\s*\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}"
+    r"(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?\s+"
+)
 
 
 class LogsPage(QWidget):
@@ -27,21 +34,38 @@ class LogsPage(QWidget):
         self.selector.addItems([item[0] for item in self.paths])
         self.search = AppLineEdit(self)
         self.search.setPlaceholderText(t("desktop.search_logs"))
-        self.autoscroll = SwitchButton(t("desktop.auto_scroll"), self)
+        auto_scroll_text = t("desktop.auto_scroll")
+        self.autoscroll = SwitchButton(auto_scroll_text, self)
+        # SwitchButton uses separate labels for the checked and unchecked
+        # states. Keep the setting name visible instead of showing its
+        # default checked-state label ("On").
+        self.autoscroll.setOnText(auto_scroll_text)
+        self.autoscroll.setOffText(auto_scroll_text)
         self.autoscroll.setChecked(True)
+        self.wrap_lines = SwitchButton(t("desktop.wrap_lines"), self)
+        self._configure_switch_text(self.wrap_lines, t("desktop.wrap_lines"))
+        self.show_timestamps = SwitchButton(t("desktop.show_timestamps"), self)
+        self._configure_switch_text(self.show_timestamps, t("desktop.show_timestamps"))
+        self.show_timestamps.setChecked(True)
         self.refresh_button = PushButton(FluentIcon.SYNC, t("desktop.refresh"), self)
-        self.clear_button = PushButton(FluentIcon.BROOM, t("desktop.clear_view"), self)
+        self.display_button = DropDownPushButton(FluentIcon.SETTING, t("desktop.display_settings"), self)
+        self.more_button = DropDownPushButton(FluentIcon.MORE, t("desktop.more_actions"), self)
         self.export_button = AccentPushButton(FluentIcon.ZIP_FOLDER, t("desktop.export_logs"), self)
+        self._setup_menus()
+        self.autoscroll.setVisible(False)
+        self.wrap_lines.setVisible(False)
+        self.show_timestamps.setVisible(False)
         self.viewer = AppPlainTextEdit(self)
         self.viewer.setReadOnly(True)
         self.viewer.setLineWrapMode(AppPlainTextEdit.LineWrapMode.NoWrap)
+        self._last_viewed_path = None
         self.cleared_offsets = {}
         actions = QHBoxLayout()
         actions.addWidget(self.selector)
         actions.addWidget(self.search, 1)
-        actions.addWidget(self.autoscroll)
+        actions.addWidget(self.display_button)
         actions.addWidget(self.refresh_button)
-        actions.addWidget(self.clear_button)
+        actions.addWidget(self.more_button)
         actions.addWidget(self.export_button)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 16)
@@ -54,10 +78,39 @@ class LogsPage(QWidget):
         self.timer.start()
         self.selector.currentIndexChanged.connect(self.refresh)
         self.search.textChanged.connect(self.refresh)
+        self.wrap_lines.checkedChanged.connect(self._set_line_wrap)
+        self.show_timestamps.checkedChanged.connect(self.refresh)
         self.refresh_button.clicked.connect(self.refresh)
-        self.clear_button.clicked.connect(self.clear_view)
         self.export_button.clicked.connect(self.export)
         self.refresh()
+
+    def _setup_menus(self):
+        self.display_menu = RoundMenu(parent=self)
+        self.autoscroll_action = self._add_toggle_action(
+            self.display_menu, t("desktop.auto_scroll"), self.autoscroll
+        )
+        self.wrap_lines_action = self._add_toggle_action(
+            self.display_menu, t("desktop.wrap_lines"), self.wrap_lines
+        )
+        self.show_timestamps_action = self._add_toggle_action(
+            self.display_menu, t("desktop.show_timestamps"), self.show_timestamps
+        )
+        self.display_button.setMenu(self.display_menu)
+
+        self.more_menu = RoundMenu(parent=self)
+        self.clear_action = Action(FluentIcon.BROOM, t("desktop.clear_view"), self, triggered=self.clear_view)
+        self.more_menu.addAction(self.clear_action)
+        self.more_button.setMenu(self.more_menu)
+
+    @staticmethod
+    def _add_toggle_action(menu, text, switch):
+        action = Action(text, menu)
+        action.setCheckable(True)
+        action.setChecked(switch.isChecked())
+        action.triggered.connect(switch.setChecked)
+        switch.checkedChanged.connect(action.setChecked)
+        menu.addAction(action)
+        return action
 
     def refresh(self, *_):
         path = self.paths[max(0, self.selector.currentIndex())][1]
@@ -75,19 +128,43 @@ class LogsPage(QWidget):
         # QPlainTextEdit does not need a trailing empty line, and normalizing it
         # keeps file-backed refreshes consistent with append_runtime().
         content = content.rstrip("\r\n")
+        if not self.show_timestamps.isChecked():
+            content = "\n".join(_TIMESTAMP_PREFIX.sub("", line) for line in content.splitlines())
         term = self.search.text().strip().lower()
         if term:
             content = "\n".join(line for line in content.splitlines() if term in line.lower())
-        self._set_viewer_content(content)
+        is_new_log = path != self._last_viewed_path
+        self._set_viewer_content(content, force_scroll=is_new_log)
+        self._last_viewed_path = path
 
-    def _set_viewer_content(self, content: str):
+    @staticmethod
+    def _configure_switch_text(switch, text):
+        # SwitchButton has independent labels for checked and unchecked states.
+        switch.setOnText(text)
+        switch.setOffText(text)
+
+    def _set_line_wrap(self, enabled):
+        scrollbar = self.viewer.verticalScrollBar()
+        was_at_bottom = scrollbar.value() >= scrollbar.maximum()
+        mode = (
+            AppPlainTextEdit.LineWrapMode.WidgetWidth
+            if enabled
+            else AppPlainTextEdit.LineWrapMode.NoWrap
+        )
+        self.viewer.setLineWrapMode(mode)
+        if self.autoscroll.isChecked() and was_at_bottom:
+            scrollbar.setValue(scrollbar.maximum())
+
+    def _set_viewer_content(self, content: str, force_scroll=False):
         if self.viewer.toPlainText() == content:
+            if force_scroll and self.autoscroll.isChecked():
+                self.viewer.verticalScrollBar().setValue(self.viewer.verticalScrollBar().maximum())
             return
         scrollbar = self.viewer.verticalScrollBar()
         value = scrollbar.value()
         was_at_bottom = value >= scrollbar.maximum()
         self.viewer.setPlainText(content)
-        if self.autoscroll.isChecked() and was_at_bottom:
+        if self.autoscroll.isChecked() and (force_scroll or was_at_bottom):
             scrollbar.setValue(scrollbar.maximum())
         else:
             scrollbar.setValue(min(value, scrollbar.maximum()))
@@ -111,6 +188,8 @@ class LogsPage(QWidget):
         text = content.rstrip("\r\n")
         if not text:
             return
+        if not self.show_timestamps.isChecked():
+            text = "\n".join(_TIMESTAMP_PREFIX.sub("", line) for line in text.splitlines())
         scrollbar = self.viewer.verticalScrollBar()
         was_at_bottom = scrollbar.value() >= scrollbar.maximum()
         self.viewer.appendPlainText(text)
@@ -126,8 +205,19 @@ class LogsPage(QWidget):
         self.selector.setCurrentIndex(index)
         self.selector.blockSignals(False)
         self.search.setPlaceholderText(t("desktop.search_logs"))
-        self.autoscroll.setText(t("desktop.auto_scroll"))
+        auto_scroll_text = t("desktop.auto_scroll")
+        self.autoscroll.setOnText(auto_scroll_text)
+        self.autoscroll.setOffText(auto_scroll_text)
+        wrap_lines_text = t("desktop.wrap_lines")
+        self._configure_switch_text(self.wrap_lines, wrap_lines_text)
+        show_timestamps_text = t("desktop.show_timestamps")
+        self._configure_switch_text(self.show_timestamps, show_timestamps_text)
+        self.display_button.setText(t("desktop.display_settings"))
+        self.more_button.setText(t("desktop.more_actions"))
+        self.autoscroll_action.setText(auto_scroll_text)
+        self.wrap_lines_action.setText(wrap_lines_text)
+        self.show_timestamps_action.setText(show_timestamps_text)
+        self.clear_action.setText(t("desktop.clear_view"))
         self.refresh_button.setText(t("desktop.refresh"))
-        self.clear_button.setText(t("desktop.clear_view"))
         self.export_button.setText(t("desktop.export_logs"))
         self.refresh()

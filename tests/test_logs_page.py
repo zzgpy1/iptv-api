@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 import utils.constants as constants
 from desktop_ui.pages.logs import LogsPage
 from desktop_ui.pages.sources import SourcesPage
+from utils.i18n import t
 
 
 class LogsPageTests(unittest.TestCase):
@@ -44,6 +45,57 @@ class LogsPageTests(unittest.TestCase):
         self.page.refresh()
 
         self.assertEqual(scrollbar.value(), 20)
+
+    def test_initial_load_scrolls_to_latest_log_and_keeps_setting_label(self):
+        self._write_runtime_log([f"line {index}" for index in range(100)])
+        with patch.object(constants, "log_path", self.runtime_log):
+            page = LogsPage()
+        page.timer.stop()
+        page.resize(640, 240)
+        page.show()
+        self.app.processEvents()
+        self.addCleanup(page.deleteLater)
+
+        scrollbar = page.viewer.verticalScrollBar()
+        self.assertEqual(scrollbar.value(), scrollbar.maximum())
+        self.assertEqual(page.autoscroll.getText(), t("desktop.auto_scroll"))
+        self.assertEqual(page.autoscroll.getOnText(), t("desktop.auto_scroll"))
+        self.assertEqual(page.autoscroll.getOffText(), t("desktop.auto_scroll"))
+
+    def test_log_display_options_toggle_wrapping_and_timestamps(self):
+        timestamped_lines = [
+            "2026-08-06T12:00:00+08:00 INFO    first line",
+            "plain line",
+        ]
+        self._write_runtime_log(timestamped_lines)
+        self.page.refresh()
+
+        self.assertIn("2026-08-06T12:00:00+08:00", self.page.viewer.toPlainText())
+        self.assertEqual(
+            self.page.viewer.lineWrapMode(),
+            self.page.viewer.LineWrapMode.NoWrap,
+        )
+
+        self.page.show_timestamps.setChecked(False)
+        self.assertNotIn("2026-08-06T12:00:00+08:00", self.page.viewer.toPlainText())
+        self.assertIn("INFO    first line", self.page.viewer.toPlainText())
+
+        self.page.wrap_lines.setChecked(True)
+        self.assertEqual(
+            self.page.viewer.lineWrapMode(),
+            self.page.viewer.LineWrapMode.WidgetWidth,
+        )
+
+    def test_toolbar_groups_display_and_secondary_actions(self):
+        self.assertEqual(self.page.display_menu.actions(), [
+            self.page.autoscroll_action,
+            self.page.wrap_lines_action,
+            self.page.show_timestamps_action,
+        ])
+        self.assertEqual(self.page.more_menu.actions(), [self.page.clear_action])
+        self.assertFalse(self.page.autoscroll.isVisible())
+        self.assertFalse(self.page.wrap_lines.isVisible())
+        self.assertFalse(self.page.show_timestamps.isVisible())
 
     def test_auto_scroll_does_not_interrupt_manual_browsing(self):
         self._write_runtime_log([f"line {index}" for index in range(100)])
