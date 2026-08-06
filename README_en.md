@@ -44,15 +44,21 @@
 </div>
 
 <div align="center">
-  <a href="./docs/images/desktop-ui-en.png">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/desktop-ui-en-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/images/desktop-ui-en.png">
+    <img src="./docs/images/desktop-ui-en.png" alt="IPTV-API desktop GUI in English" width="100%"/>
+  </picture>
+  <details>
+    <summary>🌓 Toggle display mode</summary>
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="./docs/images/desktop-ui-en-dark.png">
-      <source media="(prefers-color-scheme: light)" srcset="./docs/images/desktop-ui-en.png">
-      <img src="./docs/images/desktop-ui-en.png" alt="IPTV-API desktop GUI in English" width="100%"/>
+      <source media="(prefers-color-scheme: dark)" srcset="./docs/images/desktop-ui-en.png">
+      <source media="(prefers-color-scheme: light)" srcset="./docs/images/desktop-ui-en-dark.png">
+      <img src="./docs/images/desktop-ui-en-dark.png" alt="IPTV-API desktop GUI in English alternate theme" width="100%"/>
     </picture>
-  </a>
+  </details>
   <br>
-  <sub><strong>Windows / macOS desktop GUI</strong> · An intuitive interface for a more efficient workflow · The screenshot follows your GitHub light/dark appearance · <a href="./docs/images/desktop-ui-en.png">light image</a> / <a href="./docs/images/desktop-ui-en-dark.png">dark image</a></sub>
+  <sub><strong>Windows / macOS desktop GUI</strong> · An intuitive interface for a more efficient workflow</sub>
 </div>
 
 <details open>

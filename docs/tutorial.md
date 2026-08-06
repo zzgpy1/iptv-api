@@ -1,11 +1,11 @@
 # 使用教程
 
-<p align="center">
+<div align="center">
   <a href="../README.md">项目首页</a> ·
   <a href="./README.md">文档中心</a> ·
   <a href="./config.md">配置参数</a> ·
   中文 | <a href="./tutorial_en.md">English</a>
-</p>
+</div>
 
 > [!TIP]
 > 项目支持工作流、命令行、GUI 和 Docker 共 4 种运行方式，请按使用环境选择。
@@ -281,15 +281,21 @@ pipenv run service
 
 新版桌面 GUI 面向 Windows 与 macOS，提供一键更新、实时进度、频道与结果管理、重新测速、RTMP 推流监控、数据源配置及任务历史。Docker 部署使用 Web 结果页，不包含此桌面界面。
 
-<p align="center">
-  <a href="./images/desktop-ui.png">
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./images/desktop-ui-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="./images/desktop-ui.png">
+    <img src="./images/desktop-ui.png" alt="IPTV-API 新版桌面端界面" width="100%"/>
+  </picture>
+  <details>
+    <summary>🌓 切换显示模式</summary>
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="./images/desktop-ui-dark.png">
-      <source media="(prefers-color-scheme: light)" srcset="./images/desktop-ui.png">
-      <img src="./images/desktop-ui.png" alt="IPTV-API 新版桌面端界面" width="100%"/>
+      <source media="(prefers-color-scheme: dark)" srcset="./images/desktop-ui.png">
+      <source media="(prefers-color-scheme: light)" srcset="./images/desktop-ui-dark.png">
+      <img src="./images/desktop-ui-dark.png" alt="IPTV-API 新版桌面端另一主题界面" width="100%"/>
     </picture>
-  </a>
-</p>
+  </details>
+</div>
 
 在项目目录安装依赖并启动：
 

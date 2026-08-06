@@ -44,15 +44,21 @@
 </div>
 
 <div align="center">
-  <a href="./docs/images/desktop-ui.png">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/desktop-ui-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/images/desktop-ui.png">
+    <img src="./docs/images/desktop-ui.png" alt="IPTV-API 新版桌面端界面" width="100%"/>
+  </picture>
+  <details>
+    <summary>🌓 切换显示模式</summary>
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="./docs/images/desktop-ui-dark.png">
-      <source media="(prefers-color-scheme: light)" srcset="./docs/images/desktop-ui.png">
-      <img src="./docs/images/desktop-ui.png" alt="IPTV-API 新版桌面端界面" width="100%"/>
+      <source media="(prefers-color-scheme: dark)" srcset="./docs/images/desktop-ui.png">
+      <source media="(prefers-color-scheme: light)" srcset="./docs/images/desktop-ui-dark.png">
+      <img src="./docs/images/desktop-ui-dark.png" alt="IPTV-API 新版桌面端另一主题界面" width="100%"/>
     </picture>
-  </a>
+  </details>
   <br>
-  <sub><strong>Windows / macOS 桌面 GUI</strong> · 界面直观，操作更高效 · 截图会根据 GitHub 外观自动切换浅色/深色模式 · <a href="./docs/images/desktop-ui.png">浅色原图</a> / <a href="./docs/images/desktop-ui-dark.png">深色原图</a></sub>
+  <sub><strong>Windows / macOS 桌面 GUI</strong> · 界面直观，操作更高效</sub>
 </div>
 
 <details open>

@@ -1,11 +1,11 @@
 # Tutorial
 
-<p align="center">
+<div align="center">
   <a href="../README_en.md">Project home</a> ·
   <a href="./README.md">Documentation</a> ·
   <a href="./config_en.md">Configuration</a> ·
   <a href="./tutorial.md">中文</a> | English
-</p>
+</div>
 
 > [!TIP]
 > The project supports four ways to run: GitHub Actions, command line, GUI, and Docker. Choose the one that best fits
@@ -318,15 +318,21 @@ pipenv run service
 
 The desktop GUI for Windows and macOS provides one-click updates, live progress, channel and result management, retesting, RTMP monitoring, source configuration, and task history. Docker deployments use web result pages and do not include this desktop interface.
 
-<p align="center">
-  <a href="./images/desktop-ui-en.png">
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./images/desktop-ui-en-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="./images/desktop-ui-en.png">
+    <img src="./images/desktop-ui-en.png" alt="IPTV-API desktop GUI in English" width="100%"/>
+  </picture>
+  <details>
+    <summary>🌓 Toggle display mode</summary>
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="./images/desktop-ui-en-dark.png">
-      <source media="(prefers-color-scheme: light)" srcset="./images/desktop-ui-en.png">
-      <img src="./images/desktop-ui-en.png" alt="IPTV-API desktop GUI in English" width="100%"/>
+      <source media="(prefers-color-scheme: dark)" srcset="./images/desktop-ui-en.png">
+      <source media="(prefers-color-scheme: light)" srcset="./images/desktop-ui-en-dark.png">
+      <img src="./images/desktop-ui-en-dark.png" alt="IPTV-API desktop GUI in English alternate theme" width="100%"/>
     </picture>
-  </a>
-</p>
+  </details>
+</div>
 
 Install dependencies and start it from the project directory:
 
