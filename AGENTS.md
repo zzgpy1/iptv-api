@@ -36,6 +36,14 @@
 - When home-page regeneration is required, generate both Chinese and English
   screenshots, then verify demo data, service status, stream states, local
   logos, collapsed navigation, window focus, and native title-bar controls.
+- The checked-in home-page screenshots should show the Dashboard cards in the
+  simulated running visual state, including glass/activity colors and progress
+  controls. The showcase generator must use Dashboard UI-state injection only;
+  it must not call the real update workflow, start update threads, make network
+  requests, or invoke FFmpeg.
+- After setting the simulated running state, wait for at least one activity
+  animation frame before capturing. Validate that the dashboard is running,
+  progress is non-zero, and pause/cancel controls are visible.
 - Visually inspect regenerated screenshots before staging or committing them.
 - CI may report stale screenshots or validate fixtures, but must not
   automatically commit regenerated binary assets.

@@ -5,9 +5,11 @@ desktop GUI screenshots. It is excluded from Docker images and must not be
 imported by production modules or included in PyInstaller data files.
 
 The generator creates a temporary SQLite channel repository and local channel
-logos, injects synthetic service and RTMP states, waits for the window to be
-ready, and captures the focused native macOS window. It does not run an update,
-start a page service, contact demo stream URLs, or modify `config/` and
+logos, injects synthetic service and RTMP states, and puts the Dashboard into
+its simulated running visual state so the card glass/activity colors and
+progress controls are visible. It waits for the window to be ready and
+captures the focused native macOS window. It does not run an update, start a
+page service, contact demo stream URLs, invoke FFmpeg, or modify `config/` and
 `output/`.
 
 ## Generate screenshots

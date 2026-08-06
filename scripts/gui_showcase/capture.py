@@ -213,6 +213,15 @@ def capture_language(language: str, output_dir: Path) -> int:
         window.dashboard.set_stream_snapshot(snapshot)
         window.channels.set_stream_snapshot(snapshot)
         window._update_rtmp_navigation_status(snapshot)
+        # Put only the dashboard into its running visual state. Do not call
+        # run_once(): showcase screenshots must never start real update work.
+        window.dashboard.set_running(True)
+        window.dashboard.progress.setValue(64)
+        window.dashboard.progress_title.setText(
+            t("desktop.testing_channel").format(
+                name=window.dashboard.channel_model.rows[3]["name"]
+            )
+        )
         next_update = datetime.now() + timedelta(hours=6)
         window.dashboard.status_card.detail_label.setText(
             t("desktop.next_update_time").format(
@@ -275,6 +284,10 @@ def capture_language(language: str, output_dir: Path) -> int:
             state_ready = (
                 model.rowCount() == 16
                 and window._service_status == "running"
+                and window.dashboard._running
+                and window.dashboard.progress.value() == 64
+                and window.dashboard.pause_button.isVisible()
+                and window.dashboard.cancel_button.isVisible()
                 and snapshot["active_count"] == 2
                 and snapshot["starting_count"] == 1
                 and logos_ready
@@ -284,7 +297,8 @@ def capture_language(language: str, output_dir: Path) -> int:
                 _activate_macos_application()
                 window.raise_()
                 window.activateWindow()
-                QTimer.singleShot(500, finish_capture)
+                # Let the activity/glass animation paint at least one frame.
+                QTimer.singleShot(700, finish_capture)
                 return
             if time.monotonic() >= deadline:
                 fail(
