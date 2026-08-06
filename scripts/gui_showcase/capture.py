@@ -31,7 +31,8 @@ THEMES = ("light", "dark")
 
 
 def _configure_environment(language: str) -> None:
-    os.environ["language"] = language
+    for name in ("language", "LANGUAGE", "Settings_language", "SETTINGS_LANGUAGE"):
+        os.environ.pop(name, None)
     os.environ["open_service"] = "False"
     os.environ["update_startup"] = "False"
     os.environ["public_domain"] = "192.168.1.100"
@@ -197,9 +198,13 @@ def capture_language(language: str, output_dir: Path, theme: str = "light") -> i
         generate_demo_logos(demo_data["logo_specs"])
 
         import utils.constants as constants
+        from utils.config import config
         from desktop_ui.main_window import MainWindow
         from desktop_ui.platform_integration import set_macos_activation_policy
-        from utils.i18n import t
+        from utils.i18n import set_language, t
+
+        config.set("Settings", "language", language)
+        set_language(language)
 
         db_path = Path(constants.channel_results_path)
         snapshot = seed_demo_repository(db_path, demo_data)
