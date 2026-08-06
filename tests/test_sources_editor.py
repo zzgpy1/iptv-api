@@ -246,6 +246,43 @@ class SourceEditorTests(unittest.TestCase):
 
         self.assertEqual([row["channel"] for row in editor.rows], ["Channel 1"])
 
+    def test_local_source_import_adds_selected_records_without_writing_file(self):
+        path = self._write("local.txt", "Existing,http://example.com/existing\n")
+        imported_path = self._write(
+            "import.txt",
+            "Imported,http://example.com/imported\n",
+        )
+        editor = self._editor("local", path)
+
+        class AcceptedImportDialog:
+            def __init__(self, records, errors, parent):
+                self.records = records
+
+            def exec(self):
+                return 1
+
+            def selected_records(self):
+                return self.records
+
+        with patch(
+            "desktop_ui.pages.sources.QFileDialog.getOpenFileNames",
+            return_value=([imported_path], ""),
+        ), patch(
+            "desktop_ui.pages.sources.LocalSourceImportDialog",
+            AcceptedImportDialog,
+        ):
+            editor.import_files()
+
+        self.assertEqual(
+            [(row["channel"], row["url"]) for row in editor.rows],
+            [
+                ("Existing", "http://example.com/existing"),
+                ("Imported", "http://example.com/imported"),
+            ],
+        )
+        with open(path, encoding="utf-8") as file:
+            self.assertNotIn("Imported", file.read())
+
 
 if __name__ == "__main__":
     unittest.main()

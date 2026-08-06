@@ -4,13 +4,15 @@ from collections import defaultdict
 
 from PySide6.QtCore import QIODevice, QSaveFile, QSettings, QSignalBlocker, QSize, QTimer, Signal, Qt
 from PySide6.QtGui import QColor, QPalette, QTextCursor
-from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFormLayout, QHeaderView, QHBoxLayout, QLabel, QSplitter, QStackedWidget, QTabWidget, QTableWidget, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHeaderView, QHBoxLayout, QLabel, QSplitter, QStackedWidget, QTabWidget, QTableWidget, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PushButton, SegmentedWidget, StrongBodyLabel, ToolButton, TreeWidget, isDarkTheme, qconfig
 
 import utils.constants as constants
 from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, AppSearchLineEdit, ContinuousTreeItemDelegate, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns, warning_message_box
+from desktop_ui.dialogs.local_source_import import LocalSourceImportDialog
 from utils.config import config, resource_path
 from utils.i18n import t
+from utils.local_source_importer import merge_records, parse_local_source_file
 
 
 class AliasTagsEditor(QWidget):
@@ -124,6 +126,8 @@ class SourceEditor(QWidget):
         self.selection_label.hide()
         self.move_button = PushButton(FluentIcon.MOVE, t("desktop.move_to_category"), self)
         self.move_button.setVisible(self.kind == "template")
+        self.import_button = AccentPushButton(FluentIcon.FOLDER, t("desktop.import_files"), self)
+        self.import_button.setVisible(self.kind == "local")
         self.add_button = AccentPushButton(FluentIcon.ADD, t("desktop.add_item"), self)
         self.delete_button = DangerPushButton(FluentIcon.DELETE, t("desktop.delete_item"), self)
         self.mode_button = ToolButton(FluentIcon.PENCIL_INK, self)
@@ -138,6 +142,7 @@ class SourceEditor(QWidget):
         toolbar.addWidget(self.selection_label)
         toolbar.addWidget(self.move_button)
         toolbar.addWidget(self.delete_button)
+        toolbar.addWidget(self.import_button)
         toolbar.addWidget(self.add_button)
         toolbar.addWidget(self.mode_button)
         visual = QWidget(self)
@@ -172,6 +177,7 @@ class SourceEditor(QWidget):
         self.check_header.toggled.connect(self._toggle_visible_rows)
         self.view_switch.currentItemChanged.connect(self._set_template_view_mode)
         self.move_button.clicked.connect(self.move_selected_to_category)
+        self.import_button.clicked.connect(self.import_files)
         self.add_button.clicked.connect(self.add_item)
         self.delete_button.clicked.connect(self.delete_items)
         self.mode_button.clicked.connect(self.toggle_mode)
@@ -419,8 +425,6 @@ class SourceEditor(QWidget):
     def _refresh_template_rows(self):
         self.raw_editor.setPlainText(self._serialize())
         self._rebuild_table()
-        self._rebuild_category_tree()
-        self._apply_template_view_mode()
 
     def add_category(self):
         name = self._category_name_dialog(t("desktop.add_category"))
@@ -601,8 +605,6 @@ class SourceEditor(QWidget):
         self.raw_editor.document().setModified(False)
         self._parse(content)
         self._rebuild_table()
-        self._rebuild_category_tree()
-        self._apply_template_view_mode()
         self.loaded = True
 
     def save(self):
@@ -631,8 +633,6 @@ class SourceEditor(QWidget):
         else:
             self._parse(self.raw_editor.toPlainText())
             self._rebuild_table()
-            self._rebuild_category_tree()
-            self._apply_template_view_mode()
             self.stack.setCurrentIndex(0)
             self.add_button.show()
             self.delete_button.show()
@@ -726,24 +726,30 @@ class SourceEditor(QWidget):
     def _rebuild_table(self):
         self._syncing = True
         sorting_enabled = self.table.isSortingEnabled()
-        self.table.setSortingEnabled(False)
-        headers = self._headers()
-        self.table.clear()
-        self.table.setColumnCount(len(headers))
-        self.table.setHorizontalHeaderLabels(headers)
-        self.table.setRowCount(len(self.rows))
-        for row_index, row in enumerate(self.rows):
-            self._populate_row(row_index, row)
-        configure_table_columns(
-            self.table,
-            self._column_widths(),
-            f"sources.{self.kind}.selectable",
-            fixed_widths={0: 42},
-        )
-        if self.kind == "alias":
-            self.table.verticalHeader().setDefaultSectionSize(46)
-        self.table.setSortingEnabled(sorting_enabled)
-        self._syncing = False
+        self.table.setUpdatesEnabled(False)
+        blocker = QSignalBlocker(self.table)
+        try:
+            self.table.setSortingEnabled(False)
+            headers = self._headers()
+            self.table.clear()
+            self.table.setColumnCount(len(headers))
+            self.table.setHorizontalHeaderLabels(headers)
+            self.table.setRowCount(len(self.rows))
+            for row_index, row in enumerate(self.rows):
+                self._populate_row(row_index, row)
+            configure_table_columns(
+                self.table,
+                self._column_widths(),
+                f"sources.{self.kind}.selectable",
+                fixed_widths={0: 42},
+            )
+            if self.kind == "alias":
+                self.table.verticalHeader().setDefaultSectionSize(46)
+            self.table.setSortingEnabled(sorting_enabled)
+        finally:
+            del blocker
+            self.table.setUpdatesEnabled(True)
+            self._syncing = False
         self._rebuild_category_tree()
         self._apply_template_view_mode()
         self._filter_rows()
@@ -926,24 +932,42 @@ class SourceEditor(QWidget):
         }
 
     def _toggle_visible_rows(self, checked):
+        visible_rows = self._visible_row_indices()
         self._syncing = True
+        self.table.setUpdatesEnabled(False)
+        blocker = QSignalBlocker(self.table)
         try:
-            for row in self._visible_row_indices():
+            for row in visible_rows:
                 item = self.table.item(row, 0)
                 if item:
                     item.setCheckState(
                         Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
                     )
         finally:
+            del blocker
+            self.table.setUpdatesEnabled(True)
             self._syncing = False
         self._visual_changed()
         self._update_selection_state()
 
     def _selection_changed(self, *_):
+        if self._syncing:
+            return
         self._update_selection_state()
 
     def _update_selection_state(self):
-        selected_count = len(self._selected_row_indices())
+        selected_count = 0
+        visible_count = 0
+        visible_checked_count = 0
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            if not item:
+                continue
+            checked = item.checkState() == Qt.CheckState.Checked
+            selected_count += checked
+            if not self.table.isRowHidden(row):
+                visible_count += 1
+                visible_checked_count += checked
         self.selection_label.setText(
             t("desktop.source_items_selected").format(count=selected_count)
         )
@@ -953,15 +977,9 @@ class SourceEditor(QWidget):
         self.delete_button.setEnabled(selected_count > 0)
         self.move_button.setEnabled(self.kind == "template" and selected_count > 0)
 
-        visible = self._visible_row_indices()
-        checked_count = sum(
-            self.table.item(row, 0).checkState() == Qt.CheckState.Checked
-            for row in visible
-            if self.table.item(row, 0)
-        )
-        if not visible or checked_count == 0:
+        if not visible_count or visible_checked_count == 0:
             state = Qt.CheckState.Unchecked
-        elif checked_count == len(visible):
+        elif visible_checked_count == visible_count:
             state = Qt.CheckState.Checked
         else:
             state = Qt.CheckState.PartiallyChecked
@@ -995,6 +1013,52 @@ class SourceEditor(QWidget):
         edit_column = 2 if self.kind == "local" else 1
         self.table.editItem(self.table.item(row, edit_column))
 
+    def import_files(self):
+        if self.kind != "local":
+            return
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            t("desktop.import_local_sources"),
+            "",
+            t("desktop.import_file_filter"),
+        )
+        if not paths:
+            return
+
+        records = []
+        errors = []
+        for path in paths:
+            parsed, invalid = parse_local_source_file(path)
+            records.extend(parsed)
+            errors.extend(invalid)
+        merge_records(self.rows, records)
+
+        dialog = LocalSourceImportDialog(records, errors, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        selected = dialog.selected_records()
+        if not selected:
+            InfoBar.warning(
+                t("desktop.import_local_sources"),
+                t("desktop.import_no_selection"),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+            return
+        self.search.clear()
+        self.rows.extend(
+            {"channel": record.channel, "url": record.url, "_checked": False}
+            for record in selected
+        )
+        self._rebuild_table()
+        self.raw_editor.setPlainText(self._serialize())
+        InfoBar.success(
+            t("desktop.import_completed"),
+            t("desktop.import_unsaved").format(count=len(selected)),
+            parent=self,
+            position=InfoBarPosition.TOP,
+        )
+
     def delete_items(self):
         selected = sorted(self._selected_row_indices(), reverse=True)
         if not selected:
@@ -1006,10 +1070,10 @@ class SourceEditor(QWidget):
         )
         if not box.exec():
             return
-        for row in selected:
-            del self.rows[row]
+        selected_set = set(selected)
+        self.rows = [row for index, row in enumerate(self.rows) if index not in selected_set]
         self._rebuild_table()
-        self._visual_changed()
+        self.raw_editor.setPlainText(self._serialize())
 
     def _filter_rows(self, *_):
         term = self.search.text().strip().lower()
@@ -1020,22 +1084,26 @@ class SourceEditor(QWidget):
             if term:
                 self.raw_editor.find(term)
             return
-        for index, row in enumerate(self.rows):
-            values = []
-            for key, value in row.items():
-                if key.startswith("_"):
-                    continue
-                values.extend(value if isinstance(value, list) else [value])
-            search_matches = not term or term in " ".join(str(value) for value in values).lower()
-            category_matches = (
-                self.kind != "template"
-                or self._template_view_mode != "category"
-                or self._active_group == self.ALL_GROUPS
-                or self._active_group == self.UNGROUPED and not row.get("group")
-                or row.get("group") == self._active_group
-            )
-            matches = search_matches and category_matches
-            self.table.setRowHidden(index, not matches)
+        self.table.setUpdatesEnabled(False)
+        try:
+            for index, row in enumerate(self.rows):
+                values = []
+                for key, value in row.items():
+                    if key.startswith("_"):
+                        continue
+                    values.extend(value if isinstance(value, list) else [value])
+                search_matches = not term or term in " ".join(str(value) for value in values).lower()
+                category_matches = (
+                    self.kind != "template"
+                    or self._template_view_mode != "category"
+                    or self._active_group == self.ALL_GROUPS
+                    or self._active_group == self.UNGROUPED and not row.get("group")
+                    or row.get("group") == self._active_group
+                )
+                matches = search_matches and category_matches
+                self.table.setRowHidden(index, not matches)
+        finally:
+            self.table.setUpdatesEnabled(True)
         self._rebuild_category_tree()
         self._update_selection_state()
 
@@ -1043,6 +1111,7 @@ class SourceEditor(QWidget):
         self.view_switch.items["category"].setText(t("desktop.channel_view_category"))
         self.view_switch.items["list"].setText(t("desktop.channel_view_list"))
         self.move_button.setText(t("desktop.move_to_category"))
+        self.import_button.setText(t("desktop.import_files"))
         self.add_button.setText(t("desktop.add_item"))
         self.delete_button.setText(t("desktop.delete_item"))
         self.search.setPlaceholderText(t("desktop.search_source_data"))
