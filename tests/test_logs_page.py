@@ -92,10 +92,44 @@ class LogsPageTests(unittest.TestCase):
             self.page.wrap_lines_action,
             self.page.show_timestamps_action,
         ])
-        self.assertEqual(self.page.more_menu.actions(), [self.page.clear_action])
+        self.assertEqual(
+            self.page.more_menu.actions(),
+            [self.page.clear_action, self.page.delete_runtime_action],
+        )
+        self.assertTrue(self.page.delete_runtime_action.isVisible())
         self.assertFalse(self.page.autoscroll.isVisible())
         self.assertFalse(self.page.wrap_lines.isVisible())
         self.assertFalse(self.page.show_timestamps.isVisible())
+
+    def test_delete_runtime_action_remains_available_for_other_log_tabs(self):
+        self.page.selector.setCurrentIndex(1)
+        self.assertTrue(self.page.delete_runtime_action.isVisible())
+        self.assertFalse(self.page.delete_runtime_action.property("item").isHidden())
+        self.page.selector.setCurrentIndex(0)
+        self.assertTrue(self.page.delete_runtime_action.isVisible())
+        self.assertFalse(self.page.delete_runtime_action.property("item").isHidden())
+
+    def test_delete_runtime_log_truncates_only_runtime_log_after_confirmation(self):
+        self._write_runtime_log(["runtime entry"])
+        other_log = os.path.join(self.temp_dir.name, "result.log")
+        with open(other_log, "w", encoding="utf-8") as file:
+            file.write("result entry")
+
+        with patch("desktop_ui.pages.logs.warning_message_box") as message_box_factory:
+            message_box_factory.return_value.exec.return_value = True
+            self.page.delete_runtime_log()
+
+        message_box_factory.return_value.yesButton.setText.assert_called_once_with(
+            t("desktop.confirm")
+        )
+        message_box_factory.return_value.cancelButton.setText.assert_called_once_with(
+            t("desktop.cancel")
+        )
+
+        self.assertEqual(os.path.getsize(self.runtime_log), 0)
+        with open(other_log, encoding="utf-8") as file:
+            self.assertEqual(file.read(), "result entry")
+        self.assertEqual(self.page.viewer.toPlainText(), "")
 
     def test_auto_scroll_does_not_interrupt_manual_browsing(self):
         self._write_runtime_log([f"line {index}" for index in range(100)])

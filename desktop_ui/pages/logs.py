@@ -7,9 +7,10 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import Action, ComboBox, DropDownPushButton, FluentIcon, InfoBar, InfoBarPosition, PushButton, RoundMenu, SwitchButton
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit
+from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, warning_message_box
 from utils.diagnostics import export_logs
 from utils.i18n import t
+from utils.run_state import read_run_state
 
 
 _TIMESTAMP_PREFIX = re.compile(
@@ -100,7 +101,15 @@ class LogsPage(QWidget):
         self.more_menu = RoundMenu(parent=self)
         self.clear_action = Action(FluentIcon.BROOM, t("desktop.clear_view"), self, triggered=self.clear_view)
         self.more_menu.addAction(self.clear_action)
+        self.delete_runtime_action = Action(
+            FluentIcon.DELETE,
+            t("desktop.delete_runtime_log"),
+            self,
+            triggered=self.delete_runtime_log,
+        )
+        self.more_menu.addAction(self.delete_runtime_action)
         self.more_button.setMenu(self.more_menu)
+        self._update_more_actions()
 
     @staticmethod
     def _add_toggle_action(menu, text, switch):
@@ -113,9 +122,10 @@ class LogsPage(QWidget):
         return action
 
     def refresh(self, *_):
+        self._update_more_actions()
         path = self.paths[max(0, self.selector.currentIndex())][1]
-        if not os.path.exists(path):
-            content = "" if path in self.cleared_offsets else t("msg.waiting_tip")
+        if not os.path.isfile(path) or os.path.getsize(path) == 0:
+            content = "" if path in self.cleared_offsets else self._empty_log_message(path)
         else:
             size = os.path.getsize(path)
             offset = self.cleared_offsets.get(path, max(0, size - 1024 * 1024))
@@ -136,6 +146,20 @@ class LogsPage(QWidget):
         is_new_log = path != self._last_viewed_path
         self._set_viewer_content(content, force_scroll=is_new_log)
         self._last_viewed_path = path
+
+    def _empty_log_message(self, path):
+        status = read_run_state().get("status", "never_run")
+        if path == self.paths[0][1]:
+            key = {
+                "never_run": "desktop.runtime_log_empty_never",
+                "running": "desktop.runtime_log_empty_running",
+                "completed_empty": "desktop.runtime_log_empty_after_run",
+                "failed": "desktop.runtime_log_empty_failed",
+                "cancelled": "desktop.runtime_log_empty_cancelled",
+            }.get(status, "desktop.runtime_log_empty")
+        else:
+            key = "desktop.other_log_empty_running" if status == "running" else "desktop.other_log_empty"
+        return t(key)
 
     @staticmethod
     def _configure_switch_text(switch, text):
@@ -173,6 +197,44 @@ class LogsPage(QWidget):
         path = self.paths[max(0, self.selector.currentIndex())][1]
         self.cleared_offsets[path] = os.path.getsize(path) if os.path.exists(path) else 0
         self.viewer.clear()
+
+    def _update_more_actions(self):
+        self.delete_runtime_action.setVisible(True)
+        item = self.delete_runtime_action.property("item")
+        if item is not None:
+            item.setHidden(False)
+
+    def delete_runtime_log(self):
+        runtime_path = self.paths[0][1]
+        box = warning_message_box(
+            t("desktop.delete_runtime_log"),
+            t("desktop.delete_runtime_log_confirm"),
+            self,
+        )
+        box.yesButton.setText(t("desktop.confirm"))
+        box.cancelButton.setText(t("desktop.cancel"))
+        if not box.exec():
+            return
+        try:
+            os.makedirs(os.path.dirname(runtime_path), exist_ok=True)
+            with open(runtime_path, "w", encoding="utf-8"):
+                pass
+            self.cleared_offsets[runtime_path] = 0
+            self.viewer.clear()
+            self.refresh()
+            InfoBar.success(
+                t("desktop.runtime_log_deleted"),
+                t("desktop.runtime_log_deleted_detail"),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+        except OSError as exc:
+            InfoBar.error(
+                t("desktop.runtime_log_delete_failed"),
+                str(exc),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
 
     def export(self):
         try:
@@ -218,6 +280,8 @@ class LogsPage(QWidget):
         self.wrap_lines_action.setText(wrap_lines_text)
         self.show_timestamps_action.setText(show_timestamps_text)
         self.clear_action.setText(t("desktop.clear_view"))
+        self.delete_runtime_action.setText(t("desktop.delete_runtime_log"))
         self.refresh_button.setText(t("desktop.refresh"))
         self.export_button.setText(t("desktop.export_logs"))
+        self._update_more_actions()
         self.refresh()
