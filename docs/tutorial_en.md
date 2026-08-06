@@ -320,7 +320,11 @@ The desktop GUI for Windows and macOS provides one-click updates, live progress,
 
 <p align="center">
   <a href="./images/desktop-ui-en.png">
-    <img src="./images/desktop-ui-en.png" alt="IPTV-API desktop GUI in English" width="100%"/>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="./images/desktop-ui-en-dark.png">
+      <source media="(prefers-color-scheme: light)" srcset="./images/desktop-ui-en.png">
+      <img src="./images/desktop-ui-en.png" alt="IPTV-API desktop GUI in English" width="100%"/>
+    </picture>
   </a>
 </p>
 

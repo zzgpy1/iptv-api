@@ -14,7 +14,7 @@
 
 - Regenerate the checked-in Chinese and English GUI screenshots only when a
   change visibly affects the desktop GUI home page (Dashboard) as it appears
-  in `docs/images/desktop-ui.png` or `docs/images/desktop-ui-en.png`.
+  in the light or dark variants under `docs/images/desktop-ui*.png`.
 - Home-page changes include visible Dashboard cards, tables, status or stream
   indicators, collapsed navigation, localization, typography, colors,
   spacing, window layout, or showcase data displayed in those two images.
@@ -34,8 +34,9 @@
 - Demo generation must use temporary directories and must not modify user
   configuration, `config/`, or `output/`.
 - When home-page regeneration is required, generate both Chinese and English
-  screenshots, then verify demo data, service status, stream states, local
-  logos, collapsed navigation, window focus, and native title-bar controls.
+  screenshots in both light and dark themes, then verify demo data, service
+  status, stream states, local logos, collapsed navigation, window focus, and
+  native title-bar controls.
 - The checked-in home-page screenshots should show the Dashboard cards in the
   simulated running visual state, including glass/activity colors and progress
   controls. The showcase generator must use Dashboard UI-state injection only;

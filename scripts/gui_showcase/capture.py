@@ -27,6 +27,7 @@ from fixture import (
 
 
 LANGUAGES = ("zh_CN", "en")
+THEMES = ("light", "dark")
 
 
 def _configure_environment(language: str) -> None:
@@ -154,12 +155,14 @@ def _activate_macos_application() -> bool:
         return False
 
 
-def _output_filename(language: str) -> str:
-    return "desktop-ui-en.png" if language == "en" else "desktop-ui.png"
+def _output_filename(language: str, theme: str) -> str:
+    language_prefix = "desktop-ui-en" if language == "en" else "desktop-ui"
+    return f"{language_prefix}.png" if theme == "light" else f"{language_prefix}-dark.png"
 
 
-def capture_language(language: str, output_dir: Path) -> int:
+def capture_language(language: str, output_dir: Path, theme: str = "light") -> int:
     language = "en" if language.startswith("en") else "zh_CN"
+    theme = "dark" if theme == "dark" else "light"
     _configure_environment(language)
     os.chdir(REPOSITORY_ROOT)
 
@@ -180,11 +183,11 @@ def capture_language(language: str, output_dir: Path) -> int:
         if language == "en"
         else ["PingFang SC", "Helvetica Neue", "Arial"]
     )
-    setTheme(Theme.LIGHT)
+    setTheme(Theme.DARK if theme == "dark" else Theme.LIGHT)
     setThemeColor("#0E5CAD")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = (output_dir / _output_filename(language)).resolve()
+    output_path = (output_dir / _output_filename(language, theme)).resolve()
     exit_state = {"code": 0, "error": ""}
 
     with tempfile.TemporaryDirectory(prefix=f"iptv-gui-showcase-{language}-") as temporary:
@@ -362,6 +365,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Screenshot language. Defaults to both Chinese and English.",
     )
     parser.add_argument(
+        "--theme",
+        choices=(*THEMES, "all"),
+        default="all",
+        help="Screenshot theme. Defaults to both light and dark variants.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=REPOSITORY_ROOT / "docs" / "images",
@@ -380,22 +389,30 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         return check_fixture()
     if args.language == "all":
-        for language in LANGUAGES:
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(Path(__file__).resolve()),
-                    "--language",
-                    language,
-                    "--output-dir",
-                    str(args.output_dir.resolve()),
-                ],
-                cwd=REPOSITORY_ROOT,
-            )
-            if result.returncode:
-                return result.returncode
+        languages = LANGUAGES
+    else:
+        languages = (args.language,)
+    themes = THEMES if args.theme == "all" else (args.theme,)
+    if args.language == "all" or args.theme == "all":
+        for language in languages:
+            for theme in themes:
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(Path(__file__).resolve()),
+                        "--language",
+                        language,
+                        "--theme",
+                        theme,
+                        "--output-dir",
+                        str(args.output_dir.resolve()),
+                    ],
+                    cwd=REPOSITORY_ROOT,
+                )
+                if result.returncode:
+                    return result.returncode
         return 0
-    return capture_language(args.language, args.output_dir)
+    return capture_language(args.language, args.output_dir, args.theme)
 
 
 if __name__ == "__main__":

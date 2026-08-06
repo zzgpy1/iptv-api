@@ -20,12 +20,15 @@ Run on macOS from the repository root:
 pipenv run python scripts/gui_showcase/capture.py
 ```
 
-The command replaces:
+The command replaces all four documentation screenshots:
 
 - `docs/images/desktop-ui.png`
 - `docs/images/desktop-ui-en.png`
+- `docs/images/desktop-ui-dark.png`
+- `docs/images/desktop-ui-en-dark.png`
 
-Generate one language with `--language zh_CN` or `--language en`.
+Generate one language with `--language zh_CN` or `--language en`, or one theme
+with `--theme light` or `--theme dark`.
 
 ## Validate without capturing
 

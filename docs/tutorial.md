@@ -283,7 +283,11 @@ pipenv run service
 
 <p align="center">
   <a href="./images/desktop-ui.png">
-    <img src="./images/desktop-ui.png" alt="IPTV-API 新版桌面端界面" width="100%"/>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="./images/desktop-ui-dark.png">
+      <source media="(prefers-color-scheme: light)" srcset="./images/desktop-ui.png">
+      <img src="./images/desktop-ui.png" alt="IPTV-API 新版桌面端界面" width="100%"/>
+    </picture>
   </a>
 </p>
 
