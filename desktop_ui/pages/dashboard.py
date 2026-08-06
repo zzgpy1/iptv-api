@@ -17,6 +17,7 @@ from utils.channel_repository import latest_successful_run, list_categories, lis
 from utils.config import config
 from utils.i18n import t
 from utils.tools import get_public_url, parse_times, resource_path
+from utils.run_state import read_run_state
 
 
 def next_scheduled_update(now: datetime.datetime | None = None):
@@ -167,6 +168,7 @@ class DashboardPage(QWidget):
         self._stream_states = {}
         self._active_channel = None
         self.last_update_outcome = None
+        self.run_state = read_run_state()
         self.status_card = MetricCard(t("desktop.run_status"), t("desktop.idle"), icon=FluentIcon.POWER_BUTTON, accent="#64748B")
         self.channel_card = MetricCard(
             t("desktop.channels"), "0", icon=FluentIcon.LIBRARY, accent="#7C3AED", animate_value_updates=True,
@@ -340,6 +342,7 @@ class DashboardPage(QWidget):
         self._apply_runtime_rows()
 
     def _apply_runtime_rows(self):
+        self.run_state = read_run_state()
         term = self.channel_search.text().strip().lower()
         rows = [
             row for row in self._runtime_rows
@@ -351,6 +354,18 @@ class DashboardPage(QWidget):
             title_key = "desktop.channel_results_no_match"
             hint_key = "desktop.channel_results_no_match_hint"
         elif self.last_update_outcome and self.last_update_outcome.get("status") == "empty":
+            title_key = "desktop.channel_results_empty_after_run"
+            hint_key = "desktop.channel_results_empty_after_run_hint"
+        elif self.run_state.get("status") == "running":
+            title_key = "desktop.channel_results_empty_running"
+            hint_key = "desktop.channel_results_empty_running_hint"
+        elif self.run_state.get("status") == "failed":
+            title_key = "desktop.channel_results_empty_failed"
+            hint_key = "desktop.channel_results_empty_failed_hint"
+        elif self.run_state.get("status") == "cancelled":
+            title_key = "desktop.channel_results_empty_cancelled"
+            hint_key = "desktop.channel_results_empty_cancelled_hint"
+        elif self.run_state.get("status") == "completed_empty":
             title_key = "desktop.channel_results_empty_after_run"
             hint_key = "desktop.channel_results_empty_after_run_hint"
         else:

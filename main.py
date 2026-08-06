@@ -22,6 +22,7 @@ from utils.config import config
 from utils.i18n import t
 from utils.requests.async_tools import check_ipv6_support_async
 from utils.reporting import Reporter
+from utils.run_state import write_run_state
 from utils.speed import clear_cache
 from utils.tools import (
     process_nested_dict,
@@ -596,6 +597,7 @@ class UpdateSource:
     async def main(self):
         run_id = start_run(constants.channel_results_path)
         self.reporter.bind_run(run_id)
+        write_run_state("running", run_id=run_id, started_at=time())
         run_status = "failed"
         run_error = None
         try:
@@ -820,6 +822,16 @@ class UpdateSource:
             )
             raise
         finally:
+            state = "completed_empty" if run_status == "success" and self.run_outcome else {
+                "success": "completed",
+                "cancelled": "cancelled",
+                "failed": "failed",
+            }.get(run_status, "failed")
+            state_data = {"run_id": run_id}
+            if self.run_outcome:
+                state_data["reason"] = self.run_outcome.get("reason")
+                state_data["message"] = self.run_outcome.get("message")
+            write_run_state(state, **state_data)
             finish_run(constants.channel_results_path, run_id, run_status, run_error)
             self.reporter.bind_run(None)
 

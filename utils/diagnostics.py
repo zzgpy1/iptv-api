@@ -48,6 +48,7 @@ def export_diagnostics() -> str:
             (constants.speed_test_jsonl_path, "logs/speed_test.jsonl"),
             (constants.statistic_jsonl_path, "logs/statistic.jsonl"),
             (constants.unmatch_jsonl_path, "logs/unmatch.jsonl"),
+            (constants.run_state_path, "data/run_state.json"),
         ]:
             if os.path.exists(source):
                 archive.write(source, name)

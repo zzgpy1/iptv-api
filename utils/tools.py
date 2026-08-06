@@ -28,6 +28,7 @@ from utils.config import config, resource_path
 from utils.i18n import t
 from utils.identity import stable_result_id
 from utils.types import ChannelData
+from utils.run_state import read_run_state
 
 opencc_t2s = OpenCC("t2s")
 _channel_alias_instance = None
@@ -542,7 +543,7 @@ def get_result_file_content(path=None, show_content=False, file_type=None):
         if requested_type
         else path
     )
-    if os.path.exists(result_file):
+    if os.path.isfile(result_file) and os.path.getsize(result_file) > 0:
         extension = os.path.splitext(result_file)[1].lower()
         if extension == ".gz" or (
                 not show_content
@@ -552,7 +553,26 @@ def get_result_file_content(path=None, show_content=False, file_type=None):
         with open(result_file, "r", encoding="utf-8") as file:
             content = file.read()
     else:
-        content = constants.waiting_tip
+        state = read_run_state()
+        status = state.get("status", "never_run")
+        response = make_response(json.dumps({
+            "status": status,
+            "message": t({
+                "never_run": "msg.result_empty_never",
+                "running": "msg.result_empty_running",
+                "completed_empty": "msg.result_empty_after_run",
+                "failed": "msg.result_empty_failed",
+                "cancelled": "msg.result_empty_cancelled",
+            }.get(status, "msg.result_empty")),
+        }, ensure_ascii=False), {
+            "never_run": 404,
+            "running": 202,
+            "completed_empty": 404,
+            "failed": 503,
+            "cancelled": 409,
+        }.get(status, 404))
+        response.mimetype = "application/json"
+        return response
     response = make_response(content)
     response.mimetype = 'text/plain'
     return response

@@ -17,6 +17,7 @@ from service.rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hl
 import logging
 from utils.i18n import t
 from utils.rtmp_runtime import install_rtmp_runtime, rtmp_runtime_status
+from utils.run_state import read_run_state
 from utils.version_check import log_new_version_if_available, start_version_log_monitor
 from werkzeug.utils import secure_filename
 import mimetypes
@@ -228,11 +229,30 @@ def show_unmatch_log():
 def _show_log_file(text_path, jsonl_path):
     use_jsonl = request.args.get("format", "").lower() in {"json", "jsonl", "ndjson"}
     path = jsonl_path if use_jsonl else text_path
-    if os.path.exists(path):
+    if os.path.isfile(path) and os.path.getsize(path) > 0:
         with open(path, "r", encoding="utf-8") as file:
             content = file.read()
     else:
-        content = constants.waiting_tip
+        state = read_run_state()
+        status = state.get("status", "never_run")
+        response = jsonify({
+            "status": status,
+            "message": t({
+                "never_run": "msg.log_empty_never",
+                "running": "msg.log_empty_running",
+                "completed_empty": "msg.log_empty_after_run",
+                "failed": "msg.log_empty_failed",
+                "cancelled": "msg.log_empty_cancelled",
+            }.get(status, "msg.log_empty")),
+        })
+        response.status_code = {
+            "never_run": 404,
+            "running": 202,
+            "completed_empty": 404,
+            "failed": 503,
+            "cancelled": 409,
+        }.get(status, 404)
+        return response
     response = make_response(content)
     response.mimetype = "application/x-ndjson" if use_jsonl else "text/plain"
     return response

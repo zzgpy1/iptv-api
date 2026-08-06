@@ -49,6 +49,8 @@ cache_path = os.path.join(output_dir, "data/cache.gz")
 
 frozen_path = os.path.join(output_dir, "data/frozen.gz")
 
+run_state_path = os.path.join(output_dir, "data/run_state.json")
+
 speed_test_log_path = os.path.join(output_dir, "log/speed_test.log")
 
 result_log_path = os.path.join(output_dir, "log/result.log")

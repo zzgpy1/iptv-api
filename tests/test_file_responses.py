@@ -91,6 +91,17 @@ class ResultFileResponseTests(unittest.TestCase):
         self.assertNotIn("Content-Disposition", txt_response.headers)
         self.assertNotIn("Content-Disposition", m3u_response.headers)
 
+    def test_missing_result_returns_stateful_http_response(self):
+        missing_path = os.path.join(self.temp_dir.name, "missing.txt")
+        with self.app.test_request_context(), patch(
+            "utils.tools.read_run_state", return_value={"status": "never_run"}
+        ):
+            response = get_result_file_content(path=missing_path, file_type="txt")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.mimetype, "application/json")
+        self.assertEqual(response.get_json()["status"], "never_run")
+
 
 if __name__ == "__main__":
     unittest.main()
