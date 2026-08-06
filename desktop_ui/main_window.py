@@ -4,7 +4,7 @@ import sys
 import threading
 
 import pytz
-from PySide6.QtCore import QRect, QSettings, QTimer, QUrl, Signal, Qt
+from PySide6.QtCore import QSettings, QTimer, QUrl, Signal, Qt
 from PySide6.QtGui import QAction, QColor, QDesktopServices, QFontMetrics, QGuiApplication, QIcon, QPainter
 from PySide6.QtWidgets import QApplication, QCheckBox, QDialog, QDialogButtonBox, QLabel, QMenu, QMessageBox, QSystemTrayIcon, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, FluentWindow, InfoBar, InfoBarPosition, NavigationItemPosition, Theme, isDarkTheme, setTheme
@@ -20,7 +20,7 @@ from desktop_ui.pages.sources import SourcesPage
 from desktop_ui.pages.tasks import TasksPage
 from desktop_ui.models import ChannelLogoLoader
 from desktop_ui.widgets import NavigationStatusIndicator
-from desktop_ui.platform_integration import set_macos_activation_policy
+from desktop_ui.platform_integration import set_macos_activation_policy, suspend_macos_window_flush
 import utils.constants as constants
 from utils.config import config, resource_path
 from utils.i18n import get_language, set_language, t
@@ -29,6 +29,8 @@ from utils.tools import get_public_url, get_version_info
 
 
 class MainWindow(FluentWindow):
+    MACOS_TITLE_BAR_HEIGHT = 32
+
     rtmp_install_finished = Signal(dict)
     rtmp_install_output = Signal(str)
 
@@ -55,6 +57,17 @@ class MainWindow(FluentWindow):
             self.titleBar.minBtn.hide()
             self.titleBar.maxBtn.hide()
             self.titleBar.closeBtn.hide()
+            self.titleBar.setFixedHeight(self.MACOS_TITLE_BAR_HEIGHT)
+            self.widgetLayout.setContentsMargins(
+                0, self.MACOS_TITLE_BAR_HEIGHT, 0, 0
+            )
+            margins = self.titleBar.hBoxLayout.contentsMargins()
+            self.titleBar.hBoxLayout.setContentsMargins(
+                margins.left(),
+                margins.top(),
+                margins.right(),
+                self.MACOS_TITLE_BAR_HEIGHT - 32,
+            )
         self.navigationInterface.setExpandWidth(220)
         self.navigationInterface.setMinimumExpandWidth(840)
         self.channel_logo_loader = ChannelLogoLoader(self)
@@ -108,7 +121,8 @@ class MainWindow(FluentWindow):
             position=NavigationItemPosition.BOTTOM,
         )
         panel = self.navigationInterface.panel
-        panel.vBoxLayout.setContentsMargins(0, 48, 0, 5)
+        navigation_top = self.MACOS_TITLE_BAR_HEIGHT if sys.platform == "darwin" else 48
+        panel.vBoxLayout.setContentsMargins(0, navigation_top, 0, 5)
         panel.topLayout.removeWidget(panel.menuButton)
         panel.bottomLayout.addWidget(panel.menuButton, 0, Qt.AlignmentFlag.AlignBottom)
         self._update_language_item()
@@ -218,22 +232,32 @@ class MainWindow(FluentWindow):
         else:
             QApplication.instance().setQuitOnLastWindowClosed(True)
 
-    def systemTitleBarRect(self, size):
+    def _updateSystemButtonRect(self):
         if sys.platform == "darwin":
-            return QRect(0, 8, 75, size.height())
-        return super().systemTitleBarRect(size)
+            # AppKit already keeps the native traffic lights stable. Moving
+            # them manually makes page layout events expose two positions.
+            return
+        updater = getattr(super(), "_updateSystemButtonRect", None)
+        if updater is not None:
+            return updater()
 
     def resizeEvent(self, event):
-        super().resizeEvent(event)
         if sys.platform == "darwin":
-            self.titleBar.move(90, 0)
-            self.titleBar.resize(max(0, self.width() - 90), self.titleBar.height())
+            # FluentWindow first lays the title bar out at x=46. Setting the
+            # final macOS geometry directly avoids exposing that intermediate
+            # frame when a page activation produces a same-size resize event.
+            self.titleBar.setGeometry(90, 0, max(0, self.width() - 90), self.titleBar.height())
+        else:
+            super().resizeEvent(event)
         if self.isVisible():
             self._window_geometry_timer.start()
 
     def switchTo(self, interface):
-        """Switch pages without forcing a repaint of the native title bar."""
-        super().switchTo(interface)
+        """Publish page layout and native title-bar changes in one frame."""
+        with suspend_macos_window_flush(self):
+            super().switchTo(interface)
+            if sys.platform == "darwin":
+                QApplication.sendPostedEvents()
 
     def moveEvent(self, event):
         super().moveEvent(event)

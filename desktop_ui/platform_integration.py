@@ -1,5 +1,28 @@
 import ctypes
 import sys
+from contextlib import contextmanager
+
+
+@contextmanager
+def suspend_macos_window_flush(window):
+    """Publish a group of Qt layout changes as one macOS window frame."""
+    if sys.platform != "darwin":
+        yield
+        return
+    try:
+        import objc
+
+        view = objc.objc_object(c_void_p=int(window.winId()))
+        native_window = view.window()
+        native_window.disableFlushWindow()
+    except (AttributeError, ImportError, OSError, TypeError):
+        yield
+        return
+    try:
+        yield
+    finally:
+        native_window.enableFlushWindow()
+        native_window.flushWindow()
 
 
 def set_macos_activation_policy(accessory: bool):
