@@ -12,7 +12,7 @@ from qfluentwidgets import BodyLabel, CaptionLabel, CardWidget, CheckBox, ComboB
 import utils.constants as constants
 from desktop_ui.models import MappingTableModel
 from desktop_ui.playback import play_url
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, GlassCard, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, GlassCard, configure_table_columns
 from utils.channel_repository import list_streamable_results
 from utils.config import config
 from utils.i18n import t
@@ -190,7 +190,6 @@ class ChannelPickerDialog(QDialog):
 
 class RtmpPage(QWidget):
     refresh_requested = Signal()
-    stream_control_requested = Signal(str, str)
     stream_control_many_requested = Signal(str, list)
     install_requested = Signal()
     settings_requested = Signal()
@@ -235,10 +234,8 @@ class RtmpPage(QWidget):
 
         action_row = QHBoxLayout()
         action_row.setSpacing(8)
-        self.start_button = AccentPushButton(FluentIcon.SEND, t("desktop.start_selected_streams"), self.quick_card)
-        self.stream_play_button = PushButton(FluentIcon.VIDEO, t("desktop.stream_and_play"), self.quick_card)
+        self.start_button = AccentPushButton(FluentIcon.SEND, t("desktop.open_selected_streams"), self.quick_card)
         self.direct_button = PushButton(FluentIcon.PLAY, t("desktop.direct_play"), self.quick_card)
-        self.copy_button = PushButton(FluentIcon.LINK, t("desktop.copy_stream_url"), self.quick_card)
         self.capacity_label = CaptionLabel("", self.quick_card)
         self.service_label = StrongBodyLabel(t("desktop.checking"), self.quick_card)
         self.install_button = PushButton(FluentIcon.DOWNLOAD, t("desktop.install_nginx_rtmp"), self.quick_card)
@@ -246,9 +243,7 @@ class RtmpPage(QWidget):
         self.refresh_button = ToolButton(FluentIcon.SYNC, self.quick_card)
         self.refresh_button.setToolTip(t("desktop.refresh"))
         action_row.addWidget(self.start_button)
-        action_row.addWidget(self.stream_play_button)
         action_row.addWidget(self.direct_button)
-        action_row.addWidget(self.copy_button)
         action_row.addStretch(1)
         action_row.addWidget(self.capacity_label)
         action_row.addWidget(self.service_label)
@@ -283,7 +278,7 @@ class RtmpPage(QWidget):
         self.open_button = PushButton(FluentIcon.PLAY, t("desktop.open_stream"), self)
         self.copy_active_button = PushButton(FluentIcon.LINK, t("desktop.copy_stream_url"), self)
         self.restart_button = PushButton(FluentIcon.ROTATE, t("desktop.restart_selected_streams"), self)
-        self.stop_button = PushButton(FluentIcon.PAUSE_BOLD, t("desktop.stop_selected_streams"), self)
+        self.stop_button = DangerPushButton(FluentIcon.PAUSE_BOLD, t("desktop.stop_selected_streams"), self)
         monitor_header.addWidget(self.monitor_title)
         monitor_header.addWidget(self.session_summary, 1)
         monitor_header.addWidget(self.open_button)
@@ -391,9 +386,7 @@ class RtmpPage(QWidget):
         self.channel_picker_button.clicked.connect(self._open_channel_picker)
         self.source_selector.currentIndexChanged.connect(self._update_quick_actions)
         self.start_button.clicked.connect(lambda: self._request_selected_control("start"))
-        self.stream_play_button.clicked.connect(self._stream_and_play)
         self.direct_button.clicked.connect(self._play_direct)
-        self.copy_button.clicked.connect(self._copy_selected_result_stream)
         self.refresh_button.clicked.connect(self._refresh_all)
         self.adjust_limit_button.clicked.connect(self.settings_requested)
         self.install_button.clicked.connect(self.install_requested)
@@ -545,10 +538,8 @@ class RtmpPage(QWidget):
     def retranslate(self):
         self.channel_picker_button.setText(t("desktop.choose_stream_channels"))
         self.source_label.setText(t("desktop.select_output_source"))
-        self.start_button.setText(t("desktop.start_selected_streams"))
-        self.stream_play_button.setText(t("desktop.stream_and_play"))
+        self.start_button.setText(t("desktop.open_selected_streams"))
         self.direct_button.setText(t("desktop.direct_play"))
-        self.copy_button.setText(t("desktop.copy_stream_url"))
         self.adjust_limit_button.setText(t("desktop.adjust_concurrency_limit"))
         self.refresh_button.setToolTip(t("desktop.refresh"))
         self.monitor_title.setText(t("desktop.current_streams"))
@@ -644,9 +635,7 @@ class RtmpPage(QWidget):
         single = len(rows) == 1
         needed, overage = self._selection_capacity(rows)
         self.start_button.setEnabled(bool(rows) and self._available and overage == 0)
-        self.stream_play_button.setEnabled(single and self._available and overage == 0)
         self.direct_button.setEnabled(single)
-        self.copy_button.setEnabled(single and self._available)
         self.capacity_warning.setText(t("desktop.stream_capacity_inline").format(
             needed=needed,
             available=self._available_slots,
@@ -664,14 +653,6 @@ class RtmpPage(QWidget):
         rows = self._selected_results()
         if len(rows) == 1:
             play_url(rows[0]["url"], self)
-
-    def _stream_and_play(self):
-        rows = self._selected_results()
-        if len(rows) != 1:
-            return
-        row = rows[0]
-        self.stream_control_requested.emit("start", row["result_key"])
-        play_url(self._stream_url(row["result_key"]), self)
 
     def _request_selected_control(self, action: str):
         keys = [row["result_key"] for row in self._selected_results()]
@@ -700,11 +681,6 @@ class RtmpPage(QWidget):
         rows = self._selected_streams()
         if len(rows) == 1:
             play_url(self._stream_url(rows[0]["result_key"]), self)
-
-    def _copy_selected_result_stream(self):
-        rows = self._selected_results()
-        if len(rows) == 1:
-            self._copy_stream_url(rows[0]["result_key"])
 
     def _copy_active_stream(self):
         rows = self._selected_streams()

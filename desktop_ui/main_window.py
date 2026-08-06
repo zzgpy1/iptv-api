@@ -196,7 +196,6 @@ class MainWindow(FluentWindow):
         self.rtmp_controller.snapshot.connect(self.dashboard.set_stream_snapshot)
         self.rtmp_controller.snapshot.connect(self.channels.set_stream_snapshot)
         self.rtmp_controller.snapshot.connect(self._update_rtmp_navigation_status)
-        self.rtmp.stream_control_requested.connect(self.rtmp_controller.control)
         self.rtmp.stream_control_many_requested.connect(self.rtmp_controller.control_many)
         self.dashboard.stream_control_many_requested.connect(self.rtmp_controller.control_many)
         self.channels.stream_control_many_requested.connect(self.rtmp_controller.control_many)
