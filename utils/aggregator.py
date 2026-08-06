@@ -14,8 +14,48 @@ from utils.channel import (
 )
 from utils.channel_repository import sync_channel_snapshot
 from utils.config import config
+from utils.frozen import is_url_frozen
 from utils.identity import stable_result_id
 from utils.i18n import t
+
+
+def _preserve_unmeasured_history(test_copy, previous_result, base_data):
+    """Keep last-known-good results that quick mode did not retest.
+
+    A quick run may stop after reaching its valid-result target. In that case
+    an old result must not disappear merely because it was not included in
+    this run's measured set. Explicitly tested failures are excluded by their
+    stable result id, and frozen URLs are still allowed to age out normally.
+    """
+    preserved = copy.deepcopy(test_copy or {})
+
+    for category, channels in (base_data or {}).items():
+        for name, candidates in channels.items():
+            current = preserved.setdefault(category, {}).setdefault(name, [])
+            candidate_ids = {
+                stable_result_id(item.get("url", ""), item.get("headers"))
+                for item in candidates
+                if isinstance(item, dict) and item.get("url")
+            }
+            seen = {
+                stable_result_id(item.get("url", ""), item.get("headers"))
+                for item in current
+                if isinstance(item, dict) and item.get("url")
+            }
+            for item in (previous_result or {}).get(category, {}).get(name, []):
+                if not isinstance(item, dict) or not item.get("url"):
+                    continue
+                result_id = stable_result_id(item["url"], item.get("headers"))
+                if (
+                    result_id not in candidate_ids
+                    or result_id in seen
+                    or is_url_frozen(item["url"])
+                ):
+                    continue
+                current.append(copy.deepcopy(item))
+                seen.add(result_id)
+
+    return preserved
 
 
 class ResultAggregator:
@@ -171,6 +211,11 @@ class ResultAggregator:
                 new_sorted = defaultdict(lambda: defaultdict(list))
         else:
             try:
+                test_copy = _preserve_unmeasured_history(
+                    test_copy,
+                    self.result,
+                    self.base_data,
+                )
                 new_sorted = sort_channel_result(
                     self.base_data, result=test_copy, filter_host=speed_test_filter_host,
                     ipv6_support=self.ipv6_support
