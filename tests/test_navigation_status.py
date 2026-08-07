@@ -68,7 +68,7 @@ class NavigationStatusIndicatorTests(unittest.TestCase):
         self.assertEqual(page.changelog_button.text(), "查看更新日志")
         dialog = ChangelogDialog(str(page.info.get("version")), page)
         self.addCleanup(dialog.deleteLater)
-        self.assertIn("v2.0.8", dialog.viewer.toPlainText())
+        self.assertIn("v3.0.0", dialog.viewer.toPlainText())
 
     def test_changelog_extracts_only_the_current_release_and_language(self):
         markdown = """## v2.0.8
