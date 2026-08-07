@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3beaeaab60e45f0e26447a9b12cd969d161ab91ba8706f823901057ddb8b55b2"
+            "sha256": "a6357ef03366eaa5620aa2f5448137009bc7a65ce1c1820ed9807e37c6b63219"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -950,11 +950,11 @@
         },
         "soupsieve": {
             "hashes": [
-                "sha256:4f4477399246b7a0c720a88ca2454b11cd6bb9ae4c9d170140786e916776c14c",
-                "sha256:c33e6605bbc71dd628b00c632d58ae607c22bade247e52553928f83bbb75b4ba"
+                "sha256:4a55d8cf158a9c2e587fa4922f1bbb91d68ac829e2d6f25403a85747c71daf74",
+                "sha256:8089a26fd974ca7a1f30276d3d8492ab266ab15af581642dfe8aa162e0c1c823"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==2.9.1"
+            "version": "==2.9.2"
         },
         "typing-extensions": {
             "hashes": [
@@ -1267,7 +1267,7 @@
                 "sha256:0b2cf49d24213e7604620c31863e7b4e42770c4442c10e59b18ad951cd200cd3",
                 "sha256:edbbf9e2e249cd2fa660422c7d72e9fe5be1438deab38c64238b26f4c9db9421"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-core": {
@@ -1283,7 +1283,7 @@
                 "sha256:af101222762665a4125157906cb4b23f5d5a63d3851d5e0504f72a1eaaa2cfd2",
                 "sha256:efe465e3ecc6fc73f7c7622620345d134a8d34564ab1c29d8247e45f4ed55071"
             ],
-            "markers": "platform_system != 'Linux'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-accessibility": {
@@ -1299,7 +1299,7 @@
                 "sha256:d6814e863cc1a29e62d9ec97f7a9535598e46748b9d734cf0b903d190fe0e224",
                 "sha256:e0422e40d207f4fd04ba9d3b097f42bd4d9f6ac76b398e47b5b8ccb0f295d024"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-accounts": {
@@ -1307,7 +1307,7 @@
                 "sha256:6e6d603e10182238cd77596380262a38cbb0a9141d1eca6bf522b2213c6d6751",
                 "sha256:b86cba0f2a9219a1c57aba6c0f0973f7a06f10bf9ccd39b74fdb567f9b34a041"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-addressbook": {
@@ -1323,7 +1323,7 @@
                 "sha256:bb113fd5bcae93da00d67bf870704d2cfb73da49c4a281249d8a5abf9809aa91",
                 "sha256:ca9a94a3d27cf9b9ae22ac8fc48bfce392757b283419ac38567eeac73b6f8ffc"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-adservices": {
@@ -1331,7 +1331,7 @@
                 "sha256:631eaa86145179631624788ac1ee485fc79c2f9de347ab7d0cb3ea3413cd0cb1",
                 "sha256:6668fbef1b383c5cafae8479f4a8b53e824bd4d568611a53a3075e8c6dc4e39a"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-adsupport": {
@@ -1339,7 +1339,7 @@
                 "sha256:46a18c775a12565efbe46fbd0258ed63aa74002773362ff7d5e5be525013b221",
                 "sha256:c659ac447b1bb3b1a54add100d72932cfd50482384a97c22926d281c9d97a6c0"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-applescriptkit": {
@@ -1347,7 +1347,7 @@
                 "sha256:db6a0aae4d9421068ed8a0838c509e3a7858813975dde40c40ef1dcc15328d1d",
                 "sha256:fa3a55933ec090aebc695f3575a5afe8a2d37015162cd30e6c00948748d08f83"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-applescriptobjc": {
@@ -1355,7 +1355,7 @@
                 "sha256:59a3f7668b1f88707c06ae1cd263856ac29c2bf1650a9dbfa21288e0baebe298",
                 "sha256:c60b751a6c20148f23eb1d556aa36612c7e39b14e0bd87abaea53744ff8eabc9"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-applicationservices": {
@@ -1371,7 +1371,7 @@
                 "sha256:e91c84238b2f68f608473854bcabb8770f15ad837e7561d217f24a1e482e42be",
                 "sha256:f519ced13888d03410cd7da1f08fc56ee2944099e607216cef7ca26ecfdef61b"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-apptrackingtransparency": {
@@ -1379,7 +1379,7 @@
                 "sha256:29fb3e38e124932eb566a8427dc0db759eba63396cf530862b081432316ff863",
                 "sha256:3eff48469eb07e4637408f410ce2690711f5c3de2fbfaa8844daa718ed3479f7"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-arkit": {
@@ -1387,7 +1387,7 @@
                 "sha256:2834c497fe9f6cbfcdfdcb0202945b7ad36708438afbc71c77186ce3fb972366",
                 "sha256:ed4f67b1594a427b66ab751657ce6183a93a07ba32d3ba3bbefd7e0b4f6bf64d"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-audiovideobridging": {
@@ -1403,7 +1403,7 @@
                 "sha256:ceebe03b803be2684412050afc9e661d1e9fc7857ca34f27beff3a11b2cad773",
                 "sha256:d88209b5fe94e0c7e3744a661bd8a98071073404ae97230db7d4fa7ad7a0a99c"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-authenticationservices": {
@@ -1419,7 +1419,7 @@
                 "sha256:da70cd842a41276e6f9958b1d3e227a3de452e696c56f8e2b439add45e578665",
                 "sha256:fd0592d7257eeb47cf398f4a579a617e977a5b949440a60a34f130c0d811d071"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-automaticassessmentconfiguration": {
@@ -1435,7 +1435,7 @@
                 "sha256:c4c233d052d699cf6db479dd8ac0a741fe920e192adc716121c8f4ff3f0ce864",
                 "sha256:d1117a6d3481c8e5ec9f984d201c356598e116daaa0a5db6341c7f52a30e0d4e"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-automator": {
@@ -1451,7 +1451,7 @@
                 "sha256:c512602073fbb51e5c2c442628029ca7eb1d19a0c53632dbe9aa1b0c47454868",
                 "sha256:dc742dc85b078fcd40f4a6e68f4d712791245b2c64ade046c78661680cec57b1"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-avfoundation": {
@@ -1467,7 +1467,7 @@
                 "sha256:d3ce4b2bb2ae51ad5c27f1d2f2a623bef8b443bccc34423b5149df010f9f501c",
                 "sha256:f372800274df35f8d964cad0ad6da7636f1b6720e802e28e5a6bc1f16f16f135"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-avkit": {
@@ -1483,7 +1483,7 @@
                 "sha256:f8514a6ca882e55738bf5c2c8fd498b4920b3344481ca6747b32526fe99ac7c4",
                 "sha256:fc3994a696f550393558dc974b7c8f72dd8ca43cf645e5c755f7d5ac167dc93d"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-avrouting": {
@@ -1499,7 +1499,7 @@
                 "sha256:8fd237f7a5c8d905f194fcdfeb6771e69c7106fc544c24e9725d952505f0fdc7",
                 "sha256:ccdd40b590221f2db3969bfc84782cb720163647b2e8aa4c6c623c59a4e07740"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-backgroundassets": {
@@ -1515,7 +1515,7 @@
                 "sha256:dac0d3a65a95ea886598f381080c4efffc3acfabcca3e692550fbe615627db7e",
                 "sha256:e315f1e22c54603dfd7a924a916cee4975c444ed097e34c5e4f2667e50ddc471"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-browserenginekit": {
@@ -1531,7 +1531,7 @@
                 "sha256:ca3a58c7be5463c65566d2b41d18cf5b9f0a1f70f27540c1a108e74d2487f1e3",
                 "sha256:eb7148c7f32c98d40046eb3338f7ceb1ab055edb122065a7b37cbc84865aa41a"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-businesschat": {
@@ -1539,7 +1539,7 @@
                 "sha256:2847c422d202fb8e1eb892c7151b2251b2880a5e6618b7affbdec2b5521a6072",
                 "sha256:61ef7e7fb1846a1731c7e7268e032ed6fd2e6df3de195c6c35d4df4c81e18801"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-calendarstore": {
@@ -1547,7 +1547,7 @@
                 "sha256:5659f2d59dd49423d3880295cd4b395a61c0b7aea8db654e63dab6dd32d28dee",
                 "sha256:d144a2e2b2566b2954f0e365bf7592ccd17cb459165805ed73c6ed8d0feb2ede"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-callkit": {
@@ -1563,7 +1563,7 @@
                 "sha256:c3ebce966fc18c2d1a0aa36899f4c33c10b190e8b310d03649a65f61e437b91e",
                 "sha256:e259627de99e751d2f05f39d135281a58f75a18d3c5ba9dda27c6bf88bc673a4"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-carbon": {
@@ -1571,7 +1571,7 @@
                 "sha256:603cf2bced196dd90d6400bcbca32ab573166fc4058193bfbd7c1bd95cdefd4c",
                 "sha256:a14ca4a45e697c2d187753bc851f3bb49d5bcf66d4ef1d2363fd9962417d8638"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-cfnetwork": {
@@ -1587,7 +1587,7 @@
                 "sha256:eedf28c9e2b69607e646b775bf2149835bdafac9133847c561e00e0c87e0e9e9",
                 "sha256:f9be16c691c6f1f58e91551c9e67069abcbf3d5e9a789b1b95b1f84620f0308f"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-cinematic": {
@@ -1595,7 +1595,7 @@
                 "sha256:73720492fc29eee04cbbeae701dd21c5ddd56dc4e19e59b2af520b8f53a129a3",
                 "sha256:cd251ded9393ff4a993a3689d4d3ce7ba3926e7f884f9cd333cf9610338ac28b"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-classkit": {
@@ -1611,7 +1611,7 @@
                 "sha256:d689fb7bcf0120963b0d4518399c2440a4bf95378e9841289835846008bebac2",
                 "sha256:f39c78209ad615bb1ef54a3b78b56438aa734bb01143d954ab29d9cee59ec34d"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-cloudkit": {
@@ -1619,7 +1619,7 @@
                 "sha256:4badd0d3b9d78fab900415a2b0319579c5be3a30fa99e631a9065f3768076e35",
                 "sha256:7d3810347fe8de6171d8a4377916750b4ba3bfa874b5f8e5bd0ca6e62d2c4f43"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-cocoa": {
@@ -1635,7 +1635,7 @@
                 "sha256:dc2eaca2f13c7bcd8e41e51a372e47825dea9dd3126108760eed7ba883d2945c",
                 "sha256:dc6da84f4fc62cc25463bbb85e77a57b8d5ac6caf9a60702daf2edb601332f15"
             ],
-            "markers": "platform_system != 'Linux'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-collaboration": {
@@ -1643,7 +1643,7 @@
                 "sha256:03404e679dc77314ea94029c8e54dae25424194b5f39751fb6fa0eca4af99fdf",
                 "sha256:d293b191823cf8c5cc17e74279e640312961a9226da97e6258580d1b6085e1e4"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-colorsync": {
@@ -1651,7 +1651,7 @@
                 "sha256:0bafd1bfdf77687910e4a6f01c640ec47def060fb88e3abaddf4cd7e7d469e87",
                 "sha256:1e682586a319f49d3ee3c93e54a527a1ff93de06f653e77c0c4ff4d9671469f9"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-compositorservices": {
@@ -1659,7 +1659,7 @@
                 "sha256:1c1cc5ca97e060afe2125b338651d5143f8f6b40e17748116dedc334449773d0",
                 "sha256:683b765077ce3bf9b680bfce23124ace85208738ff3c14768e1ca80fd78c1565"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-contacts": {
@@ -1675,7 +1675,7 @@
                 "sha256:d0f73ff7f92986b5920155e9cb16bc74cf049e166e6bc2a7df1621135b4e6d79",
                 "sha256:d21bce70f97cb4b5da7cfb35da64897ce69f96ffbecacfe64364ce220b74d075"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-contactsui": {
@@ -1691,7 +1691,7 @@
                 "sha256:81684620b41bedcef5423ea84337acd2e874c7ab7c2328b2f4f8d5df70daaffd",
                 "sha256:92fcf91334dbad85da45d66b12e8ff9105e3ba6a204b07342463318f31758fb9"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coreaudio": {
@@ -1707,7 +1707,7 @@
                 "sha256:d05e5fd58c1e5f48e7767b1f6182cf36ee9bff38568544d51f468b25ad90e334",
                 "sha256:efb79709371f29139f44adc36bd6c32d5a3a0ff3ffd0c5f3f372275cef893b18"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coreaudiokit": {
@@ -1723,7 +1723,7 @@
                 "sha256:f997becd046c41e2da1a4e9f67715a13344f8546364de973dede6bf47a85b798",
                 "sha256:fbc5f8f3b46645b1051658be8b172c85ed700a649ba3c4bcf68a5b8d3c09ecee"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-corebluetooth": {
@@ -1739,7 +1739,7 @@
                 "sha256:c8d126c56b71c25218be186930a1b41739f83e931726a52e3298beeb170c5e5b",
                 "sha256:f11df7052fa2d0524a9dadbc9c578fd3b8f3a350431edfa4ffa9e0a74b6faa32"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coredata": {
@@ -1755,7 +1755,7 @@
                 "sha256:e3f12941b0b83c66c3e7d9845bc14ed8d215c2975f55098deee56e22477b93e5",
                 "sha256:f357447b7955cfe5391dac4fe003b79ded307f4f00712dcfaec3d3ecfca30824"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-corehaptics": {
@@ -1763,7 +1763,7 @@
                 "sha256:73ce1afcb0174add11fd6f05cc67d8a371802ce8e94ba9d4f65c7cee0f392b0f",
                 "sha256:d19505e9e38136f50fc551ad0e1849afd1656dce068c82018ad669d01128f8c9"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-corelocation": {
@@ -1779,7 +1779,7 @@
                 "sha256:cc3f7d0a9dd54b99faf7020205b16576466aff70c7babe2a905b8818a0c1d80d",
                 "sha256:f8571fc9247dfbda6e485e3f68d78f8368b2e3197bc15f8eb6c188bf3d45f618"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coremedia": {
@@ -1795,7 +1795,7 @@
                 "sha256:9f2b30ef288c9f2fa1599a1cc5868f8cd949c7138a7f15244c7a6884afcef273",
                 "sha256:fd0e25bc704dd91882bc29d682880c42f712b39bdfe3d3168780d24a9d9eaf26"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coremediaio": {
@@ -1811,7 +1811,7 @@
                 "sha256:cb6043694fddba0889861e8321cba422fd3d90f0e95ad716826e67246d86bb96",
                 "sha256:edfd070544857b8e1d2ae55ed7c7eac9f513b4cd7c03ee79615c7d524e362d62"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coremidi": {
@@ -1827,7 +1827,7 @@
                 "sha256:d9744001102f935646997136c3d7d0562088bafa1837e5ccc439b5c8ee9e032e",
                 "sha256:f8c42d469332e3e1811f69fb0dfbcc9ff5d98e3ee08348ccbcec90bd1bcd8288"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coreml": {
@@ -1843,7 +1843,7 @@
                 "sha256:d1cda08f258e30f5c92925d377a35bf5cd4a244911a4fb2196505431d2462ed8",
                 "sha256:ef3c2b6a160891b44173235603d10174929656b9c206d6f2f443fe2aa903c2cb"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coremotion": {
@@ -1859,7 +1859,7 @@
                 "sha256:848aa8c0d0af9beb909f28f7aa6555b62646ff34a73873f8820d330c3c3e5578",
                 "sha256:d18a90639934e0d4379cc6e632095cda1287c03054be73d79cb3eb680909445a"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coreservices": {
@@ -1875,7 +1875,7 @@
                 "sha256:cf31f1d6e477414b7c5bd831df5864744a558eec5b055155fe6929ef1070d371",
                 "sha256:d87eb0f15224925d860c8332cf579b998db850cf0d4f7a611872915bf9271bfc"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-corespotlight": {
@@ -1891,7 +1891,7 @@
                 "sha256:d5f9202b197d3863ac163a7b5eb3def8cea1bd58a7b7c930d53824300044be0e",
                 "sha256:e6109b3997a32ba271df61135f931ef2d791c54bdfbdb25c6e05c8ed5f6bf2e5"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-coretext": {
@@ -1907,7 +1907,7 @@
                 "sha256:af740e784d7c592c34025ec7165f4f6c1a69b5a2d9075f06e41e4f77c212aed2",
                 "sha256:d0b3b0467a23dbc2a39d0839e7100cc98b429fb7d52a471bd65477f46bb4c9e5"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-corewlan": {
@@ -1923,7 +1923,7 @@
                 "sha256:e4ac75fcb3a8533c6e65d21871aef8ac52db4e322d038bfc38183667bae6b8ec",
                 "sha256:ea678d0a91bc5db8a3b80cebf016631883e7e8b0b2ac8b9cdddc97adc7031fa5"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-cryptotokenkit": {
@@ -1939,7 +1939,7 @@
                 "sha256:c49396022718616bdbf7939186095db3073ed8559eb84c52c66f21e332191265",
                 "sha256:f5ad2a333ff4ba77d2ba901257836b13c1c93e62342dc092fe57dd67a97ceee7"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-datadetection": {
@@ -1947,7 +1947,7 @@
                 "sha256:b1059f9bcfab5a96606dfdde663f41dd8c23a33f8bc8c00371d68796476981cc",
                 "sha256:c18b746a420e33d13689cbe64635249c492d3b58044089c5c8d6366b7bb46ed4"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-devicecheck": {
@@ -1955,7 +1955,7 @@
                 "sha256:085c91137b1583bcd62787a2788adc7a51b24d8c61fb7848fb607ce3bc49553f",
                 "sha256:f67a745b89cd2f3e307cabee018a509aff0561e3f747eb4dbfe84498f7f2ca90"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-devicediscoveryextension": {
@@ -1963,7 +1963,7 @@
                 "sha256:6e4dcee2810968bf1b076d3718ce037f65d770533534806866ad8391f9806bfb",
                 "sha256:ccec236e790304c0bb880035b7f14738346c90d18cc4cb77b35169aa1035051e"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-dictionaryservices": {
@@ -1971,7 +1971,7 @@
                 "sha256:2b9d3d09fc085d913f670e3069b6a88d35b76a03a5f37ce8636b47382dbb028d",
                 "sha256:631560760d58fe89af8332adee6dcaee35867cf13f4607f7b5c36e85fa4c1db9"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-discrecording": {
@@ -1987,7 +1987,7 @@
                 "sha256:dc5557015d2df515bfc75e96b287d1209b59afa2ce1a4566af32e9b8b49e2318",
                 "sha256:ed929553896338cc0e5109c9b67c121dee2049e62735de94522795708d1b61e6"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-discrecordingui": {
@@ -1995,7 +1995,7 @@
                 "sha256:1cf9e9e028c619f932ecf3ec0efc91227840bf6c6492c788cde91dc5c3744da6",
                 "sha256:a29bf02898481e6ee02a38ae932a35b9c6a4f68fe9c890504db18e94d15cfa45"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-diskarbitration": {
@@ -2003,7 +2003,7 @@
                 "sha256:8fdde0943ca7499a246294d678b4f01c3f7c7569da19b029eeb31e4e9f01519c",
                 "sha256:b79a44c8a7791109371bb6aa78ee970c7cf0ee6a6ecdaf92ae3b9dcc4f57f469"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-dvdplayback": {
@@ -2011,7 +2011,7 @@
                 "sha256:56d737c2a1ffb1076d280b84906adc8091c055fcf6670367a902f38ea4877367",
                 "sha256:cc715bce5edceaec078e3b39141a660cb4ca2fbe0afdf133bd2c531c170e45a6"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-eventkit": {
@@ -2019,7 +2019,7 @@
                 "sha256:2528a61da2fed7d71933d7e5407414176cfcac2e03fdba4633633f0d646c75fa",
                 "sha256:8efb71afaf9a97450ba701a6fee7de79e0cdefe6d71b5f6724e87b2fd68c5bd4"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-exceptionhandling": {
@@ -2027,7 +2027,7 @@
                 "sha256:aef051e1afda09853289f66d4e6c1b58cd924656afc2a1bec05b15e22e20e5f1",
                 "sha256:b1d33ccb5ded605f2c92240c5719b64c45505f4c0dbc42b7d8595223b395540c"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-executionpolicy": {
@@ -2035,7 +2035,7 @@
                 "sha256:493340d7311f6294feb93327c75675fff24859ad9bb3b87c0ce8d339850c4c93",
                 "sha256:898d38b19e805e12da317930474f49a9f944f7e2335a9dc9c1644ecdd079d12e"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-extensionkit": {
@@ -2051,7 +2051,7 @@
                 "sha256:e29f5860aa6acb53582c2742e477922067b959046c1998ed7fd962898fd78855",
                 "sha256:ee7853b036f2a7c52a35ec0d6b155c8c2a36ec6c5bf2e3a35318a8eee66f9564"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-externalaccessory": {
@@ -2067,7 +2067,7 @@
                 "sha256:d2d3a2dba827c5054832142faec0793ea50e3dd869aa33df54c777a9e03557eb",
                 "sha256:f13955be8d9f6f2e5922600d2063f765fb070bb3b4a2f2c0ef8ec21024d39ece"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-fileprovider": {
@@ -2083,7 +2083,7 @@
                 "sha256:fd94e8941de50b6bc94ab8fbbf0f4605eca0602e4bd48088b8d6c1162115b506",
                 "sha256:fe700e447f54a6bca8fdd13a4c21bb93d26665cb4598b958e099d1aca870b109"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-fileproviderui": {
@@ -2091,7 +2091,7 @@
                 "sha256:2ff2f939ece56f06eae58b9494743941e40500b042a0cf3a64dcf78179d3d79a",
                 "sha256:40d02bcb15e324af6c624c85f1d65d83f81f31dd72136b0e5ec87440dc0fba4c"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-findersync": {
@@ -2099,7 +2099,7 @@
                 "sha256:5b91a226b72a4c83a7ab5bf7e59164d59185021a396bd5804712ba8a55949db0",
                 "sha256:be3d41c9b836a53f24473e064ade6bd9ac071cc483377547cb6603e5a0de5d90"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-fsevents": {
@@ -2115,7 +2115,7 @@
                 "sha256:eccc2a9d66f9ba5f4f49f40f18f984759dc406f09ecd77ca3a4070479e01d6d9",
                 "sha256:f78c98f68bc643794668a9484fc348ef3e98df359db7d8726cada35310af93b4"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-fskit": {
@@ -2131,7 +2131,7 @@
                 "sha256:f6f13449364bc465c9cc5d45c1280aeae9fec9f777d962a0604d456aec0bc6ba",
                 "sha256:f8dd8367162fa1048321183725c4117a0aa6bc1a54be9e289d03f64ba77c1916"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-gamecenter": {
@@ -2147,7 +2147,7 @@
                 "sha256:b6dbe68dc2e7b7882ba82c295e913999d441caa9c23c868db3a28b351e20909c",
                 "sha256:e144d257b9461f8195512fb4b1a1cfd4cc0d603583ea039af7127a951ea7ad76"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-gamecontroller": {
@@ -2163,7 +2163,7 @@
                 "sha256:d40667869da0ef5d9905b4b3c365e275f731758bc0b09f10f7dfba579b1ee7d0",
                 "sha256:ef83260973e620207b35bd3a4d68333d76c2e5463f0ca8405efd8327d27f8946"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-gamekit": {
@@ -2179,7 +2179,7 @@
                 "sha256:d29a5ee705be7eb0e0fe46bd319462f8bb2f08c8761d65f0e22957f35b6db72a",
                 "sha256:e5e90dfa0eba5215406710d636c08ee9aa4ba886d9e0bf11849247b161aef1da"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-gameplaykit": {
@@ -2195,7 +2195,7 @@
                 "sha256:e1ef41d991e29358a26c92916bcedf722568e50ee66eab3088d2e88b9d77d9e3",
                 "sha256:f8af54bedd499db1daa54174c0badcb48162601ecb71bfd97c4f7fe77d3ce007"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-gamesave": {
@@ -2203,7 +2203,7 @@
                 "sha256:5d632ea0b62ef55b1b0f62e8ab6b9800bc14ca78f5a1bb629c95b28376b82379",
                 "sha256:d317d37f2716194e61cc91e855d6054c3c2b7ceaa82aaeff9c688d9f2cc43a42"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-healthkit": {
@@ -2219,7 +2219,7 @@
                 "sha256:e4d0da98b552ba33532f37ab718bb3b77e15d3c0c1ab426e6d01522d2d256244",
                 "sha256:f2d2278f3966c7ddf1f828461f11a94373ac3f25a6d052254a2fb0761cf62ea4"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-imagecapturecore": {
@@ -2235,7 +2235,7 @@
                 "sha256:fb11ecc92fc4e1df467d662afa1a26c89c026daa44b270fe324045b9e38d5c6d",
                 "sha256:fc347400caf54f01b512bb21d6e9d693537fe7515a65a0281efa34c09eb9e3d5"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-inputmethodkit": {
@@ -2251,7 +2251,7 @@
                 "sha256:ade69fed2930f32434707a39825665bdedb944e835c030c624da5e3a898e2b75",
                 "sha256:ea2503ebbae052622c2fada50f445766906757b4ddccde3c2e66993703fb0393"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-installerplugins": {
@@ -2259,7 +2259,7 @@
                 "sha256:118ee84e6e7f6f7913ade58818bfd2c12e2078ff7f6090e4941df1e739c8685d",
                 "sha256:aef22bff292d3b8fb9cb655f868d041dcc76d3d6b47d3022557fe3f657c28c69"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-instantmessage": {
@@ -2267,7 +2267,7 @@
                 "sha256:42c7be0357b1d4e808b40c7d212f5d807e1901a87e0cbb6a215bd0232f87374d",
                 "sha256:80d31bca02459c6d2364605b51a8064d0fbe3e7dba085b5b8ac59ee98157710c"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-intents": {
@@ -2283,7 +2283,7 @@
                 "sha256:bba9340e7ec61747a5545d4fe569d77a3c10e870d1ec06a9e17412c29a1fdd07",
                 "sha256:c21cf1db00b8c997d3e6cfde53ec135ddee5b03138cf184deb842dbc925c1286"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-intentsui": {
@@ -2299,7 +2299,7 @@
                 "sha256:ecd53ed0f5f234d690985bee9eba1ee94f34b7d206f2d375fbcf6691fa446e84",
                 "sha256:f91ef9f61f65dcbf08b5277cf947ce390393eaf4829800d6aa5132e49dde6888"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-iobluetooth": {
@@ -2315,7 +2315,7 @@
                 "sha256:eb99c27187c68f984dee4e9ac620f5b210f11f821a2063b2fb9161359a1f1754",
                 "sha256:fed3eb2ce6aec555f1e22d04d06d2212a1d475740eaa2b832244198e09b5ce11"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-iobluetoothui": {
@@ -2323,7 +2323,7 @@
                 "sha256:321160ac3181349054d29f7804b24944549fe442f4d6840f9123bbcd48f62aee",
                 "sha256:53bbfa9451c3c1bb55e91f063bb0539509e1e2b11887736967cc218b93695087"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-iosurface": {
@@ -2331,7 +2331,7 @@
                 "sha256:92cf617b6ad6c216ec5fcdd47584fa0744dc7ff38fee378b2689dfcf46194df1",
                 "sha256:f886630d6f2419fed9f89152b1e738758b735219bd39506bc12c2e1f65456dea"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-ituneslibrary": {
@@ -2339,7 +2339,7 @@
                 "sha256:076712e495e2df43dad14e92167e468c4a46b9d06f1b84b98b2b65ff24285043",
                 "sha256:be3afc865881c762765101be35f7216616c5eb4c76025f590e36fe1cbd2518fb"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-kernelmanagement": {
@@ -2347,7 +2347,7 @@
                 "sha256:49591c0603057d2ea2596b9b414c38fe521f506e1320753bb49ccb2262b97bdc",
                 "sha256:9facdb93e49717a9e5999ab7b20cd1643ce00119f7b91c4933fec0fe3638edd1"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-latentsemanticmapping": {
@@ -2355,7 +2355,7 @@
                 "sha256:7d7669ae5c6ca53e6aa7bd70ddfed23914a29169c3f57b94a40a0397abaa66e2",
                 "sha256:96e6b523c7fe7944cee30b723f035f9082500c3bf8ba8237013c8e37b112c493"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-launchservices": {
@@ -2363,7 +2363,7 @@
                 "sha256:1d288543c1c4e53e6e24314987e18904ada821d6bef5437e6bd9e8e6873fe4a6",
                 "sha256:81ca37abab29e96ebd69e1d97d63789d729510a6fe1f6cd4041e5b24f340f115"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-libdispatch": {
@@ -2379,7 +2379,7 @@
                 "sha256:9c0ebf99520083bf17c007a544c100056a0d4ae5c346fb89e1bdfe6d041f16f2",
                 "sha256:a47e8c53511eaf739f3972c48e0813bf8fd10dc88dc5543afceaec6554f5c4c2"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-libxpc": {
@@ -2395,7 +2395,7 @@
                 "sha256:905964e12dd9180e70bc88bb04cdc02e4920a48a045e62ebb47f207ab3085376",
                 "sha256:dad8ca82fe4162e85c9a6057382eaa6adc6b3aa22011e1e454d6eafb997dfc02"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-linkpresentation": {
@@ -2403,7 +2403,7 @@
                 "sha256:2299fc001002ecf501249a0a61bda35d50aae5057c9f2aca36274261add4fa4d",
                 "sha256:96f30800eef18543a4c75fff6b1a7cce7fcd649564784cc523341870908382c9"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-localauthentication": {
@@ -2419,7 +2419,7 @@
                 "sha256:b89ad8bb9d9ea053902055e656ed694d625a0ea8b950b176b01a50ec82b73343",
                 "sha256:be6c72699cc3c3a970483f1cf7fce3b40663253202ac023b8439d34f93ea224a"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-localauthenticationembeddedui": {
@@ -2427,7 +2427,7 @@
                 "sha256:a77da7a7471ee9277d4ae7269fb3d0bc508c5908e93ccf8e4cdf723bde21d1af",
                 "sha256:f97666380541a40e593c7ed2214c11da30effcc909a4b13595220050a9888577"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-mailkit": {
@@ -2435,7 +2435,7 @@
                 "sha256:8a8e84f6828f13c7c67c6f8f299889127df05d25ffe52b6c942d69a329681c75",
                 "sha256:e453e42d8ad97f58593296a85c71ec8c71378f8d5d79ac4548845f5dcba725b9"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-mapkit": {
@@ -2451,7 +2451,7 @@
                 "sha256:f423892cba28bef2becdc5cef9011e358f223b66478aecc8ae5e3083c8e1700f",
                 "sha256:f9ef9633e84afa849bcb923ef0ee9cc78106d210e45637f58941dca4408681f9"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-mediaaccessibility": {
@@ -2459,7 +2459,7 @@
                 "sha256:6d816a09d874519bea85035db7c62c0566063a5be63e3ab25b2059205576ade8",
                 "sha256:8543ff6664ce35815083ab10a6f4b1b9241594d60c27132e08385b0316d55013"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-mediaextension": {
@@ -2475,7 +2475,7 @@
                 "sha256:e8d383f458e4812993a0b4132f128a588ea34d9be51644261ddd04f90cf530ed",
                 "sha256:efac3f8d4f36f21cf4559bde2a58ee72d8c9d955028b59435852209d4c06eb9b"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-medialibrary": {
@@ -2483,7 +2483,7 @@
                 "sha256:18fb56e727399f11ea588d2c512b7585147386892d72c65eb9c4b6387abd6643",
                 "sha256:4d69f910f17bbccb4f815b171270b9279f9d7526b318cf45a7b2ddc84fc38d22"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-mediaplayer": {
@@ -2491,7 +2491,7 @@
                 "sha256:6acead24bb8f12e202976142db656c553b4a25ca2348165c35ce02862a93757a",
                 "sha256:d37f5ede14fe70c547eac4abb49c9c96086f99acf8236985acadfcb07c851a5b"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-mediatoolbox": {
@@ -2507,7 +2507,7 @@
                 "sha256:f3b71021c5416c58d756441eeb52f5153ae696fe7ff50b1e470934ff947c1a05",
                 "sha256:f8757deb15870b7543e2880aa4e7bd248fbc92f6a55763a99fda3703b1b1327d"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-metal": {
@@ -2523,7 +2523,7 @@
                 "sha256:eb247c22391706162bcc14e6fd52101e632a51f3c0aeccb59cea549c019303ce",
                 "sha256:f39a87b50408afbfc8a78be0c0d164016f114c2f807eb35506051660b386931f"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-metalfx": {
@@ -2539,7 +2539,7 @@
                 "sha256:f2f7f4c01571031e289d3ad1d9c5b5eb5cebfd7909cb4cc17fc39b696b97fa39",
                 "sha256:fb1bbb52c1e1f771c7169bdec7639f75c034ee652362b9e8c969ba092d1c31a7"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-metalkit": {
@@ -2555,7 +2555,7 @@
                 "sha256:f2f8e02f4ddeb1d49a5b3def09eddcb8a718289b6ed635fa5f1807165969e798",
                 "sha256:fd09232de0cdca092a79efa4e73ea12357b1db862527c9ce8172d0c2b688c5c7"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-metalperformanceshaders": {
@@ -2571,7 +2571,7 @@
                 "sha256:c1b094b81d0ed3f72b9345e7e4fbc47604934325d3695b4b8f2457701cf90fad",
                 "sha256:db8048e5d7cb8a94b352f3902e330cf0f4de3c103ea07c261bcb495ee2b4ae7d"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-metalperformanceshadersgraph": {
@@ -2579,7 +2579,7 @@
                 "sha256:656e70c86645814ef1d02bac74933eebc5ff6427100bee4a3bbffde921020ab6",
                 "sha256:9ac2270c573e9399c02196ea1725bd3c7ed3699d71ee70286b1f78beb8afaf5e"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-metrickit": {
@@ -2595,7 +2595,7 @@
                 "sha256:e0cb7e940c41823e3df1211dc7f81531e98fc20d15639436e2d09c0c75c4451c",
                 "sha256:ee7253c6451b99f43588be83460bdce90c1c2f94e10fe6cef294d0d44af771a7"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-mlcompute": {
@@ -2603,7 +2603,7 @@
                 "sha256:4ee00b70d549619d63961864d9c2dd93b6db18d1c920242ae961517be7074f84",
                 "sha256:71517c5afdba1213aa4a832fcf3bc1cbe0efac7f4a42ea10cca33bbd4ad1db45"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-modelio": {
@@ -2619,7 +2619,7 @@
                 "sha256:c3d780628dc0ec585ecf845a8271b0843c619d50b6dae8335cdeb4c0a4054daa",
                 "sha256:d3706f803dc325c38536fb43fbd4174e958a95f92312a684ae152186661dff2b"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-multipeerconnectivity": {
@@ -2635,7 +2635,7 @@
                 "sha256:e566a2dd4ac9b95cc8b4739092501413a1d697a1c34126dce489cf55c0c71a53",
                 "sha256:f22051fcccbbd16b9a1d4e2f161dc06304f13444ee65035e62ca6ed58a5150b1"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-naturallanguage": {
@@ -2643,7 +2643,7 @@
                 "sha256:5eed3750f7cbd6a9584f2b9942c4b26b7134ed15dc044815ac79841403048be9",
                 "sha256:fa2d9c7040dcbbe4c7bc83ddfb9e3da20edb49824de8c78d3574aec7065c4043"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-netfs": {
@@ -2651,7 +2651,7 @@
                 "sha256:04f8f1743f98af10d005f42ec30b26f147d3ee0365b1ff3df2babaf456c75e07",
                 "sha256:312b3a6ebcba6b3a03bdc7412560d8ddb5ac336c37a1205e32c6b58d831191f2"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-network": {
@@ -2667,7 +2667,7 @@
                 "sha256:a9484c5acd6507a7924307239de798aa1d56d35abb5d08664e9767411f40f9c0",
                 "sha256:ff15672b23decfd9ec9a0051ccd15f4abf098020c4700ff8d2466e597e747eb1"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-networkextension": {
@@ -2683,7 +2683,7 @@
                 "sha256:e7c43d18132a7140bd4cd8ff81977a3844579020dd22604f06684d0aad667c45",
                 "sha256:fb4c79aae8bd30099a2373d379a7d3cbfc6c210fbcdcb766c58d209dfe710062"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-notificationcenter": {
@@ -2699,7 +2699,7 @@
                 "sha256:c61e2dd16fe34410d972c57e62c6c4949f86e97b12fd1f1079b75ba409df7837",
                 "sha256:f91d2354beb4c928f4feda65bc2d73166aff1865a5bdccab2719744398c8d2cc"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-opendirectory": {
@@ -2707,7 +2707,7 @@
                 "sha256:1b6dc2eea7857f05063f22e746ae66e8a2a135e41c62b7f3ca7c91f8a5ec5de0",
                 "sha256:2604cd01e236a1237ee6e52c689e60fb380807c5bda6981dab37dd14d89dd254"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-osakit": {
@@ -2715,7 +2715,7 @@
                 "sha256:00c1996bde228324665795f9fe9e129eccfbeab1c10d8ba34e1b1adae379b482",
                 "sha256:6656e6dab5eb2b571cdcd0d68c0084fa2ac5f85f2f06423e132b410c44e87187"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-oslog": {
@@ -2731,7 +2731,7 @@
                 "sha256:d16161bf907569eb02be4e0e4b515cd1ec52da4aaac7e4bf825d2853fd2fc2de",
                 "sha256:f54740a9a37deaa197b0af793a7fa0ecb909131199278ea00e833b2350516f06"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-passkit": {
@@ -2747,7 +2747,7 @@
                 "sha256:872c816839d89097fcdbf60c5a22ed277277d299d0ebc4db3b598702c750f22a",
                 "sha256:e51509baa9f4883b1583c410dfcf8b68372a4457e13cd57f4c9490c6e9895e06"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-pencilkit": {
@@ -2755,7 +2755,7 @@
                 "sha256:2545561beece43d63c745b6bbc4503cc7c55ad0792d4206916c75da26a4dca49",
                 "sha256:d8214b76615d7f0fb6295ee21c679edeb889a03f355c1774f792dfb93bd313a5"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-phase": {
@@ -2763,7 +2763,7 @@
                 "sha256:31392185ec0d3b0c5974c9b71f0c540843b1bdd884819484e627c6c0d592388a",
                 "sha256:426b407f9ff0fe2b55128e3c0e9a949db4b0a909ca095d65303c247865961dc2"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-photos": {
@@ -2779,7 +2779,7 @@
                 "sha256:c49b8515e34b685c18862b68d04978378cfe29dadcc72d2d9af92054758ee629",
                 "sha256:e405e612c48563609fe32da9aec9286ed8cab10e226dc58ae6910e141fc46f44"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-photosui": {
@@ -2795,7 +2795,7 @@
                 "sha256:e3d2b4446a9b818abddad6d201212ee8fbaf699632e857bc255dd98143cbafb4",
                 "sha256:e9f68423c00f418c1d0a27ca6c86f81da509d25490efd17f274d2d37ee569999"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-preferencepanes": {
@@ -2803,7 +2803,7 @@
                 "sha256:026ff87afba2d381e3d9dadc58957580558e1a705291da6794107220a3cd8102",
                 "sha256:1b8e839b364b792441201c1112e17cd6d42f493987169da04ec65eda365d2ede"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-pushkit": {
@@ -2819,7 +2819,7 @@
                 "sha256:9dd060c626f17365803f5dbffe0ceb3062e3710886ee9a7c887f3f70b3285802",
                 "sha256:c3feb1c38ccde8e24548e5a5032d5adc2cb354f1aaa0c7ebed6babd2fdb86cda"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-quartz": {
@@ -2835,7 +2835,7 @@
                 "sha256:ceb56939c337b36d9d81185ade31f77dc52c85cf79bb16e53e9b32f54b6bb3f5",
                 "sha256:de9c8cca7e95290c8d540466af11c7cdfe3a5458e6f56c34006d5b45243f9ed9"
             ],
-            "markers": "platform_system != 'Linux'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-quicklookthumbnailing": {
@@ -2843,7 +2843,7 @@
                 "sha256:1b348b674569b8df40ef6acebbcdc4e7e8b347b0a437c824b35a6d6f91acc398",
                 "sha256:747a99db601e0a7ca48fbd32909c803f47211adc194a4c41a5b5430738b3464c"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-replaykit": {
@@ -2859,7 +2859,7 @@
                 "sha256:daaca45e9b94b2cdf6f76ecfdcccb51faf5342cbf8d7a4741ef361406376740e",
                 "sha256:efaa9d6285774d69469b00fac76bed50cd3e300d46388329a67fffb5bbc745d8"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-safariservices": {
@@ -2875,7 +2875,7 @@
                 "sha256:d852eaa503a9031f5232418b38dc439013eeccd77131e3fddccf9e580be5214a",
                 "sha256:ed805cebe27ee36efa02ea0b6b348d13f1357109bea09ad57e8e5b286e739280"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-safetykit": {
@@ -2891,7 +2891,7 @@
                 "sha256:eb272c4f8304fc2c8db9652020b01f2a6026c91fca59072189264d03894293fb",
                 "sha256:f5e757c9565d104c442b81babcbc4998daf0326b14d928dfae42c5459580a309"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-scenekit": {
@@ -2907,7 +2907,7 @@
                 "sha256:cc7769ebcfa1cc17f3046220d2a06927d2429a5f40ccf66bcdfe2c23868ca8ed",
                 "sha256:fd6c2b0b56a2487c7ea8f5e18cedeeef04e3c28b8fdd54917e8b8df45306d0c6"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-screencapturekit": {
@@ -2923,7 +2923,7 @@
                 "sha256:e419cbf9c2f9cbd172d1c6e5bc69a44e0a7d9e45cf43058d48eeda4f785ce860",
                 "sha256:fd1cc27066b907726389bde47aca1afd27c2af13c4eb88b40f3b813082987e01"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-screensaver": {
@@ -2939,7 +2939,7 @@
                 "sha256:be8df2ca5d4765d2d64f0c130f0a1d9a748c6d965e8a0b45fed2ff12681682aa",
                 "sha256:e0311a13bc1408c1fc9d62e2f905aa5809ecbdee67fa8e5381c86364e012163f"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-screentime": {
@@ -2947,7 +2947,7 @@
                 "sha256:b252234f5f1e01d6f3dbfde44a6019169100c2337f24b65694ffdd6ddfaa3c4d",
                 "sha256:c97e700995c03183a1a73f2eaaf90f5ed66d68e8c2e40ff7ed2fddbc77ff7b2f"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-scriptingbridge": {
@@ -2963,7 +2963,7 @@
                 "sha256:cbdd7fa533c9046b0040d2c56a7e9f05fdfb0713365a7157e1e5b5d2bf201eb8",
                 "sha256:fbf6c59d27ee1b03ae14cdc3fb7330c2d5cc1a2cebbc438744550131b3e6f168"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-searchkit": {
@@ -2971,7 +2971,7 @@
                 "sha256:1fe1ceb2db1d8c86f75484dd9f88ac39dd3d2cffba250498ba0e2312435214cf",
                 "sha256:936e41880d48da6742128bc900de37d14771e718087719589d589e858aa2ea60"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-security": {
@@ -2987,7 +2987,7 @@
                 "sha256:d7831b1537f4346892e7f2f0e2b09d79bee98919b0767f4061278d0e03028f2d",
                 "sha256:fa192e9df479375e6242adcadb9a44f32907dd7fe1207608710cd3af65fe3c84"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-securityfoundation": {
@@ -2995,7 +2995,7 @@
                 "sha256:4f3f52573805977e94f3b50af27cacbe2abdd05fd96fac4be746685e523e1e85",
                 "sha256:b10f7c6f2fea27f105e69e0ef455df10e911748a4a414aff74f9dede48dd2cd3"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-securityinterface": {
@@ -3011,7 +3011,7 @@
                 "sha256:db17172727a7799a38076b759c824b81ab5c2c4f49b8b71f4d6bba25f9697a7c",
                 "sha256:e15228ac342d553464f990435e81ee67c4f2fa5cca99388933cee72fd8764193"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-securityui": {
@@ -3019,7 +3019,7 @@
                 "sha256:87b07746fb9ca7634c3c74f89bf6ab90dffbfe0c0ffb89551aefce0e35353a50",
                 "sha256:e1e0d9ff4671aff464b7af48b1e10bf9aeeffc1ee40c91fd1ac301ab19d87e45"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-sensitivecontentanalysis": {
@@ -3027,7 +3027,7 @@
                 "sha256:918c362c11673308191a9d94c2c59a368d4cc39e354694e1da5c99b3609cb47c",
                 "sha256:e958e4333b72e7bd93a32be6c3118c50be8e98de6ca7a41bbf076a712ab2ca21"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-servicemanagement": {
@@ -3035,7 +3035,7 @@
                 "sha256:8c84c82a09bf00046ef2d43f910204cd362fd1eceb706176c30d079ee208f2ed",
                 "sha256:99ceee681fea1e57246d33acbe199100f2e35a09cac97ae1c271e34073c28763"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-sharedwithyou": {
@@ -3051,7 +3051,7 @@
                 "sha256:b1908b9822244ea31d4d546118389c69687982e5fa67bc72cbf1a9e09f1f84b3",
                 "sha256:f56137c9a1b53a69b76061c7cfe0f8739b5c42140891a326fd68b7d1e2be702a"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-sharedwithyoucore": {
@@ -3067,7 +3067,7 @@
                 "sha256:f5544a515a902b796a22272fabe83a3fd39256de9cf243d90cfb7c02ec9e3f7d",
                 "sha256:f991c7b52cdc831244ab49f76ec20fd331a561f364aa33ceadebc684e7fac7da"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-shazamkit": {
@@ -3083,7 +3083,7 @@
                 "sha256:ee31a56ae4d15401e10f79fa07f7f79c5cc747afa9a5ce581654f82ee5b3c6d9",
                 "sha256:ef75dc67147b9bb6f783ca34fa2e15c9fee3cedbf27175f84f8355332c747fcf"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-social": {
@@ -3091,7 +3091,7 @@
                 "sha256:3d76bce48e3eced0683096a8f8d32ba233c44db8cb9469f881a783932f29c2f5",
                 "sha256:c2877c7ddbed8f3ea17065687725df57243d25b64beb3b885e8a18482c24bf7f"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-soundanalysis": {
@@ -3099,7 +3099,7 @@
                 "sha256:4385f492320a304bf64ca772e4a5b29d796f0fc160ff764ed060ac1456aa3cdc",
                 "sha256:d17bdea63c2b910c2046ba43383b29b82d594a37feee4431d45b55adc08a3882"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-speech": {
@@ -3115,7 +3115,7 @@
                 "sha256:e646d8c781baf531e5943c2376c92ffeeb0a8bdf4f48d93f88e59b5033d12b55",
                 "sha256:f425a3a11c282dfbcb0b3f3e218f5f155232c94406b31ec395c40aa9e309a0e0"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-spritekit": {
@@ -3131,7 +3131,7 @@
                 "sha256:a72410b7e9e4e1363f69dbcf1f2a0055275c7a3d205f707d5d29fa2406f39211",
                 "sha256:ee809a16cb549197f124240d1387e0da8ad9dee9bd853ab302fd8538de2cc381"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-storekit": {
@@ -3147,7 +3147,7 @@
                 "sha256:b90d2187290f6bb4b943a313b7c2adfd4865c11c8173781e6d48c01154b6d9d1",
                 "sha256:ff6b0cd7ed194b248f1d4db50073b85fb6c67574183ae31c9261d94218c8881b"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-symbols": {
@@ -3155,7 +3155,7 @@
                 "sha256:95199cb08207680ee36bcfdc4cab5d4c5eaa0ae81e01b1a752066effa6c9b039",
                 "sha256:c15d32ae7c94e0e95fd83bc2099437a70671b79d0f438a1b0cd1f3eb2cc6f365"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-syncservices": {
@@ -3171,7 +3171,7 @@
                 "sha256:c4e2f5e4d2c72c6f4247bd8497a450a09652f84f6990a3ef089345f9a2475134",
                 "sha256:dc0a3bfc317930edde03f76fd776d9aba548a911bd870b8a0b272091d2d3e852"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-systemconfiguration": {
@@ -3187,7 +3187,7 @@
                 "sha256:df9a278948483d40d56a780a99e692b9bdeb2be6279f8f59c96fbd31f620eb72",
                 "sha256:e3aa4706f81d8334c717d44567314ebbdf03e62259ede99a89f4703789c212a2"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-systemextensions": {
@@ -3203,7 +3203,7 @@
                 "sha256:ded8228991aedcc2b3f9d8c7a0af5f9e9cd9125af562d68817e6ce0bf8a2a713",
                 "sha256:dfb2884c0fe97893c4b226dd7d95bdec43f7f8a574347a1e80280bbf87230736"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-threadnetwork": {
@@ -3211,7 +3211,7 @@
                 "sha256:75afa29eb2884cb9c5ddf5bbc81fed7f45f168422ae897c1a791374152c9ffd0",
                 "sha256:98397cf45354750c4b5a1237f6961c616d12f3ad0a570b3808a03e5d3373f64a"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-uniformtypeidentifiers": {
@@ -3219,7 +3219,7 @@
                 "sha256:1fb89d13aa3c2df8e6d6536f6df3493fe5a6caefd2a5adebf17c5af3b29ed4a2",
                 "sha256:ea08413ad895a7dfea13670e26548bcf5b00154084cdfb5d8f96603320e77cf3"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-usernotifications": {
@@ -3235,7 +3235,7 @@
                 "sha256:e872d65dc71bc297401819106b5e5c4b758aa38247d74284bce20e63a2bdbfa1",
                 "sha256:fc70d0f149716b8488934921a28e96716d2db7eeac4bcb1043b970c52d551613"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-usernotificationsui": {
@@ -3243,7 +3243,7 @@
                 "sha256:25464587228e128758a1ea9d8b0abdb872d2a957d1c554d791796a39ddc0e4ce",
                 "sha256:ea6aecea828e088416aa6d14055c023cac6aa03ea0cdded8baba679ce5414cc8"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-videosubscriberaccount": {
@@ -3251,7 +3251,7 @@
                 "sha256:7af53b410d3943be09d8601bd8d50fd0e193e4e5577fdaa2f801d7f9dbc0454d",
                 "sha256:ac43567833a4aa21fec81d39449d080b2cd58d6b02de76b57004067bdf37ba76"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-videotoolbox": {
@@ -3267,7 +3267,7 @@
                 "sha256:eed49d96127b0a52afe88a78ee3ea28cbc39c8d274cab1c921cc64a46201b0d6",
                 "sha256:efead1dc80cfd7612b952e831bb1e4b3ce9b13e6e4848ee82c28fcd5eaf718d3"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-virtualization": {
@@ -3283,7 +3283,7 @@
                 "sha256:ee6423823b4b851d76567e44c649493eff6cda7ada94a86942a4c706f3e22f36",
                 "sha256:f3baa3115c38b44d12fb34ba3cf9c54e247385cb9f7e59db169bcfc970999848"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-vision": {
@@ -3299,7 +3299,7 @@
                 "sha256:e288cb41349d6e84cfac0822a0c1fb476bf5fa094913b19e8c2899e90a1a9e8f",
                 "sha256:fa2e56d891eab12a0ddac2373c69957c108f70dea56f5a9a6081a3c2f905c98b"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyobjc-framework-webkit": {
@@ -3315,7 +3315,7 @@
                 "sha256:af5c4ccdf03845adac082823a3b4341b5b2fe62d2d664550afa705b5286a06fc",
                 "sha256:f46adcc6227873f2b14d74b2e789c937f227722274ab59b9fa3c04c6ecb46dd5"
             ],
-            "markers": "python_version >= '3.10'",
+            "markers": "sys_platform == 'darwin'",
             "version": "==12.2.1"
         },
         "pyside6": {
@@ -3365,6 +3365,7 @@
                 "sha256:3cbbf8afd390da9ea43fc97d4a3a42c536aaf08d244a722b114eff0054b7ff0c",
                 "sha256:512babc82282f893bc5edb5374275f9585785a0c65a20ed00d73c008dedebc5c"
             ],
+            "index": "pypi",
             "version": "==0.8.2"
         },
         "pystray": {

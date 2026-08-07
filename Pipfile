@@ -21,6 +21,7 @@ pystray = {version = "==0.19.5", markers = "platform_system != 'Linux'"}
 pillow = "==12.3.0"
 pyside6 = "==6.11.1"
 pyside6-fluent-widgets = "==1.11.2"
+pysidesix-frameless-window = "==0.8.2"
 
 [packages]
 requests = "==2.34.2"
