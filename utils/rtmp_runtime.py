@@ -8,6 +8,22 @@ from collections.abc import Callable
 from functools import lru_cache
 
 
+def find_homebrew_executable() -> str | None:
+    candidates = [
+        shutil.which("brew"),
+        "/opt/homebrew/bin/brew",
+        "/usr/local/bin/brew",
+    ]
+    return next(
+        (
+            path
+            for path in candidates
+            if path and os.path.isfile(path) and os.access(path, os.X_OK)
+        ),
+        None,
+    )
+
+
 def find_nginx_executable() -> str | None:
     configured = os.getenv("IPTV_API_NGINX_PATH", "").strip()
     candidates = [
@@ -89,7 +105,7 @@ def _run_install_command(
 def install_rtmp_runtime(on_output: Callable[[str], None] | None = None) -> dict:
     if sys.platform != "darwin":
         return rtmp_runtime_status()
-    brew = shutil.which("brew")
+    brew = find_homebrew_executable()
     if not brew:
         return {"available": False, "error_code": "homebrew_missing", "output": ""}
     env = {**os.environ, "HOMEBREW_NO_AUTO_UPDATE": "1"}
