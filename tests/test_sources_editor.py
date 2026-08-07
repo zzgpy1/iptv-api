@@ -283,6 +283,48 @@ class SourceEditorTests(unittest.TestCase):
         with open(path, encoding="utf-8") as file:
             self.assertNotIn("Imported", file.read())
 
+    def test_other_source_tabs_import_selected_records_without_writing_files(self):
+        fixtures = {
+            "template": ("template.txt", "Sports,#genre#\nSports TV\n", {"group": "Sports", "name": "Sports TV"}),
+            "subscribe": ("subscribe.txt", "[WHITELIST]\nhttps://example.com/list proxy=on\n", {"whitelist": True, "url": "https://example.com/list", "options": "proxy=on"}),
+            "epg": ("epg.txt", "https://example.com/epg.xml offset=8\n", {"url": "https://example.com/epg.xml", "options": "offset=8"}),
+            "whitelist": ("whitelist.txt", "[KEYWORDS]\nCCTV,CCTV-1\n", {"rule_type": "keyword", "channel": "CCTV", "value": "CCTV-1"}),
+            "blacklist": ("blacklist.txt", "广告\n", {"keyword": "广告"}),
+            "alias": ("alias.txt", "CCTV-1,央视一套\n", {"canonical": "CCTV-1", "aliases": ["央视一套"]}),
+        }
+
+        class AcceptedImportDialog:
+            def __init__(self, title, records, columns, parent):
+                self.records = records
+
+            def exec(self):
+                return 1
+
+            def selected_records(self):
+                return self.records
+
+        for kind, (name, imported_content, expected) in fixtures.items():
+            with self.subTest(kind=kind):
+                path = self._write(f"existing-{name}", "")
+                imported_path = self._write(f"import-{name}", imported_content)
+                editor = self._editor(kind, path)
+                with patch(
+                    "desktop_ui.pages.sources.QFileDialog.getOpenFileNames",
+                    return_value=([imported_path], ""),
+                ), patch(
+                    "desktop_ui.pages.sources.SourceImportDialog",
+                    AcceptedImportDialog,
+                ):
+                    editor.import_files()
+
+                self.assertFalse(editor.import_button.isHidden())
+                self.assertIn(expected, [
+                    {key: value for key, value in row.items() if key != "_checked"}
+                    for row in editor.rows
+                ])
+                with open(path, encoding="utf-8") as file:
+                    self.assertEqual(file.read(), "")
+
 
 if __name__ == "__main__":
     unittest.main()

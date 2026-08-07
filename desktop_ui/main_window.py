@@ -19,7 +19,7 @@ from desktop_ui.pages.settings import SettingsPage
 from desktop_ui.pages.sources import SourcesPage
 from desktop_ui.pages.tasks import TasksPage
 from desktop_ui.models import ChannelLogoLoader
-from desktop_ui.widgets import NavigationStatusIndicator
+from desktop_ui.widgets import NavigationStatusIndicator, apply_dialog_theme, localize_dialog_buttons
 from desktop_ui.platform_integration import set_macos_activation_policy, suspend_macos_window_flush
 import utils.constants as constants
 from utils.config import config, resource_path
@@ -81,8 +81,8 @@ class MainWindow(FluentWindow):
         self.about = AboutPage(self)
         self.dashboard_item = self.addSubInterface(self.dashboard, FluentIcon.HOME, t("desktop.dashboard"))
         self.channels_item = self.addSubInterface(self.channels, FluentIcon.LIBRARY, t("desktop.channel_center"))
-        self.rtmp_item = self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.play_streaming"))
         self.sources_item = self.addSubInterface(self.sources, FluentIcon.FOLDER, t("desktop.sources"))
+        self.rtmp_item = self.addSubInterface(self.rtmp, FluentIcon.IOT, t("desktop.play_streaming"))
         self.logs_item = self.addSubInterface(self.logs, FluentIcon.COMMAND_PROMPT, t("desktop.logs"))
         self.tasks_item = self.addSubInterface(self.tasks, FluentIcon.HISTORY, t("desktop.task_history"))
         self.settings_item = self.addSubInterface(self.settings, FluentIcon.SETTING, t("desktop.settings"), NavigationItemPosition.BOTTOM)
@@ -90,8 +90,8 @@ class MainWindow(FluentWindow):
         self._navigation_items = {
             "dashboard": (self.dashboard_item, "desktop.dashboard", self.dashboard),
             "channels": (self.channels_item, "desktop.channel_center", self.channels),
-            "rtmp": (self.rtmp_item, "desktop.play_streaming", self.rtmp),
             "sources": (self.sources_item, "desktop.sources", self.sources),
+            "rtmp": (self.rtmp_item, "desktop.play_streaming", self.rtmp),
             "logs": (self.logs_item, "desktop.logs", self.logs),
             "tasks": (self.tasks_item, "desktop.task_history", self.tasks),
             "settings": (self.settings_item, "desktop.settings", self.settings),
@@ -342,8 +342,8 @@ class MainWindow(FluentWindow):
         navigation_items = (
             (self.dashboard_item, "desktop.dashboard"),
             (self.channels_item, "desktop.channel_center"),
-            (self.rtmp_item, "desktop.play_streaming"),
             (self.sources_item, "desktop.sources"),
+            (self.rtmp_item, "desktop.play_streaming"),
             (self.logs_item, "desktop.logs"),
             (self.tasks_item, "desktop.task_history"),
             (self.settings_item, "desktop.settings"),
@@ -355,8 +355,8 @@ class MainWindow(FluentWindow):
         for page in (
             self.dashboard,
             self.channels,
-            self.rtmp,
             self.sources,
+            self.rtmp,
             self.logs,
             self.tasks,
             self.settings,
@@ -843,6 +843,7 @@ class MainWindow(FluentWindow):
 
     def _install_rtmp_from_ui(self, start_service=False):
         dialog = QDialog(self)
+        apply_dialog_theme(dialog)
         dialog.setWindowTitle(t("name.error"))
         dialog.setWindowIcon(self.windowIcon())
         layout = QVBoxLayout(dialog)
@@ -856,6 +857,7 @@ class MainWindow(FluentWindow):
             QDialogButtonBox.StandardButton.Yes | QDialogButtonBox.StandardButton.No,
             parent=dialog,
         )
+        localize_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(logo)

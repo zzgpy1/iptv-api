@@ -8,8 +8,9 @@ from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QFil
 from qfluentwidgets import BodyLabel, CardWidget, ComboBox, FlowLayout, FluentIcon, InfoBar, InfoBarPosition, PushButton, SegmentedWidget, StrongBodyLabel, ToolButton, TreeWidget, isDarkTheme, qconfig
 
 import utils.constants as constants
-from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, AppSearchLineEdit, ContinuousTreeItemDelegate, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns, warning_message_box
+from desktop_ui.widgets import AccentPushButton, AppLineEdit, AppPlainTextEdit, AppSearchLineEdit, ContinuousTreeItemDelegate, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, apply_dialog_theme, configure_table_columns, localize_dialog_buttons, warning_message_box
 from desktop_ui.dialogs.local_source_import import LocalSourceImportDialog
+from desktop_ui.dialogs.source_import import SourceImportDialog
 from utils.config import config, resource_path
 from utils.i18n import t
 from utils.local_source_importer import merge_records, parse_local_source_file
@@ -61,6 +62,7 @@ class AliasTagsEditor(QWidget):
 
     def edit(self):
         dialog = QDialog(self)
+        apply_dialog_theme(dialog)
         dialog.setWindowTitle(t("desktop.edit_aliases"))
         dialog.resize(480, 360)
         layout = QVBoxLayout(dialog)
@@ -68,8 +70,7 @@ class AliasTagsEditor(QWidget):
         editor = AppPlainTextEdit(dialog)
         editor.setPlainText("\n".join(self.aliases))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Save, parent=dialog)
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
-        buttons.button(QDialogButtonBox.StandardButton.Save).setText(t("desktop.save"))
+        localize_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(hint)
@@ -127,7 +128,6 @@ class SourceEditor(QWidget):
         self.move_button = PushButton(FluentIcon.MOVE, t("desktop.move_to_category"), self)
         self.move_button.setVisible(self.kind == "template")
         self.import_button = AccentPushButton(FluentIcon.FOLDER, t("desktop.import_files"), self)
-        self.import_button.setVisible(self.kind == "local")
         self.add_button = AccentPushButton(FluentIcon.ADD, t("desktop.add_item"), self)
         self.delete_button = DangerPushButton(FluentIcon.DELETE, t("desktop.delete_item"), self)
         self.mode_button = ToolButton(FluentIcon.PENCIL_INK, self)
@@ -371,6 +371,7 @@ class SourceEditor(QWidget):
 
     def _category_name_dialog(self, title, initial=""):
         dialog = QDialog(self)
+        apply_dialog_theme(dialog)
         dialog.setWindowTitle(title)
         form = QFormLayout(dialog)
         name = AppLineEdit(dialog)
@@ -381,8 +382,7 @@ class SourceEditor(QWidget):
             | QDialogButtonBox.StandardButton.Cancel,
             dialog,
         )
-        buttons.button(QDialogButtonBox.StandardButton.Save).setText(t("desktop.save"))
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
+        localize_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         form.addRow(t("desktop.category_name"), name)
@@ -393,6 +393,7 @@ class SourceEditor(QWidget):
 
     def _category_target_dialog(self, title, groups):
         dialog = QDialog(self)
+        apply_dialog_theme(dialog)
         dialog.setWindowTitle(title)
         form = QFormLayout(dialog)
         target = ComboBox(dialog)
@@ -403,8 +404,7 @@ class SourceEditor(QWidget):
             | QDialogButtonBox.StandardButton.Cancel,
             dialog,
         )
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("desktop.confirm"))
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
+        localize_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         form.addRow(t("desktop.target_category"), target)
@@ -1015,6 +1015,7 @@ class SourceEditor(QWidget):
 
     def import_files(self):
         if self.kind != "local":
+            self._import_source_files()
             return
         paths, _ = QFileDialog.getOpenFileNames(
             self,
@@ -1058,6 +1059,208 @@ class SourceEditor(QWidget):
             parent=self,
             position=InfoBarPosition.TOP,
         )
+
+    def _import_source_files(self):
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            t("desktop.import_sources").format(source=self._source_label()),
+            "",
+            t("desktop.import_source_file_filter"),
+        )
+        if not paths:
+            return
+
+        records = []
+        for path in paths:
+            records.extend(self._parse_import_file(path))
+        self._mark_import_duplicates(records)
+
+        dialog = SourceImportDialog(
+            t("desktop.import_sources").format(source=self._source_label()),
+            records,
+            self._import_columns(),
+            self,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        selected = dialog.selected_records()
+        if not selected:
+            InfoBar.warning(
+                t("desktop.import_sources").format(source=self._source_label()),
+                t("desktop.import_no_selection"),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+            return
+        self.search.clear()
+        for record in selected:
+            self._append_imported_row(record["row"])
+        self._rebuild_table()
+        self.raw_editor.setPlainText(self._serialize())
+        InfoBar.success(
+            t("desktop.import_completed"),
+            t("desktop.import_unsaved").format(count=len(selected)),
+            parent=self,
+            position=InfoBarPosition.TOP,
+        )
+
+    def _source_label(self):
+        return t({
+            "template": "desktop.template",
+            "subscribe": "name.subscribe",
+            "epg": "name.epg",
+            "whitelist": "name.whitelist",
+            "blacklist": "desktop.blacklist",
+            "alias": "desktop.alias",
+        }[self.kind])
+
+    def _import_columns(self):
+        return {
+            "template": [(t("name.channel"), "name"), (t("desktop.column_category"), "group")],
+            "subscribe": [(t("desktop.source_url"), "url"), (t("desktop.column_whitelist"), "whitelist_text"), (t("desktop.source_options"), "options")],
+            "epg": [(t("desktop.source_url"), "url"), (t("desktop.source_options"), "options")],
+            "whitelist": [(t("name.channel"), "channel"), (t("desktop.column_match"), "value"), (t("desktop.column_rule"), "rule_text")],
+            "blacklist": [(t("desktop.keyword"), "keyword")],
+            "alias": [(t("desktop.column_canonical"), "canonical"), (t("desktop.column_aliases"), "aliases_text")],
+        }[self.kind]
+
+    @staticmethod
+    def _read_import_text(path):
+        with open(path, "rb") as source:
+            data = source.read()
+        for encoding in ("utf-8-sig", "gb18030"):
+            try:
+                return data.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+        raise UnicodeDecodeError("unknown", data, 0, len(data), "unsupported text encoding")
+
+    def _parse_import_file(self, path):
+        file_name = os.path.basename(path)
+        try:
+            content = self._read_import_text(path)
+        except (OSError, UnicodeDecodeError) as error:
+            return [{
+                "file_name": file_name,
+                "line_number": 0,
+                "row": {},
+                "status": "invalid",
+                "reason": str(error),
+                "selected": False,
+            }]
+
+        records = []
+        section = ""
+        for line_number, raw in enumerate(content.splitlines(), 1):
+            line = raw.strip()
+            if not line or line.startswith(("#", ";")):
+                continue
+            if self.kind == "template" and line.endswith(",#genre#"):
+                section = line.rsplit(",#genre#", 1)[0]
+                continue
+            if self.kind == "subscribe" and line.upper() == "[WHITELIST]":
+                section = "WHITELIST"
+                continue
+            if self.kind == "whitelist" and line.upper() == "[KEYWORDS]":
+                section = "KEYWORDS"
+                continue
+            row = self._parse_import_line(section, line)
+            if row is None:
+                continue
+            records.append({
+                "file_name": file_name,
+                "line_number": line_number,
+                "row": row,
+                "status": "new",
+                "reason": "",
+                "selected": True,
+            })
+        return records
+
+    def _parse_import_line(self, section, line):
+        if self.kind == "template":
+            return {"group": section, "name": line}
+        if self.kind in {"subscribe", "epg"}:
+            url, separator, options = line.partition(" ")
+            row = {"url": url, "options": options.strip() if separator else ""}
+            if self.kind == "subscribe":
+                row["whitelist"] = section == "WHITELIST"
+                row["whitelist_text"] = t("desktop.yes") if row["whitelist"] else t("desktop.no")
+            return row
+        if self.kind == "whitelist":
+            channel, separator, value = line.partition(",")
+            row = {
+                "rule_type": "keyword" if section == "KEYWORDS" else "exact",
+                "channel": channel if separator else "",
+                "value": value if separator else channel,
+            }
+            row["rule_text"] = t("desktop.rule_keyword" if row["rule_type"] == "keyword" else "desktop.rule_exact")
+            return row
+        if self.kind == "blacklist":
+            return {"keyword": line}
+        if "," not in line:
+            return None
+        parts = [part.strip() for part in line.split(",")]
+        canonical, aliases = parts[0], parts[1:] or [""]
+        row = {"canonical": canonical, "aliases": list(dict.fromkeys(aliases))}
+        row["aliases_text"] = ", ".join(row["aliases"])
+        return row
+
+    @staticmethod
+    def _row_key(row):
+        return tuple(
+            (key, tuple(value) if isinstance(value, list) else value)
+            for key, value in sorted(row.items())
+            if not key.endswith("_text") and not key.startswith("_")
+        )
+
+    def _mark_import_duplicates(self, records):
+        if self.kind == "alias":
+            known_aliases = {
+                row["canonical"]: set(row["aliases"])
+                for row in self.rows
+            }
+            for record in records:
+                if record["status"] != "new":
+                    continue
+                row = record["row"]
+                aliases = known_aliases.setdefault(row["canonical"], set())
+                new_aliases = [alias for alias in row["aliases"] if alias not in aliases]
+                if not new_aliases:
+                    record["status"] = "duplicate"
+                    record["reason"] = "duplicate"
+                    record["selected"] = False
+                    continue
+                aliases.update(new_aliases)
+                row["aliases"] = new_aliases
+                row["aliases_text"] = ", ".join(new_aliases)
+            return
+        known = {self._row_key(row) for row in self.rows}
+        seen = set(known)
+        for record in records:
+            if record["status"] != "new":
+                continue
+            key = self._row_key(record["row"])
+            if key in seen:
+                record["status"] = "duplicate"
+                record["reason"] = "duplicate"
+                record["selected"] = False
+            else:
+                seen.add(key)
+
+    def _append_imported_row(self, row):
+        row = {
+            key: list(value) if isinstance(value, list) else value
+            for key, value in row.items()
+            if not key.endswith("_text")
+        }
+        row["_checked"] = False
+        if self.kind == "alias":
+            existing = next((item for item in self.rows if item["canonical"] == row["canonical"]), None)
+            if existing:
+                existing["aliases"] = list(dict.fromkeys(existing["aliases"] + row["aliases"]))
+                return
+        self.rows.append(row)
 
     def delete_items(self):
         selected = sorted(self._selected_row_indices(), reverse=True)
@@ -1152,12 +1355,14 @@ class SourcesPage(QWidget):
             self.editors.append(editor)
             self.tabs.addTab(editor, icon.icon(), t(key))
         self.save_button = AccentPushButton(FluentIcon.SAVE, t("desktop.save"), self)
+        self.export_button = PushButton(FluentIcon.DOCUMENT, t("desktop.export"), self)
         self.reload_button = PushButton(FluentIcon.SYNC, t("desktop.reload"), self)
         tab_actions = QWidget(self.tabs)
         tab_actions_layout = QHBoxLayout(tab_actions)
         tab_actions_layout.setContentsMargins(0, 0, 0, 0)
         tab_actions_layout.setSpacing(8)
         tab_actions_layout.addWidget(self.reload_button)
+        tab_actions_layout.addWidget(self.export_button)
         tab_actions_layout.addWidget(self.save_button)
         self.tabs.setCornerWidget(tab_actions, Qt.Corner.TopRightCorner)
         layout = QVBoxLayout(self)
@@ -1165,6 +1370,7 @@ class SourcesPage(QWidget):
         layout.setSpacing(10)
         layout.addWidget(self.tabs, 1)
         self.reload_button.clicked.connect(self.load)
+        self.export_button.clicked.connect(self.export)
         self.save_button.clicked.connect(self.save)
         self.tabs.currentChanged.connect(self._tab_changed)
         qconfig.themeChangedFinished.connect(self._schedule_theme_refresh)
@@ -1251,8 +1457,30 @@ class SourcesPage(QWidget):
         else:
             InfoBar.error(t("name.error"), error, parent=self, position=InfoBarPosition.TOP)
 
+    def export(self):
+        editor = self.current_editor()
+        if editor.stack.currentIndex() == 0:
+            editor._visual_changed()
+        source_path = editor.path()
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            t("desktop.export_sources"),
+            os.path.basename(source_path),
+            t("desktop.export_source_file_filter"),
+        )
+        if not path:
+            return
+        target = QSaveFile(path)
+        if target.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Text):
+            target.write(editor.raw_editor.toPlainText().encode("utf-8"))
+            if target.commit():
+                InfoBar.success(t("desktop.export_completed"), path, parent=self, position=InfoBarPosition.TOP)
+                return
+        InfoBar.error(t("name.error"), target.errorString(), parent=self, position=InfoBarPosition.TOP)
+
     def retranslate(self):
         self.save_button.setText(t("desktop.save"))
+        self.export_button.setText(t("desktop.export"))
         self.reload_button.setText(t("desktop.reload"))
         for index, ((key, _, _, _), editor) in enumerate(zip(self.path_specs, self.editors)):
             self.tabs.setTabText(index, t(key))

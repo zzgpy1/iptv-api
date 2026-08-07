@@ -314,6 +314,93 @@ class ChannelCenterViewTests(unittest.TestCase):
             page._smart_item_clicked(page._smart_items[("health", "healthy")], 0)
             self.assertEqual([row["name"] for row in page.channel_model.rows], ["Healthy News"])
 
+    def test_channel_center_imports_channels_and_playback_sources(self):
+        channel_import = os.path.join(self.temp_dir.name, "channels-import.txt")
+        playback_import = os.path.join(self.temp_dir.name, "playback-import.txt")
+        with open(channel_import, "w", encoding="utf-8") as file:
+            file.write("Movies,#genre#\nMovie One\n")
+        with open(playback_import, "w", encoding="utf-8") as file:
+            file.write(
+                "Sports One,https://example.com/sports.m3u8\n"
+                "Unknown,https://example.com/unknown.m3u8\n"
+            )
+
+        class AcceptedImportDialog:
+            def __init__(self, title, records, columns, parent):
+                self.records = records
+
+            def exec(self):
+                return 1
+
+            def selected_records(self):
+                return [record for record in self.records if record["status"] == "new"]
+
+        with (
+            patch.object(constants, "channel_results_path", self.db_path),
+            patch.object(constants, "local_path", os.path.join(self.temp_dir.name, "local.txt")),
+            patch.object(constants, "whitelist_path", self.whitelist_path),
+            patch.object(constants, "blacklist_path", self.blacklist_path),
+            patch("desktop_ui.pages.channels.resource_path", return_value=self.template_path),
+            patch("desktop_ui.pages.channels.SourceImportDialog", AcceptedImportDialog),
+        ):
+            page = ChannelCenterPage()
+            self.addCleanup(page.deleteLater)
+            with patch(
+                "desktop_ui.pages.channels.QFileDialog.getOpenFileNames",
+                return_value=([channel_import], ""),
+            ), patch("desktop_ui.pages.channels.add_channel", return_value=True) as add, patch(
+                "desktop_ui.pages.channels.upsert_manual_channel"
+            ) as upsert:
+                page._import_channels()
+
+            add.assert_called_once_with("Movies", "Movie One")
+            upsert.assert_called_once_with(self.db_path, "Movies", "Movie One")
+
+            with patch(
+                "desktop_ui.pages.channels.QFileDialog.getOpenFileNames",
+                return_value=([playback_import], ""),
+            ), patch("desktop_ui.pages.channels.add_manual_channel_result") as add_source, patch(
+                "desktop_ui.pages.channels.add_manual_result"
+            ) as add_result:
+                page._import_playback_sources()
+
+            add_source.assert_called_once_with("Sports One", "https://example.com/sports.m3u8")
+            add_result.assert_called_once_with(self.db_path, "sports-one", "https://example.com/sports.m3u8")
+
+    def test_channel_center_exports_template_and_playback_sources(self):
+        connection = sqlite3.connect(self.db_path)
+        connection.execute(
+            """
+            INSERT INTO channel_results(
+                channel_key, result_key, url, valid, last_seen_at, extra_data
+            ) VALUES ('sports-one', 'sports-stream', 'https://example.com/sports.m3u8', 1, 1, '{}')
+            """
+        )
+        connection.commit()
+        connection.close()
+        template_export = os.path.join(self.temp_dir.name, "channels-export.txt")
+        playback_export = os.path.join(self.temp_dir.name, "playback-export.m3u")
+
+        with (
+            patch.object(constants, "channel_results_path", self.db_path),
+            patch.object(constants, "whitelist_path", self.whitelist_path),
+            patch.object(constants, "blacklist_path", self.blacklist_path),
+            patch("desktop_ui.pages.channels.resource_path", return_value=self.template_path),
+        ):
+            page = ChannelCenterPage()
+            self.addCleanup(page.deleteLater)
+            with patch(
+                "desktop_ui.pages.channels.QFileDialog.getSaveFileName",
+                side_effect=[(template_export, ""), (playback_export, "")],
+            ):
+                page._export_channel_template()
+                page._export_playback_sources()
+
+        with open(template_export, encoding="utf-8") as file:
+            self.assertIn("Sports,#genre#\nSports One", file.read())
+        with open(playback_export, encoding="utf-8") as file:
+            self.assertIn("#EXTINF:-1,Sports One\nhttps://example.com/sports.m3u8", file.read())
+
     def test_stream_snapshot_updates_channel_result_status_and_streaming_filter(self):
         connection = sqlite3.connect(self.db_path)
         connection.execute(

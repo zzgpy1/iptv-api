@@ -1,10 +1,13 @@
+import csv
 import datetime
+import io
 import math
+import os
 import re
 
-from PySide6.QtCore import QEasingCurve, QEvent, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QRectF, QSettings, QSize, QSignalBlocker, QTimer, Signal, Qt
+from PySide6.QtCore import QEasingCurve, QEvent, QIODevice, QItemSelectionModel, QPoint, QPropertyAnimation, QRect, QRectF, QSaveFile, QSettings, QSize, QSignalBlocker, QTimer, Signal, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QSizePolicy, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QRubberBand, QSizePolicy, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import Action, BodyLabel, CardWidget, ComboBox, DropDownPushButton, FluentIcon, IconWidget, IndeterminateProgressRing, InfoBar, InfoBarPosition, ProgressRing, PushButton, RoundMenu, SegmentedWidget, StrongBodyLabel, TableView, ToolButton, TreeWidget, isDarkTheme, qconfig
 
 import utils.constants as constants
@@ -12,6 +15,7 @@ from desktop_ui.models import ChannelLogoLoader, ChannelTableModel, MappingTable
 from desktop_ui.playback import play_url
 from desktop_ui.logo_dialog import ChannelLogoDialog, is_channel_logo_click
 from desktop_ui.screenshot_dialog import StreamScreenshotDialog
+from desktop_ui.dialogs.source_import import SourceImportDialog
 from desktop_ui.stream_status import (
     StreamingStatusDelegate,
     apply_channel_stream_state,
@@ -19,11 +23,12 @@ from desktop_ui.stream_status import (
     build_channel_stream_states,
     build_result_stream_states,
 )
-from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, ContinuousTreeItemDelegate, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, configure_table_columns, warning_message_box
+from desktop_ui.widgets import AccentPushButton, AppEditableComboBox, AppLineEdit, AppSearchLineEdit, ContinuousTreeItemDelegate, DangerPushButton, TableCheckBoxDelegate, TableCheckBoxHeader, apply_dialog_theme, configure_table_columns, localize_dialog_buttons, warning_message_box
 from utils.channel import write_channel_to_file
 from utils.channel_repository import add_manual_result, delete_channel_records, delete_channel_results, get_channel, list_categories, list_channel_results, list_channels, list_result_urls_by_channel, load_selected_snapshot, reset_channel_selection, set_channel_logo, set_channel_selection, upsert_manual_channel
 from utils.config import config, resource_path
 from utils.i18n import t
+from utils.local_source_importer import _decode, parse_local_source_file
 from utils.tools import check_url_by_keywords, get_public_url, get_urls_from_file
 from utils.user_actions import add_channel, add_manual_channel_result, add_to_blacklist, add_to_whitelist, delete_channels, delete_manual_channel_results
 from utils.whitelist import is_url_whitelisted, load_whitelist_maps
@@ -254,6 +259,8 @@ class ChannelCenterPage(QWidget):
         self.search.setPlaceholderText(t("desktop.search_channels"))
         self.refresh_button = ToolButton(FluentIcon.SYNC, self)
         self.refresh_button.setToolTip(t("desktop.refresh"))
+        self.import_button = DropDownPushButton(FluentIcon.FOLDER, t("desktop.import_files"), self)
+        self.export_button = DropDownPushButton(FluentIcon.DOCUMENT, t("desktop.export"), self)
         self.add_channel_button = PushButton(FluentIcon.ADD, t("desktop.add_channel"), self)
         self.add_channel_button.hide()
         self.add_result_button = PushButton(FluentIcon.LINK, t("desktop.add_result"), self)
@@ -308,8 +315,10 @@ class ChannelCenterPage(QWidget):
         toolbar.addWidget(self.search, 1)
         toolbar.addWidget(self.refresh_button)
         toolbar.addWidget(self.selection_label)
-        toolbar.addWidget(self.retest_channel_button)
         toolbar.addWidget(self.play_selected_button)
+        toolbar.addWidget(self.import_button)
+        toolbar.addWidget(self.export_button)
+        toolbar.addWidget(self.retest_channel_button)
         toolbar.addWidget(self.channel_more_button)
 
         layout = QVBoxLayout(self)
@@ -592,6 +601,47 @@ class ChannelCenterPage(QWidget):
         self._update_result_actions()
 
     def _create_menus(self):
+        self.import_channels_action = Action(
+            FluentIcon.LAYOUT,
+            t("desktop.import_channels"),
+            self,
+            triggered=self._import_channels,
+        )
+        self.import_playback_sources_action = Action(
+            FluentIcon.FOLDER,
+            t("desktop.import_playback_sources"),
+            self,
+            triggered=self._import_playback_sources,
+        )
+        self.import_menu = RoundMenu(parent=self)
+        self.import_menu.addAction(self.import_channels_action)
+        self.import_menu.addAction(self.import_playback_sources_action)
+        self.import_button.setMenu(self.import_menu)
+
+        self.export_channel_template_action = Action(
+            FluentIcon.LAYOUT,
+            t("desktop.export_channel_template"),
+            self,
+            triggered=self._export_channel_template,
+        )
+        self.export_playback_sources_action = Action(
+            FluentIcon.FOLDER,
+            t("desktop.export_playback_sources"),
+            self,
+            triggered=self._export_playback_sources,
+        )
+        self.export_diagnostics_action = Action(
+            FluentIcon.DOCUMENT,
+            t("desktop.export_diagnostics_csv"),
+            self,
+            triggered=self._export_channel_diagnostics,
+        )
+        self.export_menu = RoundMenu(parent=self)
+        self.export_menu.addAction(self.export_channel_template_action)
+        self.export_menu.addAction(self.export_playback_sources_action)
+        self.export_menu.addAction(self.export_diagnostics_action)
+        self.export_button.setMenu(self.export_menu)
+
         self.copy_action = Action(FluentIcon.COPY, t("desktop.copy_source_url"), self, triggered=self._copy_result)
         self.drawer_add_result_action = Action(FluentIcon.ADD, t("desktop.add_result"), self, triggered=self._add_manual_result)
         self.copy_stream_action = Action(FluentIcon.LINK, t("desktop.copy_stream_url"), self, triggered=self._copy_stream_url)
@@ -2084,8 +2134,237 @@ class ChannelCenterPage(QWidget):
             position=InfoBarPosition.TOP,
         )
 
+    @staticmethod
+    def _import_record(file_name, line_number, row, status="new", reason="", selected=True):
+        return {
+            "file_name": file_name,
+            "line_number": line_number,
+            "row": row,
+            "status": status,
+            "reason": reason,
+            "selected": selected,
+        }
+
+    def _import_channels(self):
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            t("desktop.import_channels"),
+            "",
+            t("desktop.import_channel_file_filter"),
+        )
+        if not paths:
+            return
+
+        records = []
+        for path in paths:
+            file_name = os.path.basename(path)
+            try:
+                with open(path, "rb") as source:
+                    content = _decode(source.read())
+            except (OSError, UnicodeDecodeError) as error:
+                records.append(self._import_record(file_name, 0, {}, "invalid", str(error), False))
+                continue
+            category = ""
+            for line_number, raw in enumerate(content.splitlines(), 1):
+                line = raw.strip()
+                if not line or line.startswith(("#", ";")):
+                    continue
+                match = re.match(r"^(.*?)[,，]\s*#genre#\s*$", line)
+                if match:
+                    category = match.group(1).strip()
+                    continue
+                if not category:
+                    records.append(self._import_record(
+                        file_name, line_number, {"category": "", "name": line},
+                        "invalid", "missing_category", False,
+                    ))
+                    continue
+                records.append(self._import_record(
+                    file_name, line_number, {"category": category, "name": line},
+                ))
+
+        known_names = {row.get("name", "").strip() for row in list_channels(constants.channel_results_path)}
+        seen_names = set(known_names)
+        for record in records:
+            if record["status"] != "new":
+                continue
+            name = record["row"]["name"].strip()
+            if name in seen_names:
+                record.update(status="duplicate", reason="duplicate", selected=False)
+            else:
+                seen_names.add(name)
+
+        dialog = SourceImportDialog(
+            t("desktop.import_channels"),
+            records,
+            [(t("desktop.column_category"), "category"), (t("name.channel"), "name")],
+            self,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        imported = 0
+        for record in dialog.selected_records():
+            row = record["row"]
+            if add_channel(row["category"], row["name"]):
+                upsert_manual_channel(constants.channel_results_path, row["category"], row["name"])
+                imported += 1
+        if imported:
+            self.reload()
+            InfoBar.success(
+                t("desktop.import_completed"),
+                t("desktop.import_channels_completed").format(count=imported),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+
+    def _import_playback_sources(self):
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            t("desktop.import_playback_sources"),
+            "",
+            t("desktop.import_file_filter"),
+        )
+        if not paths:
+            return
+
+        channels = {
+            row.get("name", "").strip(): row
+            for row in list_channels(constants.channel_results_path)
+        }
+        urls_by_channel = list_result_urls_by_channel(constants.channel_results_path)
+        records = []
+        for path in paths:
+            parsed, errors = parse_local_source_file(path)
+            for item in parsed:
+                channel = channels.get(item.channel)
+                row = {"channel": item.channel, "url": item.url}
+                if not channel:
+                    records.append(self._import_record(
+                        item.file_name, item.line_number, row,
+                        "invalid", t("desktop.import_unknown_channel"), False,
+                    ))
+                elif item.url in urls_by_channel.get(channel["channel_key"], []):
+                    records.append(self._import_record(
+                        item.file_name, item.line_number, row,
+                        "duplicate", "duplicate", False,
+                    ))
+                else:
+                    urls_by_channel.setdefault(channel["channel_key"], []).append(item.url)
+                    records.append(self._import_record(item.file_name, item.line_number, row))
+            records.extend(
+                self._import_record(
+                    item.file_name,
+                    item.line_number,
+                    {"channel": item.channel, "url": item.url},
+                    item.status,
+                    item.reason,
+                    item.selected,
+                )
+                for item in errors
+            )
+
+        dialog = SourceImportDialog(
+            t("desktop.import_playback_sources"),
+            records,
+            [(t("name.channel"), "channel"), (t("desktop.source_url"), "url")],
+            self,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        imported = 0
+        for record in dialog.selected_records():
+            row = record["row"]
+            channel = channels[row["channel"]]
+            add_manual_channel_result(channel["name"], row["url"])
+            add_manual_result(constants.channel_results_path, channel["channel_key"], row["url"])
+            imported += 1
+        if imported:
+            self.reload()
+            InfoBar.success(
+                t("desktop.import_completed"),
+                t("desktop.import_playback_sources_completed").format(count=imported),
+                parent=self,
+                position=InfoBarPosition.TOP,
+            )
+
+    def _export_channels(self):
+        return self.selected_channels() or list(self.channel_model.rows)
+
+    def _write_export(self, title, suggested_name, file_filter, content):
+        path, _ = QFileDialog.getSaveFileName(self, title, suggested_name, file_filter)
+        if not path:
+            return
+        target = QSaveFile(path)
+        if target.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Text):
+            target.write(content.encode("utf-8"))
+            if target.commit():
+                InfoBar.success(t("desktop.export_completed"), path, parent=self, position=InfoBarPosition.TOP)
+                return
+        InfoBar.error(t("name.error"), target.errorString(), parent=self, position=InfoBarPosition.TOP)
+
+    def _export_channel_template(self):
+        grouped = {}
+        for row in self._export_channels():
+            grouped.setdefault(row.get("category") or t("desktop.uncategorized"), []).append(row.get("name") or "")
+        lines = []
+        for category in self._category_order + [value for value in grouped if value not in self._category_order]:
+            names = grouped.get(category, [])
+            if not names:
+                continue
+            lines.append(f"{category},#genre#")
+            lines.extend(sorted(name for name in names if name))
+            lines.append("")
+        self._write_export(
+            t("desktop.export_channel_template"),
+            "channels.txt",
+            t("desktop.export_source_file_filter"),
+            "\n".join(lines).rstrip() + "\n",
+        )
+
+    def _export_playback_sources(self):
+        entries = []
+        for channel in self._export_channels():
+            for result in list_channel_results(constants.channel_results_path, channel["channel_key"]):
+                if result.get("url"):
+                    entries.append((channel.get("name") or "", result["url"]))
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            t("desktop.export_playback_sources"),
+            "playback-sources.txt",
+            t("desktop.export_channel_file_filter"),
+        )
+        if not path:
+            return
+        if path.lower().endswith(".m3u"):
+            lines = ["#EXTM3U"]
+            for name, url in entries:
+                lines.extend((f"#EXTINF:-1,{name}", url))
+        else:
+            lines = [f"{name},{url}" for name, url in entries]
+        target = QSaveFile(path)
+        if target.open(QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Text):
+            target.write(("\n".join(lines).rstrip() + "\n").encode("utf-8"))
+            if target.commit():
+                InfoBar.success(t("desktop.export_completed"), path, parent=self, position=InfoBarPosition.TOP)
+                return
+        InfoBar.error(t("name.error"), target.errorString(), parent=self, position=InfoBarPosition.TOP)
+
+    def _export_channel_diagnostics(self):
+        output = io.StringIO()
+        fields = ("category", "name", "health", "valid_results", "total_results", "updated_at")
+        writer = csv.DictWriter(output, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows({field: row.get(field, "") for field in fields} for row in self._export_channels())
+        self._write_export(
+            t("desktop.export_diagnostics_csv"),
+            "channel-diagnostics.csv",
+            t("desktop.export_csv_file_filter"),
+            output.getvalue(),
+        )
+
     def _add_channel(self):
         dialog = QDialog(self)
+        apply_dialog_theme(dialog)
         dialog.setWindowTitle(t("desktop.add_channel"))
         form = QFormLayout(dialog)
         category = AppEditableComboBox(dialog)
@@ -2095,6 +2374,7 @@ class ChannelCenterPage(QWidget):
         ])
         name = AppLineEdit(dialog)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
+        localize_dialog_buttons(buttons)
         form.addRow(t("desktop.categories"), category)
         form.addRow(t("name.channel"), name)
         form.addRow(buttons)
@@ -2172,6 +2452,7 @@ class ChannelCenterPage(QWidget):
         if not channel:
             return
         dialog = QDialog(self)
+        apply_dialog_theme(dialog)
         dialog.setWindowTitle(t("desktop.add_result"))
         dialog.setMinimumWidth(560)
         dialog.resize(600, 150)
@@ -2183,8 +2464,7 @@ class ChannelCenterPage(QWidget):
         url.setMinimumWidth(0)
         url.setPlaceholderText("https://example.com/live.m3u8")
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, dialog)
-        buttons.button(QDialogButtonBox.StandardButton.Save).setText(t("desktop.save"))
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
+        localize_dialog_buttons(buttons)
         form.addRow(t("name.channel"), channel_label)
         form.addRow(t("desktop.source_url"), url)
         form.addRow(buttons)
@@ -2350,6 +2630,8 @@ class ChannelCenterPage(QWidget):
         self.search.setPlaceholderText(t("desktop.search_channels"))
         self.result_search.setPlaceholderText(t("desktop.search_results"))
         self.refresh_button.setToolTip(t("desktop.refresh"))
+        self.import_button.setText(t("desktop.import_files"))
+        self.export_button.setText(t("desktop.export"))
         self.empty_clear_button.setText(t("desktop.clear_filters"))
         self.add_channel_button.setText(t("desktop.add_channel"))
         self.add_result_button.setText(t("desktop.add_result"))
@@ -2380,6 +2662,11 @@ class ChannelCenterPage(QWidget):
         self.drawer_resize_handle.setToolTip(t("desktop.resize_result_drawer_hint"))
         self._update_drawer_mode_button()
         for action, key in (
+            (self.import_channels_action, "desktop.import_channels"),
+            (self.import_playback_sources_action, "desktop.import_playback_sources"),
+            (self.export_channel_template_action, "desktop.export_channel_template"),
+            (self.export_playback_sources_action, "desktop.export_playback_sources"),
+            (self.export_diagnostics_action, "desktop.export_diagnostics_csv"),
             (self.copy_action, "desktop.copy_source_url"),
             (self.drawer_add_result_action, "desktop.add_result"),
             (self.copy_stream_action, "desktop.copy_stream_url"),
