@@ -198,7 +198,12 @@ jobs:
             Write-Error "Expected two desktop assets, found $($assets.Count)."
             exit 1
           }
-          gh release create $env:release_tag $assets --title $env:release_title --notes-file release-notes.md --target $env:GITHUB_SHA
+          $checksums = Join-Path $PWD 'release-assets/SHA256SUMS.txt'
+          $assets | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLower()
+            "$hash  $(Split-Path $_ -Leaf)"
+          } | Set-Content -Path $checksums -Encoding utf8NoBOM
+          gh release create $env:release_tag $assets $checksums --title $env:release_title --notes-file release-notes.md --target $env:GITHUB_SHA
 
       - name: Confirm release
         shell: pwsh

@@ -45,7 +45,10 @@ def localize_dialog_buttons(buttons):
         QDialogButtonBox.StandardButton.No: "desktop.no",
     }
     for standard, key in labels.items():
-        button = buttons.button(standard)
+        try:
+            button = buttons.button(standard)
+        except TypeError:
+            button = buttons.button(type(buttons).StandardButton(standard.value))
         if button:
             button.setText(t(key))
 

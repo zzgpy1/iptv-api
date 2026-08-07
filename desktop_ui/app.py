@@ -37,6 +37,17 @@ def _configure_fonts():
     setFontFamilies(families)
 
 
+def _confirm_update_launch():
+    path = os.environ.pop("IPTV_API_UPDATE_HEALTH_FILE", "")
+    if not path:
+        return
+    try:
+        with open(path, "w", encoding="utf-8") as file:
+            file.write("ok")
+    except OSError:
+        pass
+
+
 def main():
     _prepare_runtime()
     if "--service" in sys.argv:
@@ -63,6 +74,7 @@ def main():
     setThemeColor("#0E5CAD")
     window = MainWindow()
     window.show()
+    _confirm_update_launch()
     return app.exec()
 
 

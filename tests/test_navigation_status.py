@@ -1,9 +1,10 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget
+from PySide6.QtWidgets import QApplication, QMessageBox, QStackedWidget, QWidget
 from qfluentwidgets import FluentIcon, NavigationPushButton
 
 from desktop_ui.pages.about import AboutPage
@@ -69,6 +70,27 @@ class NavigationStatusIndicatorTests(unittest.TestCase):
         dialog = ChangelogDialog(str(page.info.get("version")), page)
         self.addCleanup(dialog.deleteLater)
         self.assertIn("v3.0.0", dialog.viewer.toPlainText())
+
+    def test_update_install_dialog_tracks_app_language_and_theme(self):
+        language = get_language()
+        self.addCleanup(set_language, language)
+        page = AboutPage()
+        self.addCleanup(page.deleteLater)
+
+        set_language("en")
+        dialog = page._install_confirmation_dialog()
+        self.addCleanup(dialog.deleteLater)
+        self.assertEqual(dialog.button(QMessageBox.StandardButton.Yes).text(), "Yes")
+        self.assertEqual(dialog.button(QMessageBox.StandardButton.No).text(), "No")
+        self.assertIn("The app will quit", dialog.text())
+
+        set_language("zh_CN")
+        with patch("desktop_ui.widgets.isDarkTheme", return_value=True):
+            dialog = page._install_confirmation_dialog()
+        self.addCleanup(dialog.deleteLater)
+        self.assertEqual(dialog.button(QMessageBox.StandardButton.Yes).text(), "是")
+        self.assertEqual(dialog.button(QMessageBox.StandardButton.No).text(), "否")
+        self.assertIn("#202020", dialog.styleSheet())
 
     def test_changelog_extracts_only_the_current_release_and_language(self):
         markdown = """## v2.0.8
