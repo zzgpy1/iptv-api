@@ -52,6 +52,12 @@ Copy the source code of this repository to your personal account repository.
 Since this project will continue to iterate and optimize, if you want to get the latest updates, you can do the
 following:
 
+> [!WARNING]
+> If you only want to update your fork, do not click `Contribute` or `Open pull request` to create a PR.
+> Go to your own repository and use `Sync fork` → `Update branch`.
+> If a synchronization conflict occurs, use `Discard commits` as described below.
+> Create a Pull Request only when you intentionally want to contribute code to the upstream repository.
+
 #### 1. Watch
 
 Follow this project, and subsequent update logs will be released as `releases`, and you will receive email

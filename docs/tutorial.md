@@ -47,6 +47,12 @@
 
 由于本项目将持续迭代优化，如果您想获取最新的更新内容，可进行如下操作
 
+> [!WARNING]
+> 如果您的目的是更新自己 Fork 的代码，请不要点击 `Contribute` 或 `Open pull request` 创建 PR。
+> 请进入您自己的仓库主页，使用 `Sync fork` → `Update branch`。
+> 如果出现同步冲突，请按照下方说明选择 `Discard commits`。
+> 只有想向主仓库贡献代码时，才需要创建 Pull Request。
+
 #### 1. Watch
 
 关注该项目，后续更新日志将以`releases`发布，届时您将收到邮件通知
