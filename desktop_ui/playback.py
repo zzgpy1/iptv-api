@@ -10,6 +10,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QSizePolicy, QVBoxLayout
 from qfluentwidgets import CheckBox, ComboBox, FluentIcon, PushButton
 
+from desktop_ui.widgets import apply_dialog_theme, localize_dialog_buttons
 from utils.i18n import t
 
 
@@ -111,6 +112,7 @@ def play_url(url: str, parent=None) -> bool:
     mode = playback_mode()
     if mode == MODE_ASK:
         choice = QDialog(parent)
+        apply_dialog_theme(choice)
         choice.setWindowTitle(t("desktop.choose_playback_method"))
         choice.setMinimumWidth(420)
         layout = QVBoxLayout(choice)
@@ -142,6 +144,7 @@ class PlaybackPreferencesDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        apply_dialog_theme(self)
         self.setWindowTitle(t("desktop.playback_preferences"))
         self.setMinimumWidth(560)
         settings = QSettings()
@@ -193,8 +196,7 @@ class PlaybackPreferencesDialog(QDialog):
         self.form.addRow(t("desktop.player_arguments"), self.arguments)
         self.arguments_label = self.form.labelForField(self.arguments)
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel, self)
-        self.buttons.button(QDialogButtonBox.StandardButton.Save).setText(t("desktop.save"))
-        self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
+        localize_dialog_buttons(self.buttons)
         self.buttons.accepted.connect(self._save)
         self.buttons.rejected.connect(self.reject)
         layout = QVBoxLayout(self)

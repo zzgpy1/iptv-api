@@ -1,17 +1,19 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint, QRect, Qt
 from PySide6.QtGui import QImage, QPainter
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QWidget
 from qfluentwidgets import TableView
 
 from desktop_ui.pages.settings import SettingsPage
 from desktop_ui.models import ConfigTableModel, MappingTableModel
-from desktop_ui.widgets import TableCheckBoxHeader, paint_table_checkbox, warning_message_box
+from desktop_ui.widgets import TableCheckBoxHeader, apply_dialog_theme, localize_dialog_buttons, paint_table_checkbox, warning_message_box
+from utils.i18n import get_language, set_language
 
 
 class TableCheckBoxPaintingTests(unittest.TestCase):
@@ -33,6 +35,35 @@ class TableCheckBoxPaintingTests(unittest.TestCase):
             self._render(Qt.CheckState.Checked.value),
             self._render(Qt.CheckState.Checked),
         )
+
+
+class DialogStyleTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_standard_dialog_buttons_are_localized_and_themed(self):
+        language = get_language()
+        self.addCleanup(set_language, language)
+        set_language("en")
+        dialog = QDialog()
+        self.addCleanup(dialog.deleteLater)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel,
+            dialog,
+        )
+        localize_dialog_buttons(buttons)
+        self.assertEqual(buttons.button(QDialogButtonBox.StandardButton.Save).text(), "Save")
+        self.assertEqual(buttons.button(QDialogButtonBox.StandardButton.Cancel).text(), "Cancel")
+
+        set_language("zh_CN")
+        localize_dialog_buttons(buttons)
+        self.assertEqual(buttons.button(QDialogButtonBox.StandardButton.Save).text(), "保存")
+        self.assertEqual(buttons.button(QDialogButtonBox.StandardButton.Cancel).text(), "取消")
+
+        with patch("desktop_ui.widgets.isDarkTheme", return_value=True):
+            apply_dialog_theme(dialog)
+        self.assertIn("#202020", dialog.styleSheet())
 
 
 class SettingsEditorLayoutTests(unittest.TestCase):

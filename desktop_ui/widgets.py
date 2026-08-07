@@ -3,8 +3,51 @@ import time
 
 from PySide6.QtCore import QEvent, QObject, QPointF, QRect, QSettings, QTimer, Signal, Qt
 from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QMouseEvent, QPainter, QPalette, QPen, QPixmap, QPolygonF, QRadialGradient
-from PySide6.QtWidgets import QGraphicsDropShadowEffect, QHeaderView, QHBoxLayout, QLabel, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialogButtonBox, QGraphicsDropShadowEffect, QHeaderView, QHBoxLayout, QLabel, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, CardWidget, EditableComboBox, IconWidget, LineEdit, MessageBox, PlainTextEdit, PrimaryPushButton, PushButton, SearchLineEdit, StrongBodyLabel, TableItemDelegate, isDarkTheme, qconfig, setCustomStyleSheet
+from utils.i18n import t
+
+
+def apply_dialog_theme(dialog):
+    """Apply the application's light or dark surface colors to a native dialog."""
+    dark = isDarkTheme()
+    background = "#202020" if dark else "#FFFFFF"
+    surface = "#27272A" if dark else "#F8FAFC"
+    foreground = "#E2E8F0" if dark else "#1F2937"
+    muted = "#CBD5E1" if dark else "#475569"
+    border = "#3F3F46" if dark else "#E2E8F0"
+    hover = "#323232" if dark else "#E2E8F0"
+    dialog.setStyleSheet(
+        f"""
+        QDialog {{ background-color: {background}; color: {foreground}; }}
+        QLabel {{ color: {foreground}; }}
+        QLineEdit, QPlainTextEdit, QTextEdit, QComboBox {{
+            background-color: {surface}; color: {foreground}; border: 1px solid {border};
+            border-radius: 5px; padding: 4px 6px;
+        }}
+        QDialogButtonBox QPushButton {{
+            background-color: {surface}; color: {muted}; border: 1px solid {border};
+            border-radius: 5px; padding: 5px 14px; min-width: 72px;
+        }}
+        QDialogButtonBox QPushButton:hover {{ background-color: {hover}; color: {foreground}; }}
+        """
+    )
+
+
+def localize_dialog_buttons(buttons):
+    """Use application translations instead of platform defaults for standard buttons."""
+    labels = {
+        QDialogButtonBox.StandardButton.Save: "desktop.save",
+        QDialogButtonBox.StandardButton.Cancel: "desktop.cancel",
+        QDialogButtonBox.StandardButton.Close: "desktop.close",
+        QDialogButtonBox.StandardButton.Ok: "desktop.confirm",
+        QDialogButtonBox.StandardButton.Yes: "desktop.yes",
+        QDialogButtonBox.StandardButton.No: "desktop.no",
+    }
+    for standard, key in labels.items():
+        button = buttons.button(standard)
+        if button:
+            button.setText(t(key))
 
 
 def apply_input_border_style(widget, selector):

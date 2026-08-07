@@ -10,6 +10,7 @@ from desktop_ui.pages.about import AboutPage
 from desktop_ui.changelog_dialog import ChangelogDialog, extract_release_notes
 from desktop_ui.main_window import MainWindow
 from desktop_ui.widgets import NavigationStatusIndicator
+from utils.i18n import get_language, set_language
 
 
 class NavigationStatusIndicatorTests(unittest.TestCase):
@@ -88,6 +89,20 @@ English content
         self.assertNotIn("English content", extract_release_notes(markdown, "2.0.8", "zh_CN"))
         self.assertIn("English content", extract_release_notes(markdown, "2.0.8", "en"))
         self.assertNotIn("旧版本内容", extract_release_notes(markdown, "2.0.8", "en"))
+
+    def test_changelog_dialog_themes_content_and_translates_close_button(self):
+        language = get_language()
+        self.addCleanup(set_language, language)
+        set_language("en")
+        dialog = ChangelogDialog("2.0.8")
+        self.addCleanup(dialog.deleteLater)
+
+        self.assertEqual(dialog.close_button.text(), "Close")
+        self.assertIn("QTextBrowser", dialog.styleSheet())
+
+        set_language("zh_CN")
+        dialog.retranslate()
+        self.assertEqual(dialog.close_button.text(), "关闭")
 
     def test_active_status_is_hidden_on_its_page_and_shown_elsewhere(self):
         host = self._status_host()

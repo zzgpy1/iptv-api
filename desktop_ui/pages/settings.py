@@ -5,7 +5,7 @@ from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, Tab
 from desktop_ui.delegates import ConfigValueDelegate, ElidedDescriptionDelegate
 from desktop_ui.models import ConfigTableModel
 from desktop_ui.playback import PlaybackPreferencesDialog
-from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, configure_table_columns
+from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, apply_dialog_theme, configure_table_columns, localize_dialog_buttons
 from utils.config import ConfigValidationError
 from utils.i18n import t
 
@@ -94,6 +94,7 @@ class SettingsPage(QWidget):
             return
         key = str(self.model.index(index.row(), 0).data(Qt.ItemDataRole.DisplayRole) or "")
         dialog = QDialog(self)
+        apply_dialog_theme(dialog)
         dialog.setWindowTitle(key)
         dialog.setMinimumWidth(520)
         dialog.resize(680, 220)
@@ -102,7 +103,7 @@ class SettingsPage(QWidget):
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, dialog)
-        buttons.button(QDialogButtonBox.StandardButton.Close).setText(t("desktop.close"))
+        localize_dialog_buttons(buttons)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(label)
         layout.addWidget(buttons)

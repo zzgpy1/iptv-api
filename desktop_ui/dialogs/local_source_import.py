@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QTableWidget, QTableWidgetItem, QVBoxLayout
 from qfluentwidgets import BodyLabel
 
+from desktop_ui.widgets import apply_dialog_theme, localize_dialog_buttons
 from utils.i18n import t
 
 
@@ -9,6 +10,7 @@ class LocalSourceImportDialog(QDialog):
     def __init__(self, records, errors, parent=None):
         super().__init__(parent)
         self.records = list(records) + list(errors)
+        apply_dialog_theme(self)
         self.setWindowTitle(t("desktop.import_local_sources"))
         self.resize(920, 520)
 
@@ -46,7 +48,7 @@ class LocalSourceImportDialog(QDialog):
         buttons.setStandardButtons(
             QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok
         )
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
+        localize_dialog_buttons(buttons)
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("desktop.import_confirm"))
         buttons.accepted.connect(self._accept)
         buttons.rejected.connect(self.reject)

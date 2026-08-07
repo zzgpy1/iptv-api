@@ -3,7 +3,7 @@ from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, FluentIcon, ToolButton
 
-from desktop_ui.widgets import AppLineEdit
+from desktop_ui.widgets import AppLineEdit, apply_dialog_theme, localize_dialog_buttons
 from utils.i18n import t
 
 
@@ -19,6 +19,7 @@ class ChannelLogoDialog(QDialog):
     def __init__(self, channel: dict, logo_loader, parent=None):
         super().__init__(parent)
         self._logo_loader = logo_loader
+        apply_dialog_theme(self)
         self.setWindowTitle(t("desktop.edit_channel_logo"))
         self.setMinimumWidth(440)
 
@@ -45,8 +46,7 @@ class ChannelLogoDialog(QDialog):
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel,
             self,
         )
-        buttons.button(QDialogButtonBox.StandardButton.Save).setText(t("desktop.save"))
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("desktop.cancel"))
+        localize_dialog_buttons(buttons)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 18, 20, 18)
