@@ -27,6 +27,17 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 
+def _configure_service_output():
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if not reconfigure:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):
+            pass
+
+
 def _start_version_check():
     if os.getenv("IPTV_API_SKIP_VERSION_CHECK"):
         return
@@ -424,6 +435,7 @@ def _prompt_rtmp_install():
 
 
 def run_service(prompt_for_install=True):
+    _configure_service_output()
     try:
         if not os.getenv("GITHUB_ACTIONS"):
             if _service_port_is_open(config.app_port):

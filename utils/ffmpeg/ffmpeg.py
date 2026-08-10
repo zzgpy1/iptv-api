@@ -5,6 +5,7 @@ from time import time
 
 from utils.ffmpeg.executable import resolve_ffmpeg_executable
 from utils.i18n import t
+from utils.process import no_window_process_kwargs
 
 min_measure_time = 1.0
 stability_window = 4
@@ -21,7 +22,10 @@ def check_ffmpeg_installed_status():
         if not executable:
             return False
         result = subprocess.run(
-            [executable, "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            [executable, "-version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            **no_window_process_kwargs(),
         )
         status = result.returncode == 0
     except FileNotFoundError:
@@ -58,8 +62,12 @@ async def ffmpeg_url(url, headers=None, timeout=10):
     start = time()
 
     try:
-        proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
+        proc = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            **no_window_process_kwargs(),
+        )
 
         while True:
             try:

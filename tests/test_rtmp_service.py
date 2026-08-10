@@ -156,6 +156,76 @@ class RtmpServiceStartupTests(unittest.TestCase):
 
         stop_service.assert_called_once_with()
 
+    @patch("service.rtmp.rtmp_runtime_status")
+    @patch("service.rtmp._rtmp_stats_available", return_value=False)
+    @patch("service.rtmp._wait_for_rtmp_service", return_value=True)
+    @patch("service.rtmp.render_nginx_conf")
+    @patch("service.rtmp.os.makedirs")
+    @patch("service.rtmp.os.chdir")
+    @patch("service.rtmp.os.getcwd", return_value="C:\\workspace")
+    @patch("service.rtmp.subprocess.Popen")
+    def test_windows_nginx_starts_without_a_console_or_command_shell(
+        self,
+        popen,
+        _getcwd,
+        _chdir,
+        _makedirs,
+        _render,
+        _wait,
+        _probe,
+        runtime_status,
+    ):
+        runtime_status.return_value = {
+            "available": True,
+            "executable": "C:\\runtime\\nginx.exe",
+            "module": "",
+        }
+
+        with patch.object(rtmp.sys, "platform", "win32"), patch.object(
+            rtmp, "nginx_dir", "C:\\runtime"
+        ):
+            self.assertTrue(rtmp.start_rtmp_service())
+
+        popen.assert_called_once_with(
+            [
+                "C:\\runtime\\nginx.exe",
+                "-p",
+                "C:\\runtime/",
+                "-c",
+                "conf/nginx.conf",
+            ],
+            stdin=rtmp.subprocess.DEVNULL,
+            stdout=rtmp.subprocess.DEVNULL,
+            stderr=rtmp.subprocess.DEVNULL,
+            creationflags=0x08000000,
+        )
+
+    @patch("service.rtmp.os.chdir")
+    @patch("service.rtmp.os.getcwd", return_value="C:\\workspace")
+    @patch("service.rtmp.subprocess.run")
+    def test_windows_nginx_stops_without_a_batch_shell(self, run, _getcwd, _chdir):
+        rtmp._nginx_started_by_app = True
+        with patch.object(rtmp.sys, "platform", "win32"), patch.object(
+            rtmp, "nginx_dir", "C:\\runtime"
+        ), patch.object(rtmp, "nginx_path", "C:\\runtime\\nginx.exe"):
+            rtmp.stop_rtmp_service()
+
+        run.assert_called_once_with(
+            [
+                "C:\\runtime\\nginx.exe",
+                "-p",
+                "C:\\runtime/",
+                "-c",
+                "conf/nginx.conf",
+                "-s",
+                "stop",
+            ],
+            capture_output=True,
+            timeout=10,
+            creationflags=0x08000000,
+        )
+        self.assertFalse(rtmp._nginx_started_by_app)
+
 
 if __name__ == "__main__":
     unittest.main()

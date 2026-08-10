@@ -5,6 +5,7 @@ import tempfile
 import time
 
 from utils.ffmpeg.executable import resolve_ffmpeg_executable
+from utils.process import no_window_process_kwargs
 
 
 def _parse_rate(value: str | None) -> float | None:
@@ -114,6 +115,7 @@ async def capture_stream_screenshot(
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            **no_window_process_kwargs(),
         )
         try:
             _, stderr = await asyncio.wait_for(process.communicate(), timeout=max(1, int(timeout)))

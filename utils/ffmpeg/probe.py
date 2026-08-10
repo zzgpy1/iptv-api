@@ -3,6 +3,7 @@ import json
 import subprocess
 
 from utils.ffmpeg.executable import resolve_ffprobe_executable
+from utils.process import no_window_process_kwargs
 
 
 def _parse_probe_data(data: dict) -> dict | None:
@@ -84,8 +85,12 @@ async def probe_url(url: str, headers: dict = None, timeout: int = 10) -> dict |
             args += ['-headers', header_str]
         args += [url]
 
-        proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
+        proc = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            **no_window_process_kwargs(),
+        )
         try:
             out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         except asyncio.TimeoutError:
@@ -162,7 +167,14 @@ def probe_url_sync(url: str, headers: dict = None, timeout: int = 10) -> dict | 
     args += [url]
 
     try:
-        res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
+        res = subprocess.run(
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout,
+            **no_window_process_kwargs(),
+        )
     except subprocess.TimeoutExpired:
         return None
     except FileNotFoundError:
@@ -214,8 +226,12 @@ async def get_resolution_ffprobe(url: str, headers: dict = None, timeout: int = 
             args += ['-headers', header_str]
         args += [url]
 
-        proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
+        proc = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            **no_window_process_kwargs(),
+        )
         try:
             out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         except asyncio.TimeoutError:
