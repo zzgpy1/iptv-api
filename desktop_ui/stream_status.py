@@ -5,6 +5,7 @@ from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import QToolTip
 from qfluentwidgets import FluentIcon, TableItemDelegate
 
+from desktop_ui.formatting import format_bandwidth
 from utils.i18n import t
 
 
@@ -57,7 +58,7 @@ def build_channel_stream_states(snapshot: dict) -> dict[str, dict]:
             status=status,
             streams=state["stream_count"],
             clients=state["stream_clients"],
-            bandwidth=f"{state['stream_bw_out'] / 1000:.1f} Kbit/s",
+            bandwidth=format_bandwidth(state["stream_bw_out"]),
             idle=_idle_countdown(state["stream_idle_remaining"]),
         )
     return states

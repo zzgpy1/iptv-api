@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QAbstractItemView, QDialog, QHBoxLayout, QListWidg
 from qfluentwidgets import BodyLabel, CaptionLabel, CardWidget, CheckBox, ComboBox, FluentIcon, InfoBar, InfoBarPosition, PushButton, StrongBodyLabel, TableView, ToolButton, isDarkTheme, qconfig
 
 import utils.constants as constants
+from desktop_ui.formatting import format_bandwidth
 from desktop_ui.models import MappingTableModel
 from desktop_ui.playback import play_url
 from desktop_ui.widgets import AccentPushButton, AppSearchLineEdit, DangerPushButton, GlassCard, configure_table_columns
@@ -332,7 +333,7 @@ class RtmpPage(QWidget):
         chart_header.addWidget(self.chart_title)
         chart_header.addStretch(1)
         chart_header.addWidget(self.chart_status)
-        self.chart_value = StrongBodyLabel("0.0 Kbit/s", self.chart_card)
+        self.chart_value = StrongBodyLabel(format_bandwidth(0), self.chart_card)
         chart_value_font = self.chart_value.font()
         chart_value_font.setPointSize(18)
         chart_value_font.setBold(True)
@@ -410,7 +411,7 @@ class RtmpPage(QWidget):
             ("channel_name", t("name.channel"), _stream_channel_name),
             ("clients", t("desktop.connections_short"), None),
             ("resolution", t("desktop.column_resolution"), None),
-            ("bw_out", t("desktop.column_bandwidth"), lambda value, _: f"{float(value or 0) / 1000:.1f} Kbit/s"),
+            ("bw_out", t("desktop.column_bandwidth"), lambda value, _: format_bandwidth(value)),
             ("uptime", t("desktop.column_uptime"), None),
             ("idle_remaining", t("desktop.idle_release"), _idle_countdown),
         ]
@@ -500,7 +501,7 @@ class RtmpPage(QWidget):
             )
         self.value_axis.setRange(0, max(10, max((value for _, value in self.samples), default=0) * 1.15))
         if streams:
-            target = bw_out / 1000
+            target = bw_out
             self.chart_card.show()
             self.chart_value.show()
             self.chart_meta.show()
@@ -508,7 +509,7 @@ class RtmpPage(QWidget):
             self.chart_status.setStyleSheet("color: #059669;")
             self.chart_meta.setText(t("desktop.stream_chart_meta").format(streams=len(streams), clients=clients))
             self.chart_card.set_accent("#2563EB")
-            if abs(target - self._bandwidth_target) >= 0.1:
+            if abs(target - self._bandwidth_target) >= 100:
                 self._bandwidth_target = target
                 self.bandwidth_animation.stop()
                 self.bandwidth_animation.setStartValue(self._displayed_bandwidth)
@@ -520,7 +521,7 @@ class RtmpPage(QWidget):
 
     def _set_displayed_bandwidth(self, value):
         self._displayed_bandwidth = float(value)
-        self.chart_value.setText(f"{self._displayed_bandwidth:.1f} Kbit/s")
+        self.chart_value.setText(format_bandwidth(self._displayed_bandwidth))
 
     def _set_bandwidth_idle_state(self):
         self.bandwidth_animation.stop()
