@@ -1,6 +1,7 @@
 import asyncio
 import http.cookies
 import re
+import socket
 from collections import deque
 from contextlib import asynccontextmanager
 from time import time
@@ -65,8 +66,43 @@ ad_filter_keywords = [
 ad_max_loop_duration = 90
 
 
+def _is_aiohttp_dns_shield_error(context: dict) -> bool:
+    exception = context.get("exception")
+    if not isinstance(exception, socket.gaierror):
+        return False
+    if context.get("message") != "gaierror exception in shielded future":
+        return False
+    future = context.get("future")
+    get_coro = getattr(future, "get_coro", None)
+    if not callable(get_coro):
+        return False
+    coro = get_coro()
+    return getattr(coro, "__qualname__", "").endswith(
+        "TCPConnector._resolve_host_with_throttle"
+    )
+
+
+def _install_aiohttp_dns_error_filter() -> None:
+    loop = asyncio.get_running_loop()
+    previous_handler = loop.get_exception_handler()
+    if getattr(previous_handler, "_filters_aiohttp_dns_shield_errors", False):
+        return
+
+    def handle_exception(active_loop, context):
+        if _is_aiohttp_dns_shield_error(context):
+            return
+        if previous_handler is not None:
+            previous_handler(active_loop, context)
+        else:
+            active_loop.default_exception_handler(context)
+
+    handle_exception._filters_aiohttp_dns_shield_errors = True
+    loop.set_exception_handler(handle_exception)
+
+
 def create_speed_test_session(concurrency: int):
     limit = max(1, int(concurrency or 1))
+    _install_aiohttp_dns_error_filter()
     return ClientSession(
         connector=TCPConnector(ssl=False, limit=limit, limit_per_host=min(2, limit), ttl_dns_cache=300),
         timeout=ClientTimeout(total=None),
