@@ -16,6 +16,7 @@ docker_build = "docker buildx build --platform linux/amd64,linux/arm64,linux/arm
 [dev-packages]
 pefile = {version = "==2024.8.26", markers = "sys_platform == 'win32'"}
 pyinstaller = "==6.21.0"
+pywin32 = {version = "==312", markers = "sys_platform == 'win32'"}
 pywin32-ctypes = {version = "==0.2.3", markers = "sys_platform == 'win32'"}
 pystray = {version = "==0.19.5", markers = "platform_system != 'Linux'"}
 pillow = "==12.3.0"

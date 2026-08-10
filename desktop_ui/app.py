@@ -48,7 +48,18 @@ def _confirm_update_launch():
         pass
 
 
+def _verify_runtime():
+    if sys.platform == "win32":
+        import win32api
+        import win32con
+        import win32gui
+
+    return 0
+
+
 def main():
+    if "--verify-runtime" in sys.argv:
+        return _verify_runtime()
     _prepare_runtime()
     if "--service" in sys.argv:
         _copy_runtime_resources()
