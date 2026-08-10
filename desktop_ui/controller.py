@@ -447,12 +447,16 @@ class ServiceProcessController(QObject):
         self.process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self.process.setWorkingDirectory(os.path.abspath("."))
         self.process.setProcessEnvironment(QProcessEnvironment.systemEnvironment())
+        service_arguments = ["--parent-pid", str(os.getpid())]
         if getattr(sys, "frozen", False):
             self.process.setProgram(sys.executable)
-            self.process.setArguments(["--service"])
+            self.process.setArguments(["--service", *service_arguments])
         else:
             self.process.setProgram(sys.executable)
-            self.process.setArguments([os.path.abspath("service/app.py")])
+            self.process.setArguments([
+                os.path.abspath("service/app.py"),
+                *service_arguments,
+            ])
         environment = self.process.processEnvironment()
         environment.insert("IPTV_API_SKIP_VERSION_CHECK", "1")
         environment.insert("PYTHONIOENCODING", "utf-8:replace")

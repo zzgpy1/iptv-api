@@ -1,9 +1,11 @@
-import os
-import sys
-import time
+import argparse
+import ctypes
 import ipaddress
+import os
 import socket
+import sys
 import threading
+import time
 
 sys.path.append(os.path.dirname(sys.path[0]))
 from flask import Flask, cli as flask_cli, send_from_directory, make_response, request, jsonify, Response
@@ -25,6 +27,9 @@ import mimetypes
 app = Flask(__name__)
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+SERVICE_ID = "iptv-api-desktop-service"
+_service_parent_pid = 0
+_service_started_at = time.time()
 
 
 def _configure_service_output():
@@ -59,6 +64,56 @@ def _service_port_is_open(port):
             return True
     except OSError:
         return False
+
+
+def _process_exists(pid):
+    try:
+        pid = int(pid)
+        if pid <= 0 or pid == os.getpid():
+            return False
+        if sys.platform == "win32":
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.OpenProcess.argtypes = [ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
+            kernel32.OpenProcess.restype = ctypes.c_void_p
+            kernel32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+            kernel32.WaitForSingleObject.restype = ctypes.c_ulong
+            kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+            handle = kernel32.OpenProcess(0x00100000, False, pid)
+            if not handle:
+                return ctypes.get_last_error() == 5
+            try:
+                return kernel32.WaitForSingleObject(handle, 0) == 0x00000102
+            finally:
+                kernel32.CloseHandle(handle)
+        os.kill(pid, 0)
+        return True
+    except (OSError, TypeError, ValueError):
+        return False
+
+
+def _watch_parent(parent_pid, interval=1.0):
+    while _process_exists(parent_pid):
+        time.sleep(interval)
+    try:
+        stop_all_streams()
+    finally:
+        try:
+            stop_rtmp_service()
+        finally:
+            os._exit(0)
+
+
+def _start_parent_monitor(parent_pid):
+    if not parent_pid:
+        return None
+    thread = threading.Thread(
+        target=_watch_parent,
+        args=(parent_pid,),
+        name="service-parent-monitor",
+        daemon=True,
+    )
+    thread.start()
+    return thread
 
 
 @app.route("/")
@@ -413,6 +468,24 @@ def shutdown_rtmp_runtime():
     return jsonify({"stopped": True})
 
 
+@app.get('/api/runtime/identity')
+def runtime_identity():
+    if not _local_request():
+        return jsonify({t("name.error"): t("msg.api_local_only")}), 403
+    version = get_version_info()
+    return jsonify({
+        "service": SERVICE_ID,
+        "pid": os.getpid(),
+        "parent_pid": _service_parent_pid,
+        "parent_alive": (
+            _process_exists(_service_parent_pid) if _service_parent_pid else None
+        ),
+        "started_at": _service_started_at,
+        "version": version.get("version"),
+        "build_revision": version.get("build_revision"),
+    })
+
+
 def _prompt_rtmp_install():
     status = rtmp_runtime_status()
     if sys.platform != "darwin" or not config.open_rtmp or status.get("available") or not sys.stdin.isatty():
@@ -434,12 +507,16 @@ def _prompt_rtmp_install():
         ))
 
 
-def run_service(prompt_for_install=True):
+def run_service(prompt_for_install=True, parent_pid=0):
+    global _service_parent_pid, _service_started_at
     _configure_service_output()
     try:
         if not os.getenv("GITHUB_ACTIONS"):
             if _service_port_is_open(config.app_port):
                 return
+            _service_parent_pid = int(parent_pid or 0)
+            _service_started_at = time.time()
+            _start_parent_monitor(_service_parent_pid)
             if prompt_for_install:
                 _prompt_rtmp_install()
             rtmp_started = False
@@ -468,4 +545,7 @@ def run_service(prompt_for_install=True):
 
 
 if __name__ == "__main__":
-    run_service()
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--parent-pid", type=int, default=0)
+    arguments, _ = parser.parse_known_args()
+    run_service(parent_pid=arguments.parent_pid)
