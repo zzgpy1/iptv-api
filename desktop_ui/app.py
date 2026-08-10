@@ -64,12 +64,26 @@ def main():
     if "--service" in sys.argv:
         _copy_runtime_resources()
         from service.app import run_service
-        run_service()
+        try:
+            parent_index = sys.argv.index("--parent-pid") + 1
+            parent_pid = int(sys.argv[parent_index])
+        except (ValueError, IndexError):
+            parent_pid = 0
+        run_service(parent_pid=parent_pid)
         return 0
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
     app.setApplicationDisplayName("IPTV API")
     app.setQuitOnLastWindowClosed(False)
+    from desktop_ui.single_instance import bind_activation, create_single_instance_server
+
+    try:
+        single_instance = create_single_instance_server()
+    except RuntimeError as exc:
+        QMessageBox.critical(None, "IPTV API", str(exc))
+        return 2
+    if single_instance is None:
+        return 0
     _configure_fonts()
     try:
         _copy_runtime_resources()
@@ -84,6 +98,7 @@ def main():
     setTheme({"dark": Theme.DARK, "light": Theme.LIGHT}.get(theme, Theme.AUTO))
     setThemeColor("#0E5CAD")
     window = MainWindow()
+    bind_activation(single_instance, window.show_and_raise)
     window.show()
     _confirm_update_launch()
     return app.exec()

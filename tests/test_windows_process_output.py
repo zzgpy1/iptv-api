@@ -34,7 +34,10 @@ class WindowsProcessOutputTests(unittest.TestCase):
             stream.flush()
 
         self.assertEqual(stream.encoding.lower(), "utf-8")
-        self.assertEqual(raw.getvalue().decode("utf-8"), "🌐 直连\n")
+        self.assertEqual(
+            raw.getvalue().decode("utf-8"),
+            f"🌐 直连{os.linesep}",
+        )
 
     def test_service_child_receives_utf8_output_environment(self):
         process = Mock()
@@ -52,6 +55,11 @@ class WindowsProcessOutputTests(unittest.TestCase):
             environment.value("PYTHONIOENCODING"),
             "utf-8:replace",
         )
+        process.setArguments.assert_called_once_with([
+            "--service",
+            "--parent-pid",
+            str(os.getpid()),
+        ])
 
     def test_running_service_child_is_not_started_twice(self):
         controller = ServiceProcessController()
