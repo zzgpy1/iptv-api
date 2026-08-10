@@ -54,7 +54,7 @@
 - `urls_limit` 保留兼容，新的配置建议使用 `output_urls_limit`。
 - 新增测速模式、快速测速目标和播放截图相关配置。
 - 新增 `service_port` 和 `public_url`。
-- `open_subscribe_epg`、`open_subscribe_logo`、`open_headers` 默认开启。
+- `open_subscribe_logo`、`open_headers` 默认开启；`open_subscribe_epg` 默认关闭，并增加流式解析与资源限制。
 - `open_auto_disable_source` 默认关闭。
 - `speed_test_limit = 0` 表示由性能模式自动决定测速并发。
 
@@ -121,7 +121,7 @@
 - `urls_limit` remains compatible; new configurations should use `output_urls_limit`.
 - Added speed-test mode, quick-test target, and playback screenshot settings.
 - Added `service_port` and `public_url`.
-- `open_subscribe_epg`, `open_subscribe_logo`, and `open_headers` are enabled by default.
+- `open_subscribe_logo` and `open_headers` are enabled by default; `open_subscribe_epg` is disabled by default and now uses streaming parsing with resource limits.
 - `open_auto_disable_source` is disabled by default.
 - `speed_test_limit = 0` lets the performance mode choose concurrency automatically.
 

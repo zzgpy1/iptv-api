@@ -307,6 +307,11 @@ open_speed_test = True
         )
         self.assertEqual(explicit.speed_test_mode, "manual")
 
+    def test_subscribe_epg_discovery_defaults_to_disabled(self):
+        manager, _, _ = self._manager("[Settings]\n")
+
+        self.assertFalse(manager.open_subscribe_epg)
+
     def test_save_validates_before_overwriting_user_config(self):
         manager, _, user_path = self._manager(
             """\

@@ -47,6 +47,8 @@ stability_window = 4
 stability_threshold = 0.12
 segment_sample_limit = 2
 playlist_max_bytes = 2 * 1024 * 1024
+stream_sample_max_bytes = 4 * 1024 * 1024
+stream_sample_max_seconds = 2.0
 
 ad_filter_keywords = [
     "no_signal",
@@ -129,7 +131,9 @@ async def _session(session, concurrency: int = 1):
 
 
 async def get_speed_with_download(url: str, headers: dict = None, session: Any = None,
-                                  timeout: int = speed_test_timeout, semaphore=None) -> dict[str, float | None]:
+                                  timeout: int = speed_test_timeout, semaphore=None,
+                                  max_bytes: int | None = None,
+                                  max_duration: float | None = None) -> dict[str, float | None]:
     """
     Get the speed of the url with a total timeout
     """
@@ -139,6 +143,9 @@ async def get_speed_with_download(url: str, headers: dict = None, session: Any =
     min_bytes = 64 * 1024
     last_sample_time = start_time
     last_sample_size = 0
+    max_bytes = stream_sample_max_bytes if max_bytes is None else max_bytes
+    max_duration = stream_sample_max_seconds if max_duration is None else max_duration
+    request_timeout = min(timeout, max_duration) if max_duration else timeout
 
     if session is None:
         session = ClientSession(connector=TCPConnector(ssl=False), trust_env=True)
@@ -149,11 +156,13 @@ async def get_speed_with_download(url: str, headers: dict = None, session: Any =
     speed_samples = deque(maxlen=stability_window)
     try:
         async with _limit(semaphore):
-            async with session.get(url, headers=headers, timeout=timeout) as response:
+            start_time = time()
+            last_sample_time = start_time
+            async with session.get(url, headers=headers, timeout=request_timeout) as response:
                 if response.status != 200:
                     raise Exception("Invalid response")
                 delay = int(round((time() - start_time) * 1000))
-                async for chunk in response.content.iter_any():
+                async for chunk in response.content.iter_chunked(64 * 1024):
                     if chunk:
                         total_size += len(chunk)
                         now = time()
@@ -165,6 +174,15 @@ async def get_speed_with_download(url: str, headers: dict = None, session: Any =
                             speed_samples.append(inst_speed)
                             last_sample_time = now
                             last_sample_size = total_size
+                        if (max_bytes and total_size >= max_bytes) or (
+                                max_duration and elapsed >= max_duration
+                        ):
+                            return {
+                                'speed': total_size / elapsed / 1024 / 1024 if elapsed > 0 else 0.0,
+                                'delay': delay,
+                                'size': total_size,
+                                'time': elapsed,
+                            }
                         if (elapsed >= min_measure_time and total_size >= min_bytes
                                 and len(speed_samples) >= stability_window):
                             mean = sum(speed_samples) / len(speed_samples)

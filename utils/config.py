@@ -592,7 +592,7 @@ class ConfigManager:
 
     @property
     def open_subscribe_epg(self):
-        return self.config.getboolean("Settings", "open_subscribe_epg", fallback=True)
+        return self.config.getboolean("Settings", "open_subscribe_epg", fallback=False)
 
     @property
     def speed_test_limit(self):

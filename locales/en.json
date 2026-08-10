@@ -30,6 +30,8 @@
   "msg.subscribe_urls_whitelist_total": "✅ Subscribe urls count: {default_count}, subscribe whitelist count: {whitelist_count}, disabled count: {disabled_count}, active total count: {total}",
   "msg.epg_urls_whitelist_total": "✅ EPG urls count: {default_count}, EPG whitelist count: {whitelist_count}, disabled count: {disabled_count}, active total count: {total}",
   "msg.subscribe_epg_found": "📡 Found {count} EPG urls from subscribe sources",
+  "msg.epg_duplicate_skipped": "⏭️ Skipped duplicate EPG source content: {url}",
+  "msg.epg_source_parsed": "✅ Parsed EPG source: {url}; retained {programmes} programmes",
   "msg.no_subscribe_urls": "❌ No valid subscribe urls found! Please check the {file}, you need to add subscribe urls to get the subscribe sources!",
   "msg.auto_disable_source": "⛔ {name} source disabled automatically: {url} ({reason})",
   "msg.auto_disable_source_done": "\uD83C\uDD97 {name}: ✅ Active count: {active_count}, ⛔ Disabled count: {disabled_count}",
