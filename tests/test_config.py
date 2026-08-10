@@ -2,9 +2,14 @@ import configparser
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from utils.config import CONFIG_SCHEMA, ConfigManager, ConfigValidationError
+from utils.config import (
+    CONFIG_SCHEMA,
+    ConfigManager,
+    ConfigValidationError,
+    _get_command_output,
+)
 from utils.tools import get_public_url
 
 
@@ -180,6 +185,40 @@ nginx_http_port = 8080
         with patch("utils.tools.config", manager):
             self.assertEqual(get_public_url(), "https://iptv.example.com/base")
             self.assertEqual(get_public_url(5180), "http://legacy.example:5180")
+
+    def test_windows_network_command_does_not_open_a_console(self):
+        completed = Mock(stdout="192.0.2.10\n")
+        with patch("utils.config.sys.platform", "win32"), patch(
+            "utils.config.subprocess.run", return_value=completed
+        ) as run:
+            self.assertEqual(
+                _get_command_output(["powershell", "-Command", "route"]),
+                "192.0.2.10",
+            )
+
+        run.assert_called_once_with(
+            ["powershell", "-Command", "route"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
+            creationflags=0x08000000,
+        )
+
+    def test_generated_public_domain_is_detected_only_once(self):
+        manager, _, _ = self._manager(
+            """\
+[Settings]
+public_domain = 127.0.0.1
+"""
+        )
+        with patch(
+            "utils.config._get_primary_ipv4", return_value="192.0.2.20"
+        ) as detect:
+            self.assertEqual(manager.public_domain, "192.0.2.20")
+            self.assertEqual(manager.public_domain, "192.0.2.20")
+
+        detect.assert_called_once_with()
 
     def test_empty_public_url_environment_keeps_configured_address(self):
         manager, _, _ = self._manager(

@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 import pytz
 
 from utils.performance import PERFORMANCE_MODES, get_performance_settings
+from utils.process import no_window_process_kwargs
 
 
 @dataclass(frozen=True)
@@ -179,6 +180,7 @@ def _get_command_output(args: list[str]) -> str:
             text=True,
             check=True,
             timeout=5,
+            **no_window_process_kwargs(),
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
         return ""
@@ -260,6 +262,7 @@ class ConfigManager:
         self._user_config_path = user_config_path
         self._environ = os.environ if environ is None else environ
         self._sources = {}
+        self._detected_public_domain = None
         self.load()
         self.override_config_with_env()
         self.validate()
@@ -686,20 +689,22 @@ class ConfigManager:
         cfg = self.config.get("Settings", "public_domain", fallback="127.0.0.1")
         if cfg and cfg != "127.0.0.1":
             return cfg
-        if address := _get_primary_ipv4():
-            return address
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            try:
-                s.connect(("8.8.8.8", 80))
-                ip = s.getsockname()[0]
-            finally:
-                s.close()
-            if ip and not ip.startswith("127."):
-                return ip
-        except Exception:
-            pass
-        return cfg
+        if self._detected_public_domain is None:
+            self._detected_public_domain = _get_primary_ipv4()
+            if not self._detected_public_domain:
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    try:
+                        s.connect(("8.8.8.8", 80))
+                        ip = s.getsockname()[0]
+                    finally:
+                        s.close()
+                    if ip and not ip.startswith("127."):
+                        self._detected_public_domain = ip
+                except Exception:
+                    pass
+            self._detected_public_domain = self._detected_public_domain or cfg
+        return self._detected_public_domain
 
     @property
     def public_port(self):
@@ -765,6 +770,7 @@ class ConfigManager:
         """
         Load the config
         """
+        self._detected_public_domain = None
         self.config = configparser.ConfigParser(interpolation=None)
         if self._user_config_path is None:
             self._user_config_path = resource_path(
