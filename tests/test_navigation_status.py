@@ -48,6 +48,30 @@ class NavigationStatusIndicatorTests(unittest.TestCase):
 
         self.assertEqual(statuses[-1], ("available", {"version": "9.9.9"}))
 
+    def test_about_page_displays_hotfix_revision(self):
+        page = AboutPage()
+        self.addCleanup(page.deleteLater)
+        statuses = []
+        page.status_changed.connect(lambda state, payload: statuses.append((state, payload)))
+
+        page._checked({
+            "newer": True,
+            "latest": "3.0.0",
+            "latest_revision": 20260810123045,
+            "current": "3.0.0",
+            "release_url": "https://example.com/release",
+            "asset_url": "https://example.com/hotfix.zip",
+            "asset_name": "hotfix.zip",
+        })
+
+        self.assertEqual(
+            statuses[-1],
+            ("available", {"version": "3.0.0 (r20260810123045)"}),
+        )
+        self.assertIn("r20260810123045", page.version_status.text())
+        page.retranslate()
+        self.assertIn("r20260810123045", page.version_status.text())
+
     def test_about_page_silently_ignores_automatic_check_failure(self):
         page = AboutPage()
         statuses = []

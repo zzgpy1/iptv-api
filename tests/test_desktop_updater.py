@@ -6,11 +6,24 @@ from pathlib import Path
 from unittest.mock import patch
 
 from desktop_ui.update_installer import application_root
-from desktop_ui.update_manager import _checksum_for_asset, _sha256_from_digest
+from desktop_ui.update_manager import (
+    _asset_selection,
+    _checksum_for_asset,
+    _manifest_from_bytes,
+    _sha256_from_digest,
+)
 from desktop_ui.updater import UpdateError, _safe_extract, extracted_application_root, install_update, sha256_file
 
 
 class DesktopUpdaterTests(unittest.TestCase):
+    @staticmethod
+    def _release_asset(name, digest=""):
+        return {
+            "name": name,
+            "browser_download_url": f"https://example.com/{name}",
+            "digest": digest,
+        }
+
     def test_release_checksum_parsing_requires_the_matching_asset(self):
         content = (
             b"a" * 64 + b"  IPTV-API-GUI-Windows-X64-v2.0.0.zip\n"
@@ -22,6 +35,95 @@ class DesktopUpdaterTests(unittest.TestCase):
         )
         self.assertEqual(_checksum_for_asset(content, "missing.zip"), "")
         self.assertEqual(_sha256_from_digest("sha256:" + "c" * 64), "c" * 64)
+
+    def test_manifest_selects_the_latest_complete_active_revision(self):
+        assets = [
+            self._release_asset("IPTV-API-GUI-Windows-X64-v3.0.0.zip"),
+            self._release_asset("IPTV-API-GUI-macOS-ARM64-v3.0.0.zip"),
+            self._release_asset("IPTV-API-GUI-Windows-X64-v3.0.0-r20260810120000.zip"),
+            self._release_asset("IPTV-API-GUI-macOS-ARM64-v3.0.0-r20260810120000.zip"),
+            self._release_asset("IPTV-API-GUI-Windows-X64-v3.0.0-r20260811120000.zip"),
+            self._release_asset("IPTV-API-GUI-macOS-ARM64-v3.0.0-r20260811120000.zip"),
+        ]
+        manifest = {
+            "schema_version": 1,
+            "version": "3.0.0",
+            "builds": [
+                {
+                    "revision": 20260810120000,
+                    "status": "active",
+                    "assets": {
+                        "windows-x64": assets[2]["name"],
+                        "macos-arm64": assets[3]["name"],
+                    },
+                },
+                {
+                    "revision": 20260811120000,
+                    "status": "active",
+                    "assets": {
+                        "windows-x64": assets[4]["name"],
+                        "macos-arm64": assets[5]["name"],
+                    },
+                },
+            ],
+        }
+
+        asset, revision = _asset_selection(
+            assets,
+            "3.0.0",
+            manifest,
+            platform_name="win32",
+            machine_name="AMD64",
+        )
+
+        self.assertEqual(asset["name"], assets[4]["name"])
+        self.assertEqual(revision, 20260811120000)
+
+    def test_deleted_or_withdrawn_revision_falls_back_to_legacy_asset(self):
+        windows = self._release_asset("IPTV-API-GUI-Windows-X64-v3.0.0.zip")
+        macos = self._release_asset("IPTV-API-GUI-macOS-ARM64-v3.0.0.zip")
+        deleted_windows = "IPTV-API-GUI-Windows-X64-v3.0.0-r20260811120000.zip"
+        hotfix_macos = self._release_asset("IPTV-API-GUI-macOS-ARM64-v3.0.0-r20260811120000.zip")
+        manifest = {
+            "schema_version": 1,
+            "version": "3.0.0",
+            "builds": [{
+                "revision": 20260811120000,
+                "status": "active",
+                "assets": {
+                    "windows-x64": deleted_windows,
+                    "macos-arm64": hotfix_macos["name"],
+                },
+            }],
+        }
+
+        asset, revision = _asset_selection(
+            [windows, macos, hotfix_macos],
+            "3.0.0",
+            manifest,
+            platform_name="darwin",
+            machine_name="arm64",
+        )
+
+        self.assertEqual(asset, macos)
+        self.assertEqual(revision, 0)
+
+        manifest["builds"][0]["status"] = "withdrawn"
+        asset, revision = _asset_selection(
+            [windows, macos, self._release_asset(deleted_windows), hotfix_macos],
+            "3.0.0",
+            manifest,
+            platform_name="win32",
+            machine_name="AMD64",
+        )
+        self.assertEqual(asset, windows)
+        self.assertEqual(revision, 0)
+
+    def test_manifest_parser_validates_schema(self):
+        content = b'{"schema_version": 1, "version": "3.0.0", "builds": []}'
+        self.assertEqual(_manifest_from_bytes(content)["version"], "3.0.0")
+        with self.assertRaises(ValueError):
+            _manifest_from_bytes(b'{"schema_version": 2, "builds": []}')
 
     def test_application_root_uses_the_app_bundle_on_macos(self):
         executable = "/Applications/IPTV API.app/Contents/MacOS/IPTV API"

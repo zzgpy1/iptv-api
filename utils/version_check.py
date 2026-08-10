@@ -15,12 +15,31 @@ def version_tuple(value: str) -> tuple[int, ...]:
     return tuple(numbers or [0])
 
 
-def parse_release(data: dict, current_version: str) -> dict:
+def build_revision(value: object) -> int:
+    text = str(value or "").strip()
+    return int(text) if text.isdigit() else 0
+
+
+def parse_release(
+    data: dict,
+    current_version: str,
+    current_revision: object = 0,
+    latest_revision: object = 0,
+) -> dict:
     latest = str(data.get("tag_name") or data.get("name") or "").lstrip("v")
+    current_build = build_revision(current_revision)
+    latest_build = build_revision(latest_revision)
+    version_comparison = version_tuple(latest) > version_tuple(current_version)
+    revision_comparison = (
+        version_tuple(latest) == version_tuple(current_version)
+        and latest_build > current_build
+    )
     return {
         "current": current_version,
         "latest": latest,
-        "newer": version_tuple(latest) > version_tuple(current_version),
+        "current_revision": current_build,
+        "latest_revision": latest_build,
+        "newer": version_comparison or revision_comparison,
         "release_url": data.get("html_url") or REPOSITORY_URL + "/releases/latest",
         "assets": data.get("assets") or [],
     }

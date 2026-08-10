@@ -32,7 +32,11 @@ class AboutPage(QWidget):
         self._update_state = "not_checked"
         self._update_result = None
         self._automatic_check = False
-        self.manager = UpdateManager(str(info.get("version") or "0"), self)
+        self.manager = UpdateManager(
+            str(info.get("version") or "0"),
+            self,
+            current_revision=info.get("build_revision") or 0,
+        )
 
         logo = QLabel(self)
         logo.setFixedSize(88, 88)
@@ -138,8 +142,9 @@ class AboutPage(QWidget):
         self.asset_name = result["asset_name"]
         self.asset_sha256 = result.get("asset_sha256") or ""
         if result["newer"]:
-            self.status_changed.emit("available", {"version": result["latest"]})
-            self.version_status.setText(t("desktop.update_available").format(version=result["latest"]))
+            latest = self._latest_display(result)
+            self.status_changed.emit("available", {"version": latest})
+            self.version_status.setText(t("desktop.update_available").format(version=latest))
             self.version_detail.setText(t("desktop.update_available_desc"))
             self.download_button.setVisible(bool(self.asset_url))
             self.install_button.hide()
@@ -149,6 +154,12 @@ class AboutPage(QWidget):
             self.version_detail.setText(t("desktop.current_version_latest").format(version=result["current"]))
             self.download_button.hide()
             self.install_button.hide()
+
+    @staticmethod
+    def _latest_display(result: dict) -> str:
+        latest = str(result.get("latest") or "")
+        revision = result.get("latest_revision")
+        return f"{latest} (r{revision})" if revision else latest
 
     def _check_failed(self, message: str):
         automatic = self._automatic_check
@@ -234,7 +245,11 @@ class AboutPage(QWidget):
         elif self._update_state == "checking":
             self.version_status.setText(t("desktop.checking_updates"))
         elif self._update_state == "available" and self._update_result:
-            self.version_status.setText(t("desktop.update_available").format(version=self._update_result["latest"]))
+            self.version_status.setText(
+                t("desktop.update_available").format(
+                    version=self._latest_display(self._update_result)
+                )
+            )
             self.version_detail.setText(t("desktop.update_available_desc"))
         elif self._update_state == "current" and self._update_result:
             self.version_status.setText(t("desktop.up_to_date"))

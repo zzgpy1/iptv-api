@@ -1,6 +1,7 @@
 import json
 import os
 import platform
+import re
 import sys
 from pathlib import Path
 
@@ -8,26 +9,110 @@ from PySide6.QtCore import QObject, QSaveFile, QStandardPaths, QUrl, Signal
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 
-from utils.version_check import LATEST_RELEASE_API, REPOSITORY_URL, parse_release
+from utils.version_check import LATEST_RELEASE_API, REPOSITORY_URL, build_revision, parse_release
 
 
-def _asset_for_platform(assets: list[dict]) -> dict | None:
-    platform_token = "windows" if sys.platform == "win32" else "macos" if sys.platform == "darwin" else ""
+UPDATE_MANIFEST_NAME = "UPDATE-MANIFEST.json"
+REQUIRED_BUILD_ASSETS = ("windows-x64", "macos-arm64")
+
+
+def _platform_asset_key(
+    platform_name: str | None = None,
+    machine_name: str | None = None,
+) -> str:
+    platform_name = platform_name or sys.platform
+    machine_name = (machine_name or platform.machine()).lower()
+    platform_token = "windows" if platform_name == "win32" else "macos" if platform_name == "darwin" else ""
     if not platform_token:
-        return None
-    machine = platform.machine().lower()
-    arch_token = "arm64" if machine in {"arm64", "aarch64"} else "x64"
-    candidates = [
-        asset for asset in assets
-        if platform_token in str(asset.get("name", "")).lower()
-        and str(asset.get("name", "")).lower().endswith(".zip")
-    ]
-    exact = [asset for asset in candidates if arch_token in str(asset.get("name", "")).lower()]
-    compatible = exact or [
-        asset for asset in candidates
-        if not any(token in str(asset.get("name", "")).lower() for token in ("x64", "arm64"))
-    ]
-    return sorted(compatible, key=lambda asset: str(asset.get("name", "")), reverse=True)[0] if compatible else None
+        return ""
+    arch_token = "arm64" if machine_name in {"arm64", "aarch64"} else "x64"
+    return f"{platform_token}-{arch_token}"
+
+
+def _manifest_asset(assets: list[dict]) -> dict | None:
+    return next(
+        (
+            asset for asset in assets
+            if str(asset.get("name", "")).lower() == UPDATE_MANIFEST_NAME.lower()
+        ),
+        None,
+    )
+
+
+def _manifest_from_bytes(content: bytes) -> dict:
+    manifest = json.loads(content.decode("utf-8-sig"))
+    if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
+        raise ValueError("更新清单格式无效")
+    if not isinstance(manifest.get("builds"), list):
+        raise ValueError("更新清单缺少构建记录")
+    return manifest
+
+
+def _revision_asset_matches(name: str, key: str, version: str, revision: int) -> bool:
+    platform_token, arch_token = key.split("-", maxsplit=1)
+    platform_label = "Windows" if platform_token == "windows" else "macOS"
+    return bool(re.search(
+        rf"-{platform_label}-{arch_token}-v{re.escape(version)}-r{revision}\.zip$",
+        name,
+        flags=re.IGNORECASE,
+    ))
+
+
+def _legacy_asset_for_platform(assets: list[dict], key: str, version: str) -> dict | None:
+    platform_token, arch_token = key.split("-", maxsplit=1)
+    platform_label = "Windows" if platform_token == "windows" else "macOS"
+    pattern = re.compile(
+        rf"-{platform_label}-{arch_token}-v{re.escape(version)}\.zip$",
+        flags=re.IGNORECASE,
+    )
+    return next(
+        (asset for asset in assets if pattern.search(str(asset.get("name", "")))),
+        None,
+    )
+
+
+def _asset_selection(
+    assets: list[dict],
+    version: str,
+    manifest: dict | None = None,
+    platform_name: str | None = None,
+    machine_name: str | None = None,
+) -> tuple[dict | None, int]:
+    key = _platform_asset_key(platform_name, machine_name)
+    if not key:
+        return None, 0
+    assets_by_name = {
+        str(asset.get("name", "")): asset
+        for asset in assets
+        if str(asset.get("name", ""))
+    }
+    candidates = []
+    if manifest and str(manifest.get("version") or "").lstrip("v") == version:
+        for build in manifest.get("builds") or []:
+            if not isinstance(build, dict) or str(build.get("status") or "active").lower() != "active":
+                continue
+            revision = build_revision(build.get("revision"))
+            build_assets = build.get("assets")
+            if not revision or not isinstance(build_assets, dict):
+                continue
+            if not all(str(build_assets.get(item) or "") in assets_by_name for item in REQUIRED_BUILD_ASSETS):
+                continue
+            asset_name = str(build_assets.get(key) or "")
+            asset = assets_by_name.get(asset_name)
+            if asset and _revision_asset_matches(asset_name, key, version, revision):
+                candidates.append((revision, asset))
+    if candidates:
+        revision, asset = max(candidates, key=lambda item: item[0])
+        return asset, revision
+    return _legacy_asset_for_platform(assets, key, version), 0
+
+
+def _asset_for_platform(
+    assets: list[dict],
+    version: str = "",
+    manifest: dict | None = None,
+) -> dict | None:
+    return _asset_selection(assets, version, manifest)[0]
 
 
 def _sha256_from_digest(value: object) -> str:
@@ -57,9 +142,10 @@ class UpdateManager(QObject):
     download_progress = Signal(int)
     download_finished = Signal(str)
 
-    def __init__(self, current_version: str, parent=None):
+    def __init__(self, current_version: str, parent=None, current_revision: object = 0):
         super().__init__(parent)
         self.current_version = current_version
+        self.current_revision = build_revision(current_revision)
         self.network = QNetworkAccessManager(self)
         self.check_reply = None
         self.download_reply = None
@@ -113,35 +199,67 @@ class UpdateManager(QObject):
             if reply.error() != QNetworkReply.NetworkError.NoError:
                 raise RuntimeError(reply.errorString())
             data = json.loads(bytes(reply.readAll()).decode("utf-8"))
-            release = parse_release(data, self.current_version)
-            latest = release["latest"]
             assets = data.get("assets") or []
-            asset = _asset_for_platform(assets)
-            result = {
-                **release,
-                "latest": latest,
-                "asset_url": asset.get("browser_download_url") if asset else "",
-                "asset_name": asset.get("name") if asset else "",
-                "asset_sha256": _sha256_from_digest(asset.get("digest")) if asset else "",
-            }
-            checksum = _checksum_asset(assets)
-            if asset and checksum and not result["asset_sha256"]:
-                checksum_url = str(checksum.get("browser_download_url") or "")
-                if not checksum_url:
-                    raise RuntimeError("更新包缺少 SHA-256 校验信息")
-                checksum_reply = self.network.get(self._request(checksum_url))
-                self.check_reply = checksum_reply
-                checksum_reply.finished.connect(
-                    lambda: self._checksum_finished(checksum_reply, result)
+            manifest_asset = _manifest_asset(assets)
+            if manifest_asset:
+                manifest_url = str(manifest_asset.get("browser_download_url") or "")
+                if not manifest_url:
+                    raise RuntimeError("更新清单缺少下载地址")
+                manifest_reply = self.network.get(self._request(manifest_url))
+                self.check_reply = manifest_reply
+                manifest_reply.finished.connect(
+                    lambda: self._manifest_finished(manifest_reply, data)
                 )
                 return
-            self.check_finished.emit(result)
+            self._complete_release_check(data, None)
         except Exception as exc:
             self.check_failed.emit(str(exc))
         finally:
             if self.check_reply is reply:
                 self.check_reply = None
             reply.deleteLater()
+
+    def _manifest_finished(self, reply: QNetworkReply, data: dict):
+        try:
+            if reply.error() != QNetworkReply.NetworkError.NoError:
+                raise RuntimeError(reply.errorString())
+            manifest = _manifest_from_bytes(bytes(reply.readAll()))
+            self._complete_release_check(data, manifest)
+        except Exception as exc:
+            self.check_failed.emit(str(exc))
+        finally:
+            if self.check_reply is reply:
+                self.check_reply = None
+            reply.deleteLater()
+
+    def _complete_release_check(self, data: dict, manifest: dict | None):
+        assets = data.get("assets") or []
+        latest = str(data.get("tag_name") or data.get("name") or "").lstrip("v")
+        asset, latest_revision = _asset_selection(assets, latest, manifest)
+        release = parse_release(
+            data,
+            self.current_version,
+            self.current_revision,
+            latest_revision,
+        )
+        result = {
+            **release,
+            "asset_url": asset.get("browser_download_url") if asset else "",
+            "asset_name": asset.get("name") if asset else "",
+            "asset_sha256": _sha256_from_digest(asset.get("digest")) if asset else "",
+        }
+        checksum = _checksum_asset(assets)
+        if asset and checksum and not result["asset_sha256"]:
+            checksum_url = str(checksum.get("browser_download_url") or "")
+            if not checksum_url:
+                raise RuntimeError("更新包缺少 SHA-256 校验信息")
+            checksum_reply = self.network.get(self._request(checksum_url))
+            self.check_reply = checksum_reply
+            checksum_reply.finished.connect(
+                lambda: self._checksum_finished(checksum_reply, result)
+            )
+            return
+        self.check_finished.emit(result)
 
     def _checksum_finished(self, reply: QNetworkReply, result: dict):
         try:
