@@ -104,24 +104,24 @@
 
 ## Core Features
 
-| <nobr>Feature</nobr>                       | <nobr>Support</nobr> | Description                                                                                                                                                 |
+| Feature                       | Support | Description                                                                                                                                                 |
 |:------------------------------|:-------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| <nobr>**Custom templates**</nobr>          |    ✅    | Generate custom channel playlists                                                                                                                           |
-| <nobr>**Channel aliases**</nobr>           |    ✅    | Improve channel matching and accuracy, supports regular expressions                                                                                         |
-| <nobr>**Multi-source aggregation**</nobr>  |    ✅    | Local sources and subscription sources (supports UA configuration, detects invalid addresses and automatically disables them)                               |
-| <nobr>**Stream relay**</nobr>              |    ✅    | Improve playback on weak networks, supports direct browser playback, and automatic transcoding/adaptation                                                   |
-| <nobr>**Replay/VOD interfaces**</nobr>     |    ✅    | Fetching and generating replay/VOD interfaces                                                                                                               |
-| <nobr>**EPG**</nobr>                       |    ✅    | Fetch and display channel program guides                                                                                                                    |
-| <nobr>**Channel logos**</nobr>             |    ✅    | Custom channel logos, supports local additions or a remote library                                                                                          |
-| <nobr>**Speed test & validation**</nobr>   |    ✅    | Obtain latency, bitrate, resolution, fps; filter invalid interfaces; supports real-time output                                                              |
-| <nobr>**Playback screenshots**</nobr>      |    ✅    | Optional playback capture for channel validation, with GUI preview and batch refresh                                                                        |
-| <nobr>**Ad filtering**</nobr>              |    ✅    | Automatically identify and filter no-signal / advertisement placeholder loop sources                                                                        |
-| <nobr>**Advanced preferences**</nobr>      |    ✅    | Rate, resolution, blacklist/whitelist, location and ISP custom filters                                                                                      |
-| <nobr>**Results management**</nobr>        |    ✅    | Categorized storage and access of results, log recording, unmatched channel records, statistical analysis, freeze filtering/unfreeze rollback, data caching |
-| <nobr>**Scheduled tasks**</nobr>           |    ✅    | Scheduled or interval updates                                                                                                                               |
-| <nobr>**Pause and resume**</nobr>          |    ✅    | Pause a desktop update and continue from its current progress                                                                                               |
-| <nobr>**Multi-platform deployment**</nobr> |    ✅    | Workflows, CLI, GUI, Docker (amd64/arm64/arm v7)                                                                                                            |
-| <nobr>**More features**</nobr>             |    ✨    | See [Configuration](#config) section for details                                                                                                            |
+| **Custom&nbsp;templates**          |    ✅    | Generate custom channel playlists                                                                                                                           |
+| **Channel&nbsp;aliases**           |    ✅    | Improve channel matching and accuracy, supports regular expressions                                                                                         |
+| **Multi-source&nbsp;aggregation**  |    ✅    | Local sources and subscription sources (supports UA configuration, detects invalid addresses and automatically disables them)                               |
+| **Stream&nbsp;relay**              |    ✅    | Improve playback on weak networks, supports direct browser playback, and automatic transcoding/adaptation                                                   |
+| **Replay/VOD&nbsp;interfaces**     |    ✅    | Fetching and generating replay/VOD interfaces                                                                                                               |
+| **EPG**                            |    ✅    | Fetch and display channel program guides                                                                                                                    |
+| **Channel&nbsp;logos**             |    ✅    | Custom channel logos, supports local additions or a remote library                                                                                          |
+| **Speed&nbsp;test&nbsp;&amp;&nbsp;validation** |    ✅    | Obtain latency, bitrate, resolution, fps; filter invalid interfaces; supports real-time output                                                              |
+| **Playback&nbsp;screenshots**      |    ✅    | Optional playback capture for channel validation, with GUI preview and batch refresh                                                                        |
+| **Ad&nbsp;filtering**              |    ✅    | Automatically identify and filter no-signal / advertisement placeholder loop sources                                                                        |
+| **Advanced&nbsp;preferences**      |    ✅    | Rate, resolution, blacklist/whitelist, location and ISP custom filters                                                                                      |
+| **Results&nbsp;management**        |    ✅    | Categorized storage and access of results, log recording, unmatched channel records, statistical analysis, freeze filtering/unfreeze rollback, data caching |
+| **Scheduled&nbsp;tasks**           |    ✅    | Scheduled or interval updates                                                                                                                               |
+| **Pause&nbsp;and&nbsp;resume**     |    ✅    | Pause a desktop update and continue from its current progress                                                                                               |
+| **Multi-platform&nbsp;deployment** |    ✅    | Workflows, CLI, GUI, Docker (amd64/arm64/arm v7)                                                                                                            |
+| **More&nbsp;features**             |    ✨    | See [Configuration](#config) section for details                                                                                                            |
 
 ## Config
 
