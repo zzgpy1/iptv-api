@@ -10,7 +10,10 @@
 
 <p align="center">
   <a href="https://trendshift.io/repositories/12327" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12327" alt="Guovin%2Fiptv-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-  <a href="https://trendshift.io/repositories/12327?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-12327" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/12327/weekly" alt="Guovin%2Fiptv-api | Trendshift" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/12327?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-12327" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/12327/weekly" alt="Guovin%2Fiptv-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  <a href="https://www.star-history.com/guovin/iptv-api">
+    <picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=Guovin/iptv-api&type=rank&theme=dark" /><source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/badge?repo=Guovin/iptv-api&type=rank" /><img src="https://api.star-history.com/badge?repo=Guovin/iptv-api&type=rank" alt="Star History Rank" style="height: 55px;" height="55" /></picture>
+  </a>
 </p>
 
 <p align="center">
