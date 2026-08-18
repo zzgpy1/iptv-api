@@ -44,7 +44,15 @@ HLS_IDLE_TIMEOUT = config.rtmp_idle_timeout
 HLS_WAIT_TIMEOUT = 30
 HLS_WAIT_INTERVAL = 0.5
 MAX_STREAMS = config.rtmp_max_streams
-hls_temp_path = resource_path(os.path.join(nginx_dir, 'temp', 'hls'))
+
+
+def _get_hls_temp_path(runtime_dir):
+    if sys.platform.startswith("linux"):
+        return "/tmp/hls"
+    return resource_path(os.path.join(runtime_dir, "temp", "hls"))
+
+
+hls_temp_path = _get_hls_temp_path(nginx_dir)
 
 _hls_monitor_started_evt = threading.Event()
 _hls_monitor_lock = threading.Lock()
