@@ -112,8 +112,7 @@
 
 1. 创建文件
 2. 配置文件命名为`user_config.ini`
-3. 粘贴默认配置 （创建`user_config.ini`可以只输入想要修改的配置项即可，无需全部复制 config.ini，注意配置文件上方的
-   `[Settings]`必须保留，否则下方的自定义配置不生效）
+3. 粘贴默认配置（创建`user_config.ini`时，仅填写想要修改的配置项即可，无需全部复制`config.ini`）
 4. 修改模板和结果文件配置以及CDN代理加速（推荐）：
     - source_file = config/user_demo.txt
     - final_file = output/user_result.txt
@@ -123,6 +122,9 @@
 ![创建user_config.ini](./images/edit-user-config.png '创建user_config.ini')
 ![编辑final_file配置](./images/edit-user-final-file.png '编辑source_file配置')
 ![编辑source_file配置](./images/edit-user-source-file.png '编辑source_file配置')
+
+> [!IMPORTANT]
+> `user_config.ini` 顶部的 `[Settings]` 必须保留，否则下方的自定义配置不会生效。
 
 按照您的需要适当调整配置，以下是默认配置说明：
 [配置参数](./config.md)
@@ -138,7 +140,10 @@
 
 - 订阅源（`config/subscribe.txt`）
 
-  由于没有提供默认订阅地址，所以您需要自行添加，否则更新结果可能为空。支持txt和m3u地址作为订阅，程序将依次读取其中的频道接口数据。
+  > [!IMPORTANT]
+  > 项目不提供默认订阅地址，请自行添加；否则更新结果可能为空。
+
+  支持 txt 和 m3u 地址作为订阅，程序将依次读取其中的频道接口数据。
   ![订阅源](./images/subscribe.png '订阅源')
 
   如果某个订阅源需要特定的 `User-Agent` 才能访问，可在订阅地址后追加 `UA=值` 指定（包含空格时用引号包裹），例如：
@@ -318,7 +323,8 @@ pipenv run ui_build
 
 配置保存到 `config/user_config.ini`，运行结果、频道快照、任务历史与日志保存在 `output/`。打包应用首次启动时，这两个目录位于系统应用数据目录。启用分辨率检测前请安装 FFmpeg。Windows 包内可附带 nginx-rtmp；macOS 需要安装带 RTMP 模块的 nginx，桌面端会自动生成独立配置并启动，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定路径。
 
-旧版 Tkinter 界面已弃用，仅为兼容现有用户而临时保留，并将在后续版本中移除。该界面不再维护、修复问题或新增功能；过渡期间仍可通过 `pipenv run legacy_ui` 启动，并通过 `pipenv run legacy_ui_build` 打包。
+> [!WARNING]
+> 旧版 Tkinter 界面已弃用，仅为兼容现有用户而临时保留，并将在后续版本中移除。该界面不再维护、修复问题或新增功能；过渡期间仍可通过 `pipenv run legacy_ui` 启动，并通过 `pipenv run legacy_ui_build` 打包。
 
 ## Docker
 
@@ -338,7 +344,8 @@ docker compose up -d
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 代理加速（若拉取失败可以使用该命令，但有可能拉取的是旧版本）：
+> [!CAUTION]
+> 若官方镜像拉取失败，可使用以下代理加速地址；它可能提供旧版本镜像。
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
@@ -359,6 +366,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 | PUBLIC_PORT     | 兼容配置：`PUBLIC_URL` 留空时使用的宿主机映射端口                    | 80        |
 | NGINX_HTTP_PORT | 高级兼容配置：容器内部 HTTP 端口，通常保持默认                        | 8080      |
 
+> [!NOTE]
 > 当宿主机/Docker 已启用 IPv6 时，容器会自动同时监听 IPv6 地址，无需额外配置；纯 IPv4 或禁用 IPv6 的环境则自动跳过。
 
 如果需要修改环境变量，在上述运行命令后添加以下参数：
@@ -404,11 +412,10 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 **RTMP 推流：**
 
-> [!NOTE]
-> 1. 如果是服务器部署，建议通过 `PUBLIC_URL` 配置完整公网地址；旧版 `PUBLIC_DOMAIN` 与 `PUBLIC_PORT` 仍兼容
-> 2. 开启推流后，默认会将获取到的接口（如订阅源）进行推流；请仅对你有明确授权、可合法分发或仅用于内部测试的内容启用该功能
-> 3. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹，将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
-> 4. 在中国大陆使用时，请特别确认内容授权、版权、网络视听与广播电视等相关合规要求；不要将本项目用于传播、转发或公开分发未经授权的直播源/节目源
+> [!WARNING]
+> 开启推流后会默认推流获取到的接口（如订阅源）。请仅对你有明确授权、可合法分发或仅用于内部测试的内容启用该功能。在中国大陆使用时，请特别确认内容授权、版权、网络视听与广播电视等相关合规要求；不要将本项目用于传播、转发或公开分发未经授权的直播源/节目源。
+
+如果是服务器部署，建议通过 `PUBLIC_URL` 配置完整公网地址；旧版 `PUBLIC_DOMAIN` 与 `PUBLIC_PORT` 仍兼容。若需推流本地视频源，可在 `config` 目录下新建 `hls` 文件夹，将以频道名称命名的视频文件放入其中，程序会自动推流到对应频道中。
 
 | 推流接口          | 描述           |
 |:--------------|:-------------|
@@ -425,8 +432,10 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 ### 推流使用教程
 
-Docker 中启用推流很简单——只需做少量配置并将需要推流的频道或视频放到指定位置，程序会自动将这些源通过内置 RTMP/HTTP 推出为可播放的
-HLS 流。请仅用于你有明确授权的内容、个人自有内容或封闭环境的技术测试，不要用于未经授权的公开转播。
+Docker 中启用推流很简单——只需做少量配置并将需要推流的频道或视频放到指定位置，程序会自动将这些源通过内置 RTMP/HTTP 推出为可播放的 HLS 流。
+
+> [!WARNING]
+> 请仅用于你有明确授权的内容、个人自有内容或封闭环境的技术测试，不要用于未经授权的公开转播。
 
 下面以两种常见方式说明：订阅源推流（在线源）和本地视频推流（上传视频文件）。
 

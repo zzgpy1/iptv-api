@@ -124,9 +124,8 @@ Like editing templates, modify the runtime configuration.
 
 1. Create a file.
 2. Name the configuration file `user_config.ini`.
-3. Paste the default configuration. (when creating `user_config.ini`, you can only enter the configuration items you
-   want to modify, no need to copy the entire `config.ini`. Note that the `[Settings]` at the top of the configuration
-   file must be retained, otherwise the custom configuration below will not take effect)
+3. Paste the default configuration. When creating `user_config.ini`, enter only the configuration items you want to
+   modify; you do not need to copy the entire `config.ini`.
 4. Modify the template and result file configuration and CDN proxy acceleration (recommended):
     - source_file = config/user_demo.txt
     - final_file = output/user_result.txt
@@ -136,6 +135,9 @@ Like editing templates, modify the runtime configuration.
 ![Create user_config.ini](./images/edit-user-config.png 'Create user_config.ini')
 ![Edit final_file configuration](./images/edit-user-final-file.png 'Edit final_file configuration')
 ![Edit source_file configuration](./images/edit-user-source-file.png 'Edit source_file configuration')
+
+> [!IMPORTANT]
+> Keep `[Settings]` at the top of `user_config.ini`; otherwise, the custom configuration below does not take effect.
 
 Adjust the configuration as needed, here is the default configuration description:
 [Configuration parameters](./config_en.md)
@@ -151,9 +153,11 @@ Adjust the configuration as needed, here is the default configuration descriptio
 
 - Subscription sources (`config/subscribe.txt`)
 
-  Since no default subscription addresses are provided, you need to add them yourself; otherwise the update results may
-  be empty. Both `.txt` and `.m3u` URLs are supported as subscriptions, and the program will read channel interface
-  entries from them sequentially.
+  > [!IMPORTANT]
+  > The project provides no default subscription addresses. Add your own; otherwise, update results may be empty.
+
+  Both `.txt` and `.m3u` URLs are supported as subscriptions, and the program reads channel interface entries from
+  them sequentially.
   ![Subscription sources](./images/subscribe.png 'Subscription sources')
 
   If a subscription source requires a specific `User-Agent` to be accessed, append `UA=value` after the subscription URL
@@ -355,7 +359,8 @@ pipenv run ui_build
 
 Settings are saved to `config/user_config.ini`; generated results, channel snapshots, task history, and logs are stored under `output/`. A packaged application places these directories in the operating system's application data directory on first launch. Install FFmpeg before enabling resolution probing. The Windows package can include nginx-rtmp. On macOS, install an nginx build with the RTMP module; the app generates and starts an isolated configuration automatically, while `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can override discovery.
 
-The legacy Tkinter interface is deprecated, retained temporarily for existing users, and scheduled for removal in a future release. It no longer receives maintenance, bug fixes, or new features. During the transition, start it with `pipenv run legacy_ui` or package it with `pipenv run legacy_ui_build`.
+> [!WARNING]
+> The legacy Tkinter interface is deprecated, retained temporarily for existing users, and scheduled for removal in a future release. It no longer receives maintenance, bug fixes, or new features. During the transition, start it with `pipenv run legacy_ui` or package it with `pipenv run legacy_ui_build`.
 
 ## Docker
 
@@ -376,7 +381,8 @@ docker compose up -d
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 Proxy acceleration (use this command if pulling fails, but it may download an older version):
+> [!CAUTION]
+> If the official image cannot be pulled, use the following proxy; it may provide an older image version.
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
@@ -397,6 +403,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 | PUBLIC_PORT     | Compatibility setting: mapped host port used when `PUBLIC_URL` is empty                              | 80        |
 | NGINX_HTTP_PORT | Advanced compatibility setting: internal container HTTP port; normally keep the default              | 8080      |
 
+> [!NOTE]
 > When IPv6 is enabled on the host/Docker, the container automatically listens on IPv6 addresses as well, with no extra configuration; in IPv4-only or IPv6-disabled environments it is skipped automatically.
 
 If you need to modify environment variables, add the following parameters after the above run command:
@@ -444,11 +451,10 @@ generated result files directly on the host. Append the following options to the
 
 **RTMP Streaming:**
 
-> [!NOTE]
-> 1. For server deployments, set the complete public address through `PUBLIC_URL`; legacy `PUBLIC_DOMAIN` and `PUBLIC_PORT` remain supported.
-> 2. When streaming is enabled, obtained interfaces such as subscription sources are streamed by default. Use this only for content you own, are authorized to redistribute, or need for closed/internal testing.
-> 3. To stream local videos, create `config/hls` and place files named after their channels in it. The program streams them to the corresponding channels.
-> 4. In Mainland China, ensure that content authorization, copyright, network-audiovisual, and broadcasting requirements are satisfied. Do not distribute, relay, or publicly expose unauthorized live streams or program sources.
+> [!WARNING]
+> Enabling streaming relays obtained interfaces such as subscription sources by default. Use this only for content you own, are authorized to redistribute, or need for closed/internal testing. In Mainland China, ensure content authorization, copyright, network-audiovisual, and broadcasting requirements are met; do not distribute, relay, or publicly expose unauthorized live streams or program sources.
+
+For server deployments, set the complete public address through `PUBLIC_URL`; legacy `PUBLIC_DOMAIN` and `PUBLIC_PORT` remain supported. To stream local videos, create `config/hls` and place files named after their channels in it; the program streams them to the corresponding channels.
 
 | Streaming Endpoint | Description                          |
 |:-------------------|:-------------------------------------|
@@ -466,8 +472,10 @@ generated result files directly on the host. Append the following options to the
 ### Streaming Usage Tutorial
 
 Docker enables streaming with minimal configuration and placing local video files in the right folder. Below are two
-common streaming scenarios: subscription (online) sources and local video files. Use this only for content you are
-authorized to relay or for closed/internal technical testing.
+common streaming scenarios: subscription (online) sources and local video files.
+
+> [!WARNING]
+> Use this only for content you are authorized to relay or for closed/internal technical testing.
 
 #### 1. Preparations before start (Docker Compose example)
 

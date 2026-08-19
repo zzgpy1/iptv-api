@@ -101,7 +101,7 @@
 </p>
 
 > [!IMPORTANT]
-> 1. 前往`Govin`公众号回复`cdn`获取加速地址，提升订阅源与频道图标等资源的访问速度
+> 1. 前往[`Govin`公众号](#微信公众号)回复`cdn`获取加速地址，提升订阅源与频道图标等资源的访问速度
 > 2. 本项目不提供数据源，请自行添加后生成结果（[如何添加数据源？](./docs/tutorial.md#添加数据源与更多)）
 > 3. 生成结果质量取决于数据源与网络环境等因素，请合理调整[配置参数](#配置)以获取更符合需求的结果
 
@@ -288,7 +288,10 @@ pipenv run ui
 pipenv run ui_build
 ```
 
-旧版 Tkinter 界面已弃用，仅为兼容现有用户而临时保留，并将在后续版本中移除。该界面不再维护、修复问题或新增功能；过渡期间仍可通过 `pipenv run legacy_ui` 启动，并通过 `pipenv run legacy_ui_build` 打包。分辨率检测需要系统安装 FFmpeg。Windows 可使用随包提供的 nginx-rtmp；macOS 会自动检测系统中带 RTMP 模块的 nginx，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定可执行文件与动态模块。
+> [!WARNING]
+> 旧版 Tkinter 界面已弃用，仅为兼容现有用户而临时保留，并将在后续版本中移除。该界面不再维护、修复问题或新增功能；过渡期间仍可通过 `pipenv run legacy_ui` 启动，并通过 `pipenv run legacy_ui_build` 打包。
+
+分辨率检测需要系统安装 FFmpeg。Windows 可使用随包提供的 nginx-rtmp；macOS 会自动检测系统中带 RTMP 模块的 nginx，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定可执行文件与动态模块。
 
 ### Docker
 
@@ -308,7 +311,8 @@ docker compose up -d
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 代理加速（若拉取失败可以使用该命令，但有可能拉取的是旧版本）：
+> [!CAUTION]
+> 若官方镜像拉取失败，可使用以下代理加速地址；它可能提供旧版本镜像。
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
@@ -329,6 +333,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 | PUBLIC_PORT     | 兼容配置：`PUBLIC_URL` 留空时使用的宿主机映射端口                    | 80        |
 | NGINX_HTTP_PORT | 高级兼容配置：容器内部 HTTP 端口，通常保持默认                        | 8080      |
 
+> [!NOTE]
 > 当宿主机/Docker 已启用 IPv6 时，容器会自动同时监听 IPv6 地址，无需额外配置；纯 IPv4 或禁用 IPv6 的环境则自动跳过。
 
 如果需要修改环境变量，在上述运行命令后添加以下参数：
@@ -376,11 +381,10 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 **RTMP 推流：**
 
-> [!NOTE]
-> 1. 如果是服务器部署，建议通过 `PUBLIC_URL` 配置完整公网地址；旧版 `PUBLIC_DOMAIN` 与 `PUBLIC_PORT` 仍兼容
-> 2. 开启推流后，默认会将获取到的接口（如订阅源）进行推流；请仅对你有明确授权、可合法分发或仅用于内部测试的内容启用该功能
-> 3. 如果需要对本地视频源进行推流，可在`config`目录下新建`hls`文件夹，将以`频道名称命名`的视频文件放入其中，程序会自动推流到对应的频道中
-> 4. 在中国大陆使用时，请特别确认内容授权、版权、网络视听与广播电视等相关合规要求；不要将本项目用于传播、转发或公开分发未经授权的直播源/节目源
+> [!WARNING]
+> 开启推流后会默认推流获取到的接口（如订阅源）。请仅对你有明确授权、可合法分发或仅用于内部测试的内容启用该功能。在中国大陆使用时，请特别确认内容授权、版权、网络视听与广播电视等相关合规要求；不要将本项目用于传播、转发或公开分发未经授权的直播源/节目源。
+
+如果是服务器部署，建议通过 `PUBLIC_URL` 配置完整公网地址；旧版 `PUBLIC_DOMAIN` 与 `PUBLIC_PORT` 仍兼容。若需推流本地视频源，可在 `config` 目录下新建 `hls` 文件夹，将以频道名称命名的视频文件放入其中，程序会自动推流到对应频道中。
 
 | 推流接口          | 描述           |
 |:--------------|:-------------|
@@ -439,4 +443,5 @@ docker run -d -p 80:8080 guovern/iptv-api
 
 [AGPL-3.0](./LICENSE) License &copy; 2024-PRESENT [Govin](https://github.com/guovin)
 
-> 注意：本项目采用 AGPL-3.0。若将修改后的程序作为网络服务、公开容器镜像或以其他对外服务方式运行，须向使用者提供包括修改在内的完整源代码。详见：https://www.gnu.org/licenses/agpl-3.0.html
+> [!IMPORTANT]
+> 本项目采用 AGPL-3.0。若将修改后的程序作为网络服务、公开容器镜像或以其他对外服务方式运行，须向使用者提供包括修改在内的完整源代码。详见：https://www.gnu.org/licenses/agpl-3.0.html

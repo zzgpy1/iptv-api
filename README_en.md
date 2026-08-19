@@ -101,7 +101,7 @@
 </p>
 
 > [!IMPORTANT]
-> 1. Go to the `Govin` WeChat public account and reply with `cdn` to get an acceleration address for subscription sources and channel logos.
+> 1. Go to the [`Govin` WeChat public account](#wechat-public-account) and reply with `cdn` to get an acceleration address for subscription sources and channel logos.
 > 2. This project does not provide data sources. Please add your own before generating results. ([How to add data sources?](./docs/tutorial_en.md#add-data-sources-and-more))
 > 3. Result quality depends on the data sources and network conditions; adjust the [configuration](#config) to suit your needs.
 
@@ -291,7 +291,10 @@ Build a package for the current platform:
 pipenv run ui_build
 ```
 
-The legacy Tkinter interface is deprecated, retained temporarily for existing users, and scheduled for removal in a future release. It no longer receives maintenance, bug fixes, or new features. During the transition, start it with `pipenv run legacy_ui` or package it with `pipenv run legacy_ui_build`. Resolution probing requires FFmpeg. Windows can use the bundled nginx-rtmp runtime. On macOS the app detects an installed nginx build with the RTMP module; `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can explicitly select the executable and dynamic module.
+> [!WARNING]
+> The legacy Tkinter interface is deprecated, retained temporarily for existing users, and scheduled for removal in a future release. It no longer receives maintenance, bug fixes, or new features. During the transition, start it with `pipenv run legacy_ui` or package it with `pipenv run legacy_ui_build`.
+
+Resolution probing requires FFmpeg. Windows can use the bundled nginx-rtmp runtime. On macOS the app detects an installed nginx build with the RTMP module; `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can explicitly select the executable and dynamic module.
 
 ### Docker
 
@@ -312,7 +315,8 @@ docker compose up -d
 docker pull guovern/iptv-api:latest
 ```
 
-🚀 Proxy acceleration (use this command if pulling fails, but it may download an older version):
+> [!CAUTION]
+> If the official image cannot be pulled, use the following proxy; it may provide an older image version.
 
 ```bash
 docker pull docker.1ms.run/guovern/iptv-api:latest
@@ -333,6 +337,7 @@ docker run -d -p 80:8080 guovern/iptv-api
 | PUBLIC_PORT     | Compatibility setting: mapped host port used when `PUBLIC_URL` is empty                              | 80        |
 | NGINX_HTTP_PORT | Advanced compatibility setting: internal container HTTP port; normally keep the default              | 8080      |
 
+> [!NOTE]
 > When IPv6 is enabled on the host/Docker, the container automatically listens on IPv6 addresses as well, with no extra configuration; in IPv4-only or IPv6-disabled environments it is skipped automatically.
 
 If you need to modify environment variables, add the following parameters after the above run command:
@@ -382,11 +387,10 @@ Log endpoints return the compatible plain-text format by default; add `?format=j
 
 **RTMP Streaming:**
 
-> [!NOTE]
-> 1. For server deployments, set the complete public address through `PUBLIC_URL`; legacy `PUBLIC_DOMAIN` and `PUBLIC_PORT` remain supported.
-> 2. When streaming is enabled, obtained interfaces such as subscription sources are streamed by default. Use this only for content you own, are authorized to redistribute, or need for closed/internal testing.
-> 3. To stream local videos, create `config/hls` and place files named after their channels in it. The program streams them to the corresponding channels.
-> 4. In Mainland China, ensure that content authorization, copyright, network-audiovisual, and broadcasting requirements are satisfied. Do not distribute, relay, or publicly expose unauthorized live streams or program sources.
+> [!WARNING]
+> Enabling streaming relays obtained interfaces such as subscription sources by default. Use this only for content you own, are authorized to redistribute, or need for closed/internal testing. In Mainland China, ensure content authorization, copyright, network-audiovisual, and broadcasting requirements are met; do not distribute, relay, or publicly expose unauthorized live streams or program sources.
+
+For server deployments, set the complete public address through `PUBLIC_URL`; legacy `PUBLIC_DOMAIN` and `PUBLIC_PORT` remain supported. To stream local videos, create `config/hls` and place files named after their channels in it; the program streams them to the corresponding channels.
 
 | Streaming Endpoint | Description                          |
 |:-------------------|:-------------------------------------|
@@ -452,4 +456,5 @@ Contact via email: [360996299@qq.com](mailto:360996299@qq.com)
 
 [AGPL-3.0](./LICENSE) License &copy; 2024-PRESENT [Govin](https://github.com/guovin)
 
-> Note: This project is licensed under AGPL-3.0. If you operate a modified version as a network service (e.g., hosted service or publicly published container/image), you must provide users with the complete corresponding source code (including your modifications). See: https://www.gnu.org/licenses/agpl-3.0.html
+> [!IMPORTANT]
+> This project is licensed under AGPL-3.0. If you operate a modified version as a network service (e.g., hosted service or publicly published container/image), you must provide users with the complete corresponding source code (including your modifications). See: https://www.gnu.org/licenses/agpl-3.0.html
