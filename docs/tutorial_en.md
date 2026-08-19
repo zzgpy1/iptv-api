@@ -151,28 +151,28 @@ Adjust the configuration as needed, here is the default configuration descriptio
 
 #### Add data sources and more
 
-- Subscription sources (`config/subscribe.txt`)
+**Subscription sources (`config/subscribe.txt`)**
 
-  > [!IMPORTANT]
-  > The project provides no default subscription addresses. Add your own; otherwise, update results may be empty.
+> [!IMPORTANT]
+> The project provides no default subscription addresses. Add your own; otherwise, update results may be empty.
 
-  Both `.txt` and `.m3u` URLs are supported as subscriptions, and the program reads channel interface entries from
-  them sequentially.
-  ![Subscription sources](./images/subscribe.png 'Subscription sources')
+Both `.txt` and `.m3u` URLs are supported as subscriptions, and the program reads channel interface entries from them
+sequentially.
+![Subscription sources](./images/subscribe.png 'Subscription sources')
 
-  If a subscription source requires a specific `User-Agent` to be accessed, append `UA=value` after the subscription URL
-  (wrap it in quotes when it contains spaces), for example:
+If a subscription source requires a specific `User-Agent` to be accessed, append `UA=value` after the subscription URL
+(wrap it in quotes when it contains spaces), for example:
 
-  ```text
-  https://example.com/sub.m3u UA=okHttp/Mod-1.5.0.0
-  https://example.com/sub2.m3u UA="Mozilla/5.0 xxx"
-  ```
+```text
+https://example.com/sub.m3u UA=okHttp/Mod-1.5.0.0
+https://example.com/sub2.m3u UA="Mozilla/5.0 xxx"
+```
 
-  This `UA` is used for: fetching the subscription content, speed testing the interfaces under that subscription, and
-  writing into the `.m3u` result (for players) — no need to enable `open_headers`. If you want to apply one UA to all
-  interfaces (instead of adding it one by one), set the global `user_agent` in the configuration. Priority: interface's
-  own UA (`#EXTVLCOPT` embedded in m3u) > subscription URL UA > global `user_agent` > built-in default UA. Note: request
-  headers can only be written into the `.m3u` result; the `.txt` format cannot carry a UA.
+This `UA` is used for: fetching the subscription content, speed testing the interfaces under that subscription, and
+writing into the `.m3u` result (for players) — no need to enable `open_headers`. If you want to apply one UA to all
+interfaces (instead of adding it one by one), set the global `user_agent` in the configuration. Priority: interface's
+own UA (`#EXTVLCOPT` embedded in m3u) > subscription URL UA > global `user_agent` > built-in default UA. Note: request
+headers can only be written into the `.m3u` result; the `.txt` format cannot carry a UA.
 
 
 - Local sources（`config/local.txt`）

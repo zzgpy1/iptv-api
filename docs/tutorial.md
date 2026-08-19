@@ -138,22 +138,22 @@
 
 #### 添加数据源与更多
 
-- 订阅源（`config/subscribe.txt`）
+**订阅源（`config/subscribe.txt`）**
 
-  > [!IMPORTANT]
-  > 项目不提供默认订阅地址，请自行添加；否则更新结果可能为空。
+> [!IMPORTANT]
+> 项目不提供默认订阅地址，请自行添加；否则更新结果可能为空。
 
-  支持 txt 和 m3u 地址作为订阅，程序将依次读取其中的频道接口数据。
-  ![订阅源](./images/subscribe.png '订阅源')
+支持 txt 和 m3u 地址作为订阅，程序将依次读取其中的频道接口数据。
+![订阅源](./images/subscribe.png '订阅源')
 
-  如果某个订阅源需要特定的 `User-Agent` 才能访问，可在订阅地址后追加 `UA=值` 指定（包含空格时用引号包裹），例如：
+如果某个订阅源需要特定的 `User-Agent` 才能访问，可在订阅地址后追加 `UA=值` 指定（包含空格时用引号包裹），例如：
 
-  ```text
-  https://example.com/sub.m3u UA=okHttp/Mod-1.5.0.0
-  https://example.com/sub2.m3u UA="Mozilla/5.0 xxx"
-  ```
+```text
+https://example.com/sub.m3u UA=okHttp/Mod-1.5.0.0
+https://example.com/sub2.m3u UA="Mozilla/5.0 xxx"
+```
 
-  该 `UA` 会同时用于：拉取该订阅内容、对该订阅源下各接口测速、以及写入 `.m3u` 结果（供播放器使用），无需开启 `open_headers`。若希望对所有接口统一指定一个 UA（避免逐条添加），可在配置中设置全局 `user_agent`。优先级：接口自带 UA（m3u 内含 `#EXTVLCOPT`）> 订阅地址 UA > 全局 `user_agent` > 内置默认 UA。注意：请求头只能写入 `.m3u` 结果，`.txt` 格式无法携带 UA。
+该 `UA` 会同时用于：拉取该订阅内容、对该订阅源下各接口测速、以及写入 `.m3u` 结果（供播放器使用），无需开启 `open_headers`。若希望对所有接口统一指定一个 UA（避免逐条添加），可在配置中设置全局 `user_agent`。优先级：接口自带 UA（m3u 内含 `#EXTVLCOPT`）> 订阅地址 UA > 全局 `user_agent` > 内置默认 UA。注意：请求头只能写入 `.m3u` 结果，`.txt` 格式无法携带 UA。
 
 
 - 本地源（`config/local.txt`）
