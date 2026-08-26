@@ -5,8 +5,8 @@ import threading
 
 import pytz
 from PySide6.QtCore import QSettings, QTimer, QUrl, Signal, Qt
-from PySide6.QtGui import QAction, QColor, QDesktopServices, QFontMetrics, QGuiApplication, QIcon, QPainter
-from PySide6.QtWidgets import QApplication, QCheckBox, QDialog, QDialogButtonBox, QLabel, QMenu, QMessageBox, QSystemTrayIcon, QVBoxLayout, QWidget
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QFontMetrics, QGuiApplication, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import QApplication, QCheckBox, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QMenu, QMessageBox, QPushButton, QSystemTrayIcon, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, FluentWindow, InfoBar, InfoBarPosition, NavigationItemPosition, Theme, isDarkTheme, setTheme
 
 from desktop_ui.controller import ChannelOperationController, RtmpMonitorController, ServiceProcessController, UpdateController
@@ -26,6 +26,28 @@ from utils.config import config, resource_path
 from utils.i18n import get_language, set_language, t
 from utils.rtmp_runtime import install_rtmp_runtime
 from utils.tools import get_public_url, get_version_info
+
+
+def _update_notification_icon() -> QPixmap:
+    pixmap = QPixmap(40, 40)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor("#DBEAFE"))
+    painter.drawEllipse(1, 1, 38, 38)
+    painter.setPen(QPen(
+        QColor("#2563EB"),
+        3.5,
+        Qt.PenStyle.SolidLine,
+        Qt.PenCapStyle.RoundCap,
+        Qt.PenJoinStyle.RoundJoin,
+    ))
+    painter.drawLine(20, 29, 20, 11)
+    painter.drawLine(12, 19, 20, 11)
+    painter.drawLine(28, 19, 20, 11)
+    painter.end()
+    return pixmap
 
 
 class MainWindow(FluentWindow):
@@ -210,6 +232,7 @@ class MainWindow(FluentWindow):
         self.service_controller.status_changed.connect(self._service_status_changed)
         self.service_controller.output.connect(self._on_runtime_output)
         self.about.status_changed.connect(self._update_about_navigation_status)
+        self.about.update_notification_requested.connect(self._show_update_notification)
         self.rtmp_install_finished.connect(self._finish_rtmp_install)
         self.rtmp_install_output.connect(self._append_runtime_log)
         self.stackedWidget.currentChanged.connect(self._navigation_page_changed)
@@ -378,6 +401,7 @@ class MainWindow(FluentWindow):
             status_key: str,
             status_args: dict | None = None,
             dismiss_on_visit: bool = False,
+            icon_color: str = "#FFFFFF",
     ):
         if name not in self._navigation_items:
             return
@@ -391,6 +415,7 @@ class MainWindow(FluentWindow):
             "status_key": status_key,
             "status_args": status_args or {},
             "dismiss_on_visit": dismiss_on_visit,
+            "icon_color": icon_color,
         }
         self._refresh_navigation_status(name)
 
@@ -415,7 +440,9 @@ class MainWindow(FluentWindow):
         if self.stackedWidget.currentWidget() is self._navigation_items[name][2]:
             indicator.hide()
         else:
-            indicator.set_status(status["icon"], status["color"])
+            indicator.set_status(
+                status["icon"], status["color"], status.get("icon_color", "#FFFFFF")
+            )
 
     def _refresh_navigation_statuses(self):
         for name in self._navigation_statuses:
@@ -427,6 +454,8 @@ class MainWindow(FluentWindow):
             status = self._navigation_statuses.get(name)
             if page is current and status and status.get("dismiss_on_visit"):
                 self._clear_navigation_status(name)
+                if name == "about":
+                    self.about.mark_update_read()
         self._refresh_navigation_statuses()
 
     def show_and_raise(self):
@@ -963,13 +992,18 @@ class MainWindow(FluentWindow):
                 "about", FluentIcon.SYNC, "#2563EB", "desktop.nav_checking_version",
             )
         elif state == "available":
-            self._set_navigation_status(
-                "about",
-                FluentIcon.DOWNLOAD,
-                "#D97706",
-                "desktop.nav_version_available",
-                {"version": payload.get("version", "")},
-            )
+            if payload.get("unread"):
+                self._set_navigation_status(
+                    "about",
+                    FluentIcon.DOWNLOAD,
+                    "#059669",
+                    "desktop.nav_version_available",
+                    {"version": payload.get("version", "")},
+                    dismiss_on_visit=True,
+                    icon_color="#D1FAE5",
+                )
+            else:
+                self._clear_navigation_status("about")
         elif state == "downloading":
             self._set_navigation_status(
                 "about", FluentIcon.DOWNLOAD, "#2563EB", "desktop.nav_downloading_update",
@@ -992,6 +1026,84 @@ class MainWindow(FluentWindow):
             )
         else:
             self._clear_navigation_status("about")
+
+    def _show_update_notification(self, payload: dict):
+        if self.stackedWidget.currentWidget() is self.about:
+            self.about.mark_update_read()
+            return
+        version = str(payload.get("version") or "")
+        dialog = QDialog(self)
+        dialog.setWindowTitle(t("desktop.update_available_dialog_title"))
+        dialog.setMinimumWidth(360)
+        apply_dialog_theme(dialog)
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(22, 20, 22, 18)
+        layout.setSpacing(18)
+        message_layout = QHBoxLayout()
+        message_layout.setSpacing(14)
+        icon = QLabel(dialog)
+        icon.setPixmap(_update_notification_icon())
+        icon.setFixedSize(40, 40)
+        message = QLabel(t("desktop.update_available_dialog_body").format(version=version), dialog)
+        message.setWordWrap(True)
+        message.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        message.setStyleSheet("font-weight: 600;")
+        message_layout.addWidget(icon, 0, Qt.AlignmentFlag.AlignVCenter)
+        message_layout.addWidget(message, 1, Qt.AlignmentFlag.AlignVCenter)
+        actions = QHBoxLayout()
+        actions.addStretch(1)
+        ignore_button = QPushButton(t("desktop.ignore_update"), dialog)
+        upgrade_button = QPushButton(t("desktop.upgrade_now"), dialog)
+        ignore_button.setObjectName("updateIgnoreButton")
+        upgrade_button.setObjectName("updateUpgradeButton")
+        upgrade_button.setDefault(True)
+        secondary_background = "#373737" if isDarkTheme() else "#E5E7EB"
+        secondary_hover = "#4A4A4A" if isDarkTheme() else "#D1D5DB"
+        secondary_foreground = "#F3F4F6" if isDarkTheme() else "#1F2937"
+        ignore_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {secondary_background};
+                border: 1px solid transparent;
+                border-radius: 5px;
+                color: {secondary_foreground};
+                font-weight: 600;
+            }}
+            QPushButton:hover {{ background-color: {secondary_hover}; }}
+        """)
+        upgrade_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2563EB;
+                border: 1px solid #1D4ED8;
+                border-radius: 5px;
+                color: #FFFFFF;
+                font-weight: 600;
+            }
+            QPushButton:hover { background-color: #1D4ED8; }
+            QPushButton:pressed { background-color: #1E40AF; }
+        """)
+        ignore_button.setFixedSize(112, 24)
+        upgrade_button.setFixedSize(112, 24)
+        actions.addWidget(ignore_button)
+        actions.addWidget(upgrade_button)
+        layout.addLayout(message_layout)
+        layout.addLayout(actions)
+        choice = {"action": None}
+        ignore_button.clicked.connect(lambda: (choice.update(action="ignore"), dialog.accept()))
+        upgrade_button.clicked.connect(lambda: (choice.update(action="upgrade"), dialog.accept()))
+        dialog.exec()
+        if choice["action"] == "upgrade":
+            self.about.mark_update_read()
+            self.switchTo(self.about)
+            if self.about.asset_url:
+                self.about._download()
+            else:
+                QDesktopServices.openUrl(QUrl(self.about.release_url))
+        elif choice["action"] == "ignore":
+            self.about.ignore_available_update()
+        else:
+            self._update_about_navigation_status(
+                "available", {"version": version, "unread": True}
+            )
 
     def _start_update(self):
         if self.operation_controller.is_busy:

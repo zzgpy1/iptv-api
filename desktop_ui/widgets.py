@@ -854,9 +854,9 @@ class NavigationStatusIndicator(QWidget):
         self.icon_widget.move(3, 3)
         self.hide()
 
-    def set_status(self, icon, color: str):
+    def set_status(self, icon, color: str, icon_color: str = "#FFFFFF"):
         accent = QColor(color)
-        rendered_icon = icon.icon(color=QColor("#FFFFFF")) if hasattr(icon, "icon") else icon
+        rendered_icon = icon.icon(color=QColor(icon_color)) if hasattr(icon, "icon") else icon
         self.icon_widget.setIcon(rendered_icon)
         self.setStyleSheet(
             f"background-color: {accent.name()}; border: 1px solid rgba(255, 255, 255, 190); border-radius: 7px;"

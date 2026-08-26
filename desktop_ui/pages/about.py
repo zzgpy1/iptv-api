@@ -1,9 +1,9 @@
 import os
 
-from PySide6.QtCore import QTimer, QUrl, Signal
+from PySide6.QtCore import QSettings, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, HyperlinkButton, InfoBar, InfoBarPosition, ProgressBar, PushButton, StrongBodyLabel, SubtitleLabel
+from qfluentwidgets import BodyLabel, CardWidget, FluentIcon, HyperlinkButton, InfoBar, InfoBarPosition, ProgressBar, PushButton, StrongBodyLabel, SubtitleLabel, SwitchButton
 
 from desktop_ui.update_manager import REPOSITORY_URL, UpdateManager
 from desktop_ui.update_installer import UpdateInstallError, launch_update
@@ -16,8 +16,11 @@ from utils.tools import get_version_info
 
 class AboutPage(QWidget):
     status_changed = Signal(str, object)
-    AUTO_CHECK_INITIAL_DELAY_MS = 5_000
+    update_notification_requested = Signal(dict)
     AUTO_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1_000
+    AUTO_CHECK_SETTING = "updates/auto_check_enabled"
+    READ_UPDATE_SETTING = "updates/read_version"
+    IGNORED_UPDATE_SETTING = "updates/ignored_version"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -60,6 +63,11 @@ class AboutPage(QWidget):
         self.version_detail = BodyLabel(t("desktop.update_check_desc"), self.version_card)
         self.progress = ProgressBar(self.version_card)
         self.progress.hide()
+        auto_check_text = t("desktop.auto_check_updates")
+        self.auto_check_switch = SwitchButton(auto_check_text, self.version_card)
+        self.auto_check_switch.setOnText(auto_check_text)
+        self.auto_check_switch.setOffText(auto_check_text)
+        self.auto_check_switch.setChecked(self._auto_check_enabled())
         actions = QHBoxLayout()
         self.check_button = AccentPushButton(FluentIcon.SYNC, t("desktop.check_updates"), self.version_card)
         self.download_button = PushButton(FluentIcon.DOWNLOAD, t("desktop.download_update"), self.version_card)
@@ -74,6 +82,7 @@ class AboutPage(QWidget):
         card_layout.addWidget(self.version_status)
         card_layout.addWidget(self.version_detail)
         card_layout.addWidget(self.progress)
+        card_layout.addWidget(self.auto_check_switch)
         card_layout.addLayout(actions)
 
         self.repository_button = HyperlinkButton(FluentIcon.GITHUB, REPOSITORY_URL, t("desktop.github_repository"), self)
@@ -107,12 +116,10 @@ class AboutPage(QWidget):
         self.manager.download_finished.connect(self._download_finished)
         self.auto_check_timer = QTimer(self)
         self.auto_check_timer.setInterval(self.AUTO_CHECK_INTERVAL_MS)
-        self.auto_check_timer.timeout.connect(lambda: self.check_for_updates(automatic=True))
-        self.auto_check_timer.start()
-        QTimer.singleShot(
-            self.AUTO_CHECK_INITIAL_DELAY_MS,
-            lambda: self.check_for_updates(automatic=True),
-        )
+        self.auto_check_timer.timeout.connect(self._run_automatic_check)
+        self.auto_check_switch.checkedChanged.connect(self._set_auto_check_enabled)
+        if self.auto_check_switch.isChecked():
+            self._start_automatic_checks()
 
     def _show_changelog(self):
         dialog = ChangelogDialog(str(self.info.get("version") or ""), self)
@@ -124,6 +131,24 @@ class AboutPage(QWidget):
         self._automatic_check = automatic
         return self.manager.check()
 
+    def _auto_check_enabled(self) -> bool:
+        return QSettings().value(self.AUTO_CHECK_SETTING, True, bool)
+
+    def _set_auto_check_enabled(self, enabled: bool):
+        QSettings().setValue(self.AUTO_CHECK_SETTING, enabled)
+        if enabled:
+            self._start_automatic_checks()
+        else:
+            self.auto_check_timer.stop()
+
+    def _start_automatic_checks(self):
+        self.auto_check_timer.start()
+        QTimer.singleShot(0, self._run_automatic_check)
+
+    def _run_automatic_check(self):
+        if self.auto_check_switch.isChecked():
+            self.check_for_updates(automatic=True)
+
     def _checking(self):
         self.check_button.setEnabled(False)
         if not self._automatic_check:
@@ -132,6 +157,7 @@ class AboutPage(QWidget):
             self.version_status.setText(t("desktop.checking_updates"))
 
     def _checked(self, result: dict):
+        automatic = self._automatic_check
         self._automatic_check = False
         self._update_state = "available" if result["newer"] else "current"
         self._update_result = result
@@ -143,11 +169,17 @@ class AboutPage(QWidget):
         self.asset_sha256 = result.get("asset_sha256") or ""
         if result["newer"]:
             latest = self._latest_display(result)
-            self.status_changed.emit("available", {"version": latest})
+            unread = self._is_update_unread(latest)
+            if not automatic:
+                self.mark_update_read(emit_status=False)
+                unread = False
+            self.status_changed.emit("available", {"version": latest, "unread": unread})
             self.version_status.setText(t("desktop.update_available").format(version=latest))
             self.version_detail.setText(t("desktop.update_available_desc"))
             self.download_button.setVisible(bool(self.asset_url))
             self.install_button.hide()
+            if automatic and unread:
+                self.update_notification_requested.emit({"version": latest})
         else:
             self.status_changed.emit("current", {})
             self.version_status.setText(t("desktop.up_to_date"))
@@ -160,6 +192,30 @@ class AboutPage(QWidget):
         latest = str(result.get("latest") or "")
         revision = result.get("latest_revision")
         return f"{latest} (r{revision})" if revision else latest
+
+    def _is_update_unread(self, version: str) -> bool:
+        settings = QSettings()
+        return version not in {
+            str(settings.value(self.READ_UPDATE_SETTING, "") or ""),
+            str(settings.value(self.IGNORED_UPDATE_SETTING, "") or ""),
+        }
+
+    def mark_update_read(self, emit_status: bool = True):
+        if self._update_state != "available" or not self._update_result:
+            return
+        latest = self._latest_display(self._update_result)
+        QSettings().setValue(self.READ_UPDATE_SETTING, latest)
+        if emit_status:
+            self.status_changed.emit("available", {"version": latest, "unread": False})
+
+    def ignore_available_update(self):
+        if self._update_state != "available" or not self._update_result:
+            return
+        latest = self._latest_display(self._update_result)
+        settings = QSettings()
+        settings.setValue(self.READ_UPDATE_SETTING, latest)
+        settings.setValue(self.IGNORED_UPDATE_SETTING, latest)
+        self.status_changed.emit("available", {"version": latest, "unread": False})
 
     def _check_failed(self, message: str):
         automatic = self._automatic_check
@@ -233,6 +289,9 @@ class AboutPage(QWidget):
         self.version_label.setText(t("desktop.version_value").format(version=self.info.get("version") or "--"))
         self.author_label.setText(t("desktop.author_value").format(author="Guovin"))
         self.check_button.setText(t("desktop.check_updates"))
+        auto_check_text = t("desktop.auto_check_updates")
+        self.auto_check_switch.setOnText(auto_check_text)
+        self.auto_check_switch.setOffText(auto_check_text)
         self.download_button.setText(t("desktop.download_update"))
         self.install_button.setText(t("desktop.install_update"))
         self.release_button.setText(t("desktop.open_release"))
