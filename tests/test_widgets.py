@@ -1,19 +1,20 @@
 import os
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtCore import QPoint, QRect, QSettings, Qt
 from PySide6.QtGui import QImage, QPainter
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QWidget
 from qfluentwidgets import TableView
 
-from desktop_ui.pages.settings import SettingsPage
+from desktop_ui.pages.settings import DataDirectoryDialog, SettingsPage
 from desktop_ui.models import ChannelTableModel, ConfigTableModel, MappingTableModel
 from desktop_ui.widgets import TableCheckBoxHeader, apply_dialog_theme, localize_dialog_buttons, paint_table_checkbox, warning_message_box
-from utils.i18n import get_language, set_language
+from utils.i18n import get_language, set_language, t
 
 
 class TableCheckBoxPaintingTests(unittest.TestCase):
@@ -115,6 +116,47 @@ class SettingsEditorLayoutTests(unittest.TestCase):
         )
         legacy_index = model.index(legacy_row, 1)
         self.assertFalse(model.flags(legacy_index) & Qt.ItemFlag.ItemIsEditable)
+
+    def test_data_directory_dialog_shows_current_path_and_saves_selection(self):
+        settings = QSettings()
+        previous = settings.value("runtime/data_directory")
+        self.addCleanup(
+            lambda: settings.setValue("runtime/data_directory", previous)
+            if previous is not None else settings.remove("runtime/data_directory")
+        )
+        dialog = DataDirectoryDialog()
+        self.addCleanup(dialog.close)
+        self.assertEqual(dialog.current_path.text(), os.getcwd())
+        self.assertTrue(dialog.next_path.isHidden())
+
+        with patch(
+            "desktop_ui.pages.settings.QFileDialog.getExistingDirectory",
+            return_value="/tmp/iptv-api-data",
+        ), patch(
+            "desktop_ui.pages.settings.validate_runtime_directory",
+            return_value=Path("/tmp/iptv-api-data"),
+        ):
+            dialog._select_data_directory()
+
+        self.assertEqual(settings.value("runtime/data_directory"), "/tmp/iptv-api-data")
+        self.assertFalse(dialog.next_path.isHidden())
+        self.assertEqual(dialog.next_path.text(), f"{t('desktop.data_directory_next')}\n/tmp/iptv-api-data")
+
+        with patch(
+            "desktop_ui.pages.settings.default_runtime_directory",
+            return_value=Path("/tmp/default-data"),
+        ):
+            dialog._reset_data_directory()
+
+        self.assertIsNone(settings.value("runtime/data_directory"))
+        self.assertEqual(dialog.next_path.text(), f"{t('desktop.data_directory_next')}\n/tmp/default-data")
+
+    def test_settings_page_has_a_single_data_directory_entry(self):
+        page = SettingsPage()
+        self.addCleanup(page.close)
+
+        self.assertIsNotNone(page.data_directory_button)
+        self.assertFalse(hasattr(page, "reset_data_directory_button"))
 
 
 class TableSortingTests(unittest.TestCase):

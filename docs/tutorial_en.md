@@ -357,7 +357,15 @@ Build the desktop application for the current platform:
 pipenv run ui_build
 ```
 
-Settings are saved to `config/user_config.ini`; generated results, channel snapshots, task history, and logs are stored under `output/`. A packaged application places these directories in the operating system's application data directory on first launch. Install FFmpeg before enabling resolution probing. The Windows package can include nginx-rtmp. On macOS, install an nginx build with the RTMP module; the app generates and starts an isolated configuration automatically, while `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can override discovery.
+Settings are saved to `config/user_config.ini`; generated results, channel snapshots, task history, and logs are stored under `output/`. On Windows, a packaged desktop application creates both directories beside its executable by default, making them easy to back up, move, and access directly; automatic updates retain that user data. It falls back to the operating system's application-data directory only when the application directory is not writable. macOS continues to use the system application-data directory.
+
+To choose a location in the desktop app, select **Data directory** on the **Settings** page, then restart the app; **Restore default directory** clears that choice. Deployment scripts can pass `--data-dir` when launching the application or set the `IPTV_API_DATA_DIR` environment variable. The command-line option takes precedence:
+
+```shell
+IPTV-API-GUI.exe --data-dir "D:\\IPTV-API Data"
+```
+
+Install FFmpeg before enabling resolution probing. The Windows package can include nginx-rtmp. On macOS, install an nginx build with the RTMP module; the app generates and starts an isolated configuration automatically, while `IPTV_API_NGINX_PATH` and `IPTV_API_NGINX_RTMP_MODULE` can override discovery.
 
 > [!WARNING]
 > The legacy Tkinter interface is deprecated, retained temporarily for existing users, and scheduled for removal in a future release. It no longer receives maintenance, bug fixes, or new features. During the transition, start it with `pipenv run legacy_ui` or package it with `pipenv run legacy_ui_build`.

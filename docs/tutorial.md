@@ -321,7 +321,15 @@ pipenv run ui
 pipenv run ui_build
 ```
 
-配置保存到 `config/user_config.ini`，运行结果、频道快照、任务历史与日志保存在 `output/`。打包应用首次启动时，这两个目录位于系统应用数据目录。启用分辨率检测前请安装 FFmpeg。Windows 包内可附带 nginx-rtmp；macOS 需要安装带 RTMP 模块的 nginx，桌面端会自动生成独立配置并启动，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定路径。
+配置保存到 `config/user_config.ini`，运行结果、频道快照、任务历史与日志保存在 `output/`。Windows 打包应用默认会将这两个目录创建在可执行文件所在目录，方便备份、迁移和直接访问；自动更新会保留其中的用户数据。若应用安装目录不可写，才会回退到系统应用数据目录。macOS 保持使用系统应用数据目录。
+
+可在桌面端的“设置”页面点击“数据目录”选择位置，并重启应用使其生效；“恢复默认目录”可撤销此选择。如需由部署脚本指定位置，可在启动时指定 `--data-dir`，或设置 `IPTV_API_DATA_DIR` 环境变量。命令行参数优先级更高：
+
+```shell
+IPTV-API-GUI.exe --data-dir "D:\\IPTV-API 数据"
+```
+
+启用分辨率检测前请安装 FFmpeg。Windows 包内可附带 nginx-rtmp；macOS 需要安装带 RTMP 模块的 nginx，桌面端会自动生成独立配置并启动，也可通过 `IPTV_API_NGINX_PATH` 和 `IPTV_API_NGINX_RTMP_MODULE` 指定路径。
 
 > [!WARNING]
 > 旧版 Tkinter 界面已弃用，仅为兼容现有用户而临时保留，并将在后续版本中移除。该界面不再维护、修复问题或新增功能；过渡期间仍可通过 `pipenv run legacy_ui` 启动，并通过 `pipenv run legacy_ui_build` 打包。

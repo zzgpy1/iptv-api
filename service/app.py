@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(sys.path[0]))
 from flask import Flask, cli as flask_cli, send_from_directory, make_response, request, jsonify, Response
 from utils.tools import get_result_file_content, resource_path, get_public_url, get_version_info
 from utils.config import config
+from utils.resources import bundled_resource_path
 import utils.constants as constants
 import atexit
 from service.rtmp import start_rtmp_service, stop_rtmp_service, app_rtmp_url, hls_temp_path, STREAMS_LOCK, \
@@ -126,7 +127,7 @@ def show_index():
 
 @app.route("/favicon.ico")
 def favicon():
-    return send_from_directory(resource_path(''), 'favicon.ico',
+    return send_from_directory(os.path.dirname(bundled_resource_path('favicon.ico')), 'favicon.ico',
                                mimetype='image/vnd.microsoft.icon')
 
 

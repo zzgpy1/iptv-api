@@ -15,6 +15,7 @@ import pytz
 
 from utils.performance import PERFORMANCE_MODES, get_performance_settings
 from utils.process import no_window_process_kwargs
+from utils.resources import resource_path
 
 
 @dataclass(frozen=True)
@@ -218,22 +219,6 @@ def _get_primary_ipv4() -> str | None:
         address = match.group(1) if match else ""
         return address if _is_usable_ipv4(address) else None
     return None
-
-
-def resource_path(relative_path, persistent=False):
-    """
-    Get the resource path
-    """
-    base_path = os.path.abspath(".")
-    total_path = os.path.join(base_path, relative_path)
-    if persistent or os.path.exists(total_path):
-        return total_path
-    else:
-        try:
-            base_path = sys._MEIPASS
-            return os.path.join(base_path, relative_path)
-        except Exception:
-            return total_path
 
 
 def get_resolution_value(resolution_str):
