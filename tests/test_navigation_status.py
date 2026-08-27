@@ -77,6 +77,34 @@ class NavigationStatusIndicatorTests(unittest.TestCase):
 
         self.assertEqual(statuses[-1], ("available", {"version": "9.9.9", "unread": False}))
 
+    def test_available_update_uses_dialog_copy_and_decorated_notice(self):
+        page = AboutPage()
+        self.addCleanup(page.deleteLater)
+
+        with patch("desktop_ui.pages.about.isDarkTheme", return_value=False):
+            page._checked({
+                "newer": True,
+                "latest": "9.9.9",
+                "current": "1.0.0",
+                "release_url": "https://example.com/release",
+                "asset_url": "https://example.com/update.zip",
+                "asset_name": "update.zip",
+            })
+
+        self.assertEqual(page.version_status.text(), "发现新版本：9.9.9")
+        self.assertFalse(page.update_icon.isHidden())
+        self.assertFalse(page.update_badge.isHidden())
+        self.assertEqual(page.update_badge.text(), "可下载")
+        self.assertFalse(page.download_button.isHidden())
+        image = page.update_icon.pixmap().toImage()
+        icon_colors = {
+            image.pixelColor(x, y).name()
+            for x in range(image.width())
+            for y in range(image.height())
+            if image.pixelColor(x, y).alpha()
+        }
+        self.assertIn("#047857", icon_colors)
+
     def test_automatic_update_is_unread_once_and_can_be_ignored(self):
         settings = QSettings()
         for key in (
