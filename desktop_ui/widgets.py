@@ -272,6 +272,8 @@ class TableCheckBoxDelegate(TableItemDelegate):
 class _AdaptiveTableColumns(QObject):
     """Keep interactive table columns fitted to the viewport."""
 
+    layout_fitted = Signal()
+
     def __init__(self, table, widths: list[int], state_key: str, fixed_widths=None, minimum_widths=None):
         super().__init__(table)
         self.table = table
@@ -387,6 +389,7 @@ class _AdaptiveTableColumns(QObject):
         # sizes are applied so hidden pages restore with correctly placed
         # editors.
         self.table.doItemsLayout()
+        self.layout_fitted.emit()
 
     def _section_resized(self, *_):
         if self._applying:

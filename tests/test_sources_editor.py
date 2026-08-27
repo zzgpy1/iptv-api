@@ -352,6 +352,22 @@ class SourceEditorTests(unittest.TestCase):
         self.assertEqual(editor.table.item(0, 2).text(), "Updated 1, Updated 2")
         self.assertIn("Channel 1,Updated 1,Updated 2", editor.raw_editor.toPlainText())
 
+    def test_alias_summary_refreshes_after_window_resize(self):
+        aliases = ",".join(f"Alias-{index:02d}" for index in range(1, 16))
+        path = self._write("alias.txt", f"Channel,{aliases}\n")
+        editor = self._editor("alias", path)
+        editor.resize(520, 500)
+        editor.show()
+        QTest.qWait(250)
+        small_width = editor.table.columnWidth(2)
+        small_summary = editor.table.item(0, 2).text()
+
+        editor.resize(1500, 500)
+        QTest.qWait(250)
+
+        self.assertGreater(editor.table.columnWidth(2), small_width)
+        self.assertNotEqual(editor.table.item(0, 2).text(), small_summary)
+
     def test_whitelist_rules_use_a_shared_delegate_until_editing(self):
         path = self._write("whitelist.txt", "Channel,Match\n")
         editor = self._editor("whitelist", path)

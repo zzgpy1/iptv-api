@@ -51,6 +51,7 @@ class SourceEditor(QWidget):
         self.path_provider = path_provider
         self.rows = []
         self._alias_rows_by_canonical = {}
+        self._alias_adaptive_columns = None
         self.comments = defaultdict(list)
         self.group_order = []
         self._syncing = False
@@ -724,6 +725,7 @@ class SourceEditor(QWidget):
         self._apply_template_view_mode()
         self._filter_rows()
         if self.kind == "alias":
+            self._connect_alias_layout_refresh()
             self._schedule_alias_summary_refresh(2)
 
     def _populate_row(self, row_index: int, row: dict):
@@ -801,6 +803,20 @@ class SourceEditor(QWidget):
     def _schedule_alias_summary_refresh(self, logical_index, *_):
         if self.kind == "alias" and logical_index == 2:
             self._alias_summary_timer.start()
+
+    def _connect_alias_layout_refresh(self):
+        adaptive_columns = getattr(
+            self.table.horizontalHeader(),
+            "_adaptive_columns",
+            None,
+        )
+        if adaptive_columns is self._alias_adaptive_columns:
+            return
+        self._alias_adaptive_columns = adaptive_columns
+        if adaptive_columns:
+            adaptive_columns.layout_fitted.connect(
+                lambda: self._schedule_alias_summary_refresh(2)
+            )
 
     def _refresh_alias_summaries(self):
         if self.kind != "alias" or not self.rows:
