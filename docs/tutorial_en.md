@@ -197,7 +197,12 @@ headers can only be written into the `.m3u` result; the `.txt` format cannot car
 - Channel Aliases (`config/alias.txt`)
 
   A list of aliases for channel names, used to map multiple names to a single name when fetching from the interface,
-  improving the fetch volume and accuracy. Format: TemplateChannelName,Alias1,Alias2,Alias3
+  improving the fetch volume and accuracy. Format: TemplateChannelName,Alias1,Alias2,Alias3.
+
+  The program normalizes Traditional/Simplified Chinese, case, and common separators, then matches exact aliases and
+  constrained regex rules. You normally do not need to change a template merely because a source spells a channel
+  differently. Distinct channels are not merged, and ambiguous aliases are excluded. Prefix a custom regex with `re:`
+  and ensure it distinguishes related channels such as CCTV-5 and CCTV-5+.
 
 
 - Blacklist (`config/blacklist.txt`)

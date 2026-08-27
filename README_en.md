@@ -110,7 +110,7 @@
 | Feature                       | Support | Description                                                                                                                                                 |
 |:------------------------------|:-------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Custom&nbsp;templates**          |    ✅    | Generate custom channel playlists                                                                                                                           |
-| **Channel&nbsp;aliases**           |    ✅    | Improve channel matching and accuracy, supports regular expressions                                                                                         |
+| **Channel&nbsp;aliases**           |    ✅    | 2,769 channels and 7,254 aliases (including 48 regex rules); automatically normalizes and matches name variants                                            |
 | **Multi-source&nbsp;aggregation**  |    ✅    | Local sources and subscription sources (supports UA configuration, detects invalid addresses and automatically disables them)                               |
 | **Stream&nbsp;relay**              |    ✅    | Improve playback on weak networks, supports direct browser playback, and automatic transcoding/adaptation                                                   |
 | **Replay/VOD&nbsp;interfaces**     |    ✅    | Fetching and generating replay/VOD interfaces                                                                                                               |
