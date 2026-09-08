@@ -100,11 +100,6 @@
   <a href="mailto:360996299@qq.com?subject=%E6%88%90%E4%B8%BA%E8%B5%9E%E5%8A%A9%E5%95%86">成为赞助商</a>
 </p>
 
-> [!IMPORTANT]
-> 1. 前往[`Govin`公众号](#微信公众号)回复`cdn`获取加速地址，提升订阅源与频道图标等资源的访问速度
-> 2. 本项目不提供数据源，请自行添加后生成结果（[如何添加数据源？](./docs/tutorial.md#添加数据源与更多)）
-> 3. 生成结果质量取决于数据源与网络环境等因素，请合理调整[配置参数](#配置)以获取更符合需求的结果
-
 ## 核心特性
 
 | 功能        | 支&#8288;持&#8288;状&#8288;态 | 说明                                         |
@@ -121,7 +116,7 @@
 | **广&#8288;告&#8288;过&#8288;滤**  |  ✅   | 自动识别并过滤无信号/广告等循环占位源                        |
 | **高&#8288;级&#8288;偏&#8288;好**  |  ✅   | 速率、分辨率、黑/白名单、归属地与运营商自定义过滤                  |
 | **结&#8288;果&#8288;管&#8288;理**  |  ✅   | 结果分类存储与访问、日志记录、未匹配频道记录、统计分析、冻结过滤/解冻回归、数据缓存 |
-| **定&#8288;时&#8288;任&#8288;务**  |  ✅   | 定时或间隔执行更新                                  |
+| **定&#8288;时&#8288;任&#8288;务**  |  ✅   | GUI、命令行与 Docker 可定时或间隔执行，不作用于 GitHub Actions |
 | **暂&#8288;停&#8288;与&#8288;继&#8288;续** |  ✅   | 桌面端更新过程中可暂停，并从当前进度继续                         |
 | **多&#8288;平&#8288;台&#8288;部&#8288;署** |  ✅   | 工作流、命令行、GUI 软件、Docker (amd64/arm64/arm v7) |
 | **更&#8288;多&#8288;功&#8288;能**  |  ✨   | 详见[配置参数](#配置)章节                            |
@@ -130,6 +125,9 @@
 
 > [!NOTE]\
 > 以下配置项位于 `config/config.ini` 文件中，支持通过配置文件或环境变量修改，保存后重启即可生效。也可查看独立的[配置参数文档](./docs/config.md)。
+
+> [!TIP]
+> 生成结果质量取决于数据源与网络环境等因素，请合理调整配置参数以获取更符合需求的结果。
 
 <details>
 <summary>点击展开查看配置参数</summary>
@@ -165,8 +163,8 @@
 | http_proxy               | HTTP 代理地址，用于获取订阅源等网络请求                                                                                               |                                          |
 | open_local               | 开启本地源功能，将使用模板文件与本地源文件（local.txt）中的数据                                                                                 | True                                     |
 | open_subscribe           | 开启订阅源功能                                                                                                              | True                                     |
-| open_auto_disable_source | 开启自动停用失效地址，当请求重试后失败、内容为空或没有匹配到符合条件的值时，会自动在 `config/subscribe.txt` 和 `config/epg.txt` 中对应地址前添加 # 进行停用                 | False                                    |
-| open_history             | 开启使用历史更新结果（包含模板与结果文件的接口），合并至本次更新中                                                                                    | True                                     |
+| open_auto_disable_source | 开启自动停用失效地址，失效项会在 `config/subscribe.txt` 和 `config/epg.txt` 中加 #；Actions 不会提交该变更 | False                                    |
+| open_history             | 开启使用历史更新结果（包含模板与结果文件的接口），合并至本次更新；Actions 仅尝试从短期缓存恢复历史 | True                                     |
 | open_headers             | 开启使用 M3U 内含的请求头验证信息，用于测速等操作，个别播放器可能不支持播放这类含验证信息的接口                                                          | True                                     |
 | user_agent               | 全局请求 User-Agent，用于拉取订阅源、测速以及写入 m3u 结果（无需开启 open_headers），留空则使用内置默认 UA；优先级：接口自带 UA > 订阅地址 UA > 全局 UA > 内置默认 UA                            |                                          |
 | open_speed_test          | 开启测速功能，获取响应时间、速率、分辨率                                                                                                 | True                                     |
@@ -215,6 +213,9 @@
 
 ### 配置与结果目录
 
+> [!NOTE]
+> 本项目不提供数据源，请自行添加后生成结果（[如何添加数据源？](./docs/tutorial.md#添加数据源与更多)）。
+
 ```
 iptv-api/                  # 项目根目录
 ├── config                 # 配置文件目录，包含配置文件、模板文件等
@@ -228,7 +229,7 @@ iptv-api/                  # 项目根目录
 │   └── subscribe.txt      # 频道订阅源列表
 │   └── local.txt          # 本地源文件
 │   └── epg.txt            # EPG订阅源列表
-└── output                 # 结果文件目录，包含生成的结果文件等
+└── output                 # 本地运行结果目录，不应提交到 Git
     └── data               # 结果数据缓存目录
     └── epg                # EPG结果目录
     └── ipv4               # IPv4结果目录
@@ -247,7 +248,19 @@ iptv-api/                  # 项目根目录
 
 ### 工作流
 
-Fork 本项目并开启工作流更新，具体步骤请见[详细教程](./docs/tutorial.md)
+> [!WARNING]
+> GitHub Actions 仅支持低频手动生成，结果发布到固定的 `playlist-latest` 预发布版，不再提交到 Git。
+> 旧的 `raw.githubusercontent.com/.../output/...` 链接不再更新；需要定时执行时请使用 Docker、命令行或 GUI。
+
+Fork 本项目后可手动运行 `Generate playlist manually` 工作流。结果会覆盖发布到
+`playlist-latest` 预发布版，不会产生 Git 提交。固定链接示例：
+
+```text
+https://github.com/您的GitHub用户名/仓库名/releases/download/playlist-latest/result.m3u
+https://github.com/您的GitHub用户名/仓库名/releases/download/playlist-latest/result.txt
+```
+
+迁移和完整操作步骤请见[详细教程](./docs/tutorial.md#工作流部署)。
 
 ### 命令行
 
@@ -414,6 +427,9 @@ docker run -d -p 80:8080 guovern/iptv-api
 ### 微信公众号
 
 微信公众号搜索 Govin，或扫码，接收更新推送、学习更多使用技巧：
+
+> [!TIP]
+> 回复 `cdn` 可获取加速地址，提升订阅源与频道图标等资源的访问速度。
 
 ![微信公众号](./static/images/qrcode.jpg)
 

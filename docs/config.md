@@ -44,8 +44,8 @@
 | http_proxy             | HTTP 代理地址，用于获取订阅源等网络请求                                                                                               |                                          |
 | open_local             | 开启本地源功能，将使用模板文件与本地源文件（local.txt）中的数据                                                                                 | True                                     |
 | open_subscribe         | 开启订阅源功能                                                                                                              | True                                     |
-| open_auto_disable_source | 开启自动停用失效地址，当请求重试后失败、内容为空或没有匹配到符合条件的值时，会自动在 `config/subscribe.txt` 和 `config/epg.txt` 中对应地址前添加 # 进行停用 | False                                    |
-| open_history           | 开启使用历史更新结果（包含模板与结果文件的接口），合并至本次更新中                                                                                    | True                                     |
+| open_auto_disable_source | 开启自动停用失效地址，失效项会在 `config/subscribe.txt` 和 `config/epg.txt` 中加 #；GitHub Actions 不会提交该变更 | False                                    |
+| open_history           | 开启使用历史更新结果（包含模板与结果文件的接口），合并至本次更新；GitHub Actions 仅尝试从短期缓存恢复历史 | True                                     |
 | open_headers           | 开启使用 M3U 内含的请求头验证信息，用于测速等操作，个别播放器可能不支持播放这类含验证信息的接口                                                          | True                                     |
 | user_agent             | 全局请求 User-Agent，用于拉取订阅源、测速以及写入 m3u 结果（无需开启 open_headers），留空则使用内置默认 UA；优先级：接口自带 UA > 订阅地址 UA > 全局 UA > 内置默认 UA                            |                                          |
 | open_speed_test        | 开启测速功能，获取响应时间、速率、分辨率                                                                                                 | True                                     |
