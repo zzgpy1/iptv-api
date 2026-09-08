@@ -10,7 +10,7 @@ from utils.config import (
     ConfigValidationError,
     _get_command_output,
 )
-from utils.tools import get_public_url
+from utils.tools import get_epg_url, get_public_url
 
 
 class ConfigValidationTests(unittest.TestCase):
@@ -185,6 +185,21 @@ nginx_http_port = 8080
         with patch("utils.tools.config", manager):
             self.assertEqual(get_public_url(), "https://iptv.example.com/base")
             self.assertEqual(get_public_url(5180), "http://legacy.example:5180")
+
+    def test_release_asset_base_url_overrides_github_raw_epg_url(self):
+        with patch.dict(
+            os.environ,
+            {
+                "GITHUB_ACTIONS": "true",
+                "IPTV_API_ARTIFACT_BASE_URL": (
+                    "https://github.com/owner/repository/releases/download/playlist-latest/"
+                ),
+            },
+        ):
+            self.assertEqual(
+                get_epg_url(),
+                "https://github.com/owner/repository/releases/download/playlist-latest/epg.gz",
+            )
 
     def test_windows_network_command_does_not_open_a_console(self):
         completed = Mock(stdout="192.0.2.10\n")
