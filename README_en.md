@@ -153,7 +153,7 @@
 | app_port                 | Advanced compatibility setting: internal Flask API port. Normally do not change or use it as the user-facing port.                                                                                                                                                                                                                          | 5180                                     |
 | public_scheme            | Advanced compatibility setting: legacy public scheme, used only when `public_url` is empty.                                                                                                                                                                                                                                                 | http                                     |
 | public_domain            | Advanced compatibility setting: legacy public host, used only when `public_url` is empty; defaults to the local IP.                                                                                                                                                                                                                         | 127.0.0.1                                |
-| cdn_url                  | CDN proxy acceleration address(es) for subscription sources, channel logos and other resources. Multiple are supported (comma-separated): subscription and EPG sources fall back through them in order until one succeeds; channel logos use the first address.                                                                                                                                                                                                                     |                                          |
+| cdn_url                  | CDN proxy address(es): outside Actions they accelerate subscriptions, EPG, and channel logos; during Actions publishing, the first address accelerates GitHub Pages results. The CDN must accept complete `github.io` URLs. Multiple comma-separated values are supported. |                                          |
 | http_proxy               | HTTP proxy address used only to fetch subscription sources and EPG data; speed tests, media probes, and screenshots remain direct                                                                                                                                                                                                            |                                          |
 | open_local               | Enable local source function, will use the data in the template file and the local source file (`local.txt`).                                                                                                                                                                                                                               | True                                     |
 | open_subscribe           | Enable subscription source function.                                                                                                                                                                                                                                                                                                        | True                                     |
@@ -244,17 +244,21 @@ iptv-api/                  # Project root directory
 
 > [!WARNING]
 > GitHub Actions is intended only for occasional manual generation. Results are published to the fixed
-> `playlist-latest` prerelease and are no longer committed to Git. Legacy
+> `playlist-latest` prerelease and through a Pages artifact, and are no longer committed to Git. Legacy
 > `raw.githubusercontent.com/.../output/...` URLs no longer update. Use Docker, the command line, or the GUI for
 > scheduled runs.
 
-After forking the project, manually run the `Generate playlist manually` workflow. Results replace the assets in the
-`playlist-latest` prerelease without creating Git commits. Stable URL examples:
+After forking, select `GitHub Actions` under `Settings → Pages`, then manually run `Generate playlist manually`. Pages
+URLs are intended for player subscriptions, while the Release remains a download and fallback endpoint. Neither path
+creates Git commits.
 
 ```text
-https://github.com/your-github-username/repository-name/releases/download/playlist-latest/result.m3u
-https://github.com/your-github-username/repository-name/releases/download/playlist-latest/result.txt
+https://your-github-username.github.io/repository-name/result.m3u
+https://your-github-username.github.io/repository-name/result.txt
 ```
+
+If `cdn_url` supports proxying complete `github.io` URLs, the workflow summary also provides accelerated links and the
+M3U points its EPG URL at that accelerated endpoint. Direct Pages links remain available as a fallback.
 
 See the [detailed tutorial](./docs/tutorial_en.md#workflow-deployment) for setup and migration steps.
 

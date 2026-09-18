@@ -40,7 +40,7 @@
 | app_port               | 高级兼容设置：Flask 内部 API 端口，通常无需修改，也不应作为用户访问端口                                                                        | 5180                                     |
 | public_scheme          | 高级兼容设置：旧版公网协议，仅在 `public_url` 留空时生效；可选值: http、https                                                            | http                                     |
 | public_domain          | 高级兼容设置：旧版公网 Host，仅在 `public_url` 留空时生效，默认使用本机 IP                                                                 | 127.0.0.1                                |
-| cdn_url                | CDN 代理加速地址，用于订阅源、频道图标等资源的加速访问；支持配置多个（用英文逗号分隔），订阅源与 EPG 按顺序逐个回退拉取，任一镜像成功即停，频道图标使用第一个地址                                                                                        |                                          |
+| cdn_url                | CDN 代理加速地址：非 Actions 运行时用于订阅源、EPG 与频道图标，Actions 发布时使用第一个地址加速 GitHub Pages 结果；该 CDN 必须支持代理 `github.io` 完整 URL。支持多个地址（英文逗号分隔） |                                          |
 | http_proxy             | HTTP 代理地址，仅用于获取订阅源和 EPG 数据；测速、媒体探测和截图保持直连                                                              |                                          |
 | open_local             | 开启本地源功能，将使用模板文件与本地源文件（local.txt）中的数据                                                                                 | True                                     |
 | open_subscribe         | 开启订阅源功能                                                                                                              | True                                     |

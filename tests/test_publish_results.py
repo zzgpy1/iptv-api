@@ -6,7 +6,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.publish_results import prepare_release_assets
+from scripts.publish_results import (
+    build_public_base_url,
+    prepare_pages_site,
+    prepare_release_assets,
+)
 
 
 class PublishResultsTests(unittest.TestCase):
@@ -91,9 +95,63 @@ class PublishResultsTests(unittest.TestCase):
                     destination=self.workspace / "large-assets",
                 )
 
+    def test_prepares_pages_site_with_direct_and_cdn_links(self):
+        assets = self.workspace / "release-assets"
+        assets.mkdir()
+        (assets / "result.txt").write_text("Demo,http://example.com\n", encoding="utf-8")
+        (assets / "result.m3u").write_text("#EXTM3U\n", encoding="utf-8")
+        (assets / "epg.gz").write_bytes(b"gzip-data")
+
+        site = self.workspace / "pages-site"
+        result = prepare_pages_site(
+            assets_directory=assets,
+            destination=site,
+            pages_base_url="https://owner.github.io/repository/",
+            cdn_url="https://cdn.example.com/",
+        )
+
+        self.assertEqual(
+            {path.name for path in site.iterdir()},
+            {"result.txt", "result.m3u", "epg.gz", "index.html"},
+        )
+        self.assertEqual(result["pages_base_url"], "https://owner.github.io/repository")
+        self.assertEqual(
+            result["public_base_url"],
+            "https://cdn.example.com/https://owner.github.io/repository",
+        )
+        index = (site / "index.html").read_text(encoding="utf-8")
+        self.assertIn("https://owner.github.io/repository/result.m3u", index)
+        self.assertIn(
+            "https://cdn.example.com/https://owner.github.io/repository/result.m3u",
+            index,
+        )
+
+    def test_pages_public_base_url_falls_back_to_direct_url(self):
+        self.assertEqual(
+            build_public_base_url("https://owner.github.io/repository/"),
+            "https://owner.github.io/repository",
+        )
+
+    def test_rejects_invalid_pages_url(self):
+        with self.assertRaisesRegex(ValueError, "absolute HTTP"):
+            build_public_base_url("owner.github.io/repository")
+
+    def test_rejects_oversized_pages_site(self):
+        assets = self.workspace / "release-assets"
+        assets.mkdir()
+        (assets / "result.txt").write_text("result", encoding="utf-8")
+
+        with patch("scripts.publish_results.MAX_PAGES_SITE_BYTES", 1):
+            with self.assertRaisesRegex(ValueError, "site size limit"):
+                prepare_pages_site(
+                    assets_directory=assets,
+                    destination=self.workspace / "pages-site",
+                    pages_base_url="https://owner.github.io/repository",
+                )
+
 
 class PublishWorkflowTests(unittest.TestCase):
-    def test_manual_workflow_publishes_release_without_git_push(self):
+    def test_manual_workflow_publishes_pages_and_release_without_git_push(self):
         workflow = Path(".github/workflows/main.yml").read_text(encoding="utf-8")
 
         self.assertIn("workflow_dispatch:", workflow)
@@ -101,8 +159,14 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertNotIn("git push", workflow)
         self.assertNotIn("git commit", workflow)
         self.assertIn("contents: write", workflow)
+        self.assertIn("pages: write", workflow)
+        self.assertIn("id-token: write", workflow)
         self.assertIn("playlist-latest", workflow)
         self.assertIn("scripts/publish_results.py", workflow)
+        self.assertIn("actions/configure-pages@v5", workflow)
+        self.assertIn("actions/upload-pages-artifact@v4", workflow)
+        self.assertIn("actions/deploy-pages@v4", workflow)
+        self.assertNotIn("gh-pages", workflow)
 
     def test_generated_output_is_ignored_by_git(self):
         ignore_patterns = Path(".gitignore").read_text(encoding="utf-8").splitlines()

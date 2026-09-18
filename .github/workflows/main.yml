@@ -1,31 +1,42 @@
 name: Generate playlist manually
 
 # ⚠️注意：请不要在 fork 的仓库中添加 `on: schedule` 定时任务（cron）。
-# 生成结果只能发布到 `playlist-latest` Release 或外部端点，不得提交回 Git。
+# 生成结果只能通过 Pages Artifact、`playlist-latest` Release 或外部端点发布，不得提交回 Git。
 # 如需要频繁更新或定时执行，请使用 Docker、命令行、GUI 或外部对象存储。
 #
 # ⚠️NOTICE: Do NOT add `on: schedule` cron triggers in forked repositories.
-# Publish generated results only to the `playlist-latest` release or an external endpoint; never commit them to Git.
+# Publish generated results only through a Pages artifact, the `playlist-latest` release, or an external endpoint; never commit them to Git.
 # Use Docker, the CLI, the GUI, or external object storage for frequent or scheduled runs.
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: playlist-release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
-  publish:
+  generate:
     runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
     steps:
       - name: Checkout source and configuration
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
 
       - name: Load upstream configuration
         if: github.repository_owner == 'Guovin'
@@ -74,9 +85,22 @@ jobs:
           pipenv install --deploy
 
       - name: Generate playlist results
+        id: generate
         env:
-          IPTV_API_ARTIFACT_BASE_URL: https://github.com/${{ github.repository }}/releases/download/playlist-latest
-        run: pipenv run dev
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          cdn_url="$(pipenv run python -c 'from utils.config import config; print(config.cdn_url)')"
+          public_base_url="$(
+            pipenv run python -c \
+              'import sys; from scripts.publish_results import build_public_base_url; print(build_public_base_url(sys.argv[1], sys.argv[2]))' \
+              "$PAGES_BASE_URL" "$cdn_url"
+          )"
+          {
+            echo "pages_base_url=${PAGES_BASE_URL%/}"
+            echo "public_base_url=$public_base_url"
+            echo "cdn_url=$cdn_url"
+          } >> "$GITHUB_OUTPUT"
+          IPTV_API_ARTIFACT_BASE_URL="$public_base_url" pipenv run dev
 
       - name: Prepare public release assets
         id: assets
@@ -84,8 +108,24 @@ jobs:
           final_file="$(pipenv run python -c 'from utils.config import config; print(config.final_file)')"
           pipenv run python scripts/publish_results.py \
             --final-file "$final_file" \
-            --destination release-assets
+            --destination release-assets \
+            --pages-destination pages-site \
+            --pages-base-url "${{ steps.generate.outputs.pages_base_url }}" \
+            --cdn-url "${{ steps.generate.outputs.cdn_url }}"
           echo "final_file=$final_file" >> "$GITHUB_OUTPUT"
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: pages-site
+
+      - name: Upload rolling release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: playlist-release-assets-${{ github.run_id }}
+          path: release-assets
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Report non-persistent configuration changes
         run: |
@@ -99,11 +139,92 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Check that Git history was not changed
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Detect reusable result state
+        id: result-state
+        run: |
+          if [[ -f output/data/cache.gz || -f output/data/frozen.gz ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save result history
+        if: steps.result-state.outputs.available == 'true' && steps.restore-state.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            output/data/cache.gz
+            output/data/frozen.gz
+          key: ${{ steps.source.outputs.state_key }}
+
+      - name: Add subscription links to summary
+        env:
+          PAGES_BASE: ${{ steps.generate.outputs.pages_base_url }}
+          PUBLIC_BASE: ${{ steps.generate.outputs.public_base_url }}
+          RELEASE_BASE: https://github.com/${{ github.repository }}/releases/download/playlist-latest
+        run: |
+          {
+            echo "### Published playlist"
+            echo
+            if [[ "$PUBLIC_BASE" != "$PAGES_BASE" ]]; then
+              echo "- CDN M3U: $PUBLIC_BASE/result.m3u"
+              echo "- CDN TXT: $PUBLIC_BASE/result.txt"
+            fi
+            echo "- Pages M3U: $PAGES_BASE/result.m3u"
+            echo "- Pages TXT: $PAGES_BASE/result.txt"
+            if [[ -f release-assets/result.m3u ]]; then
+              echo "- Release M3U: $RELEASE_BASE/result.m3u"
+            fi
+            echo "- Release TXT: $RELEASE_BASE/result.txt"
+            if [[ -f release-assets/epg.gz ]]; then
+              if [[ "$PUBLIC_BASE" != "$PAGES_BASE" ]]; then
+                echo "- CDN EPG: $PUBLIC_BASE/epg.gz"
+              fi
+              echo "- Pages EPG: $PAGES_BASE/epg.gz"
+              echo "- Release EPG: $RELEASE_BASE/epg.gz"
+            fi
+            echo
+            echo "Generated from \`${{ steps.assets.outputs.final_file }}\` without creating a Git commit."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-pages:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  publish-release:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download rolling release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: playlist-release-assets-${{ github.run_id }}
+          path: release-assets
+
       - name: Publish rolling playlist release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: playlist-latest
-          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          SOURCE_SHA: ${{ needs.generate.outputs.source_sha }}
         run: |
           if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
@@ -139,42 +260,3 @@ jobs:
             --json assets \
             --jq '.assets[].name' | sort > /tmp/remote-assets.txt
           diff -u /tmp/local-assets.txt /tmp/remote-assets.txt
-
-      - name: Check that Git history was not changed
-        env:
-          SOURCE_SHA: ${{ steps.source.outputs.sha }}
-        run: test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-
-      - name: Detect reusable result state
-        id: result-state
-        run: |
-          if [[ -f output/data/cache.gz || -f output/data/frozen.gz ]]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Save result history
-        if: steps.result-state.outputs.available == 'true' && steps.restore-state.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            output/data/cache.gz
-            output/data/frozen.gz
-          key: ${{ steps.source.outputs.state_key }}
-
-      - name: Add subscription links to summary
-        env:
-          RELEASE_BASE: https://github.com/${{ github.repository }}/releases/download/playlist-latest
-        run: |
-          {
-            echo "### Published playlist"
-            echo
-            if [[ -f release-assets/result.m3u ]]; then
-              echo "- M3U: $RELEASE_BASE/result.m3u"
-            fi
-            echo "- TXT: $RELEASE_BASE/result.txt"
-            if [[ -f release-assets/epg.gz ]]; then
-              echo "- EPG: $RELEASE_BASE/epg.gz"
-            fi
-            echo
-            echo "Generated from \`${{ steps.assets.outputs.final_file }}\` without creating a Git commit."
-          } >> "$GITHUB_STEP_SUMMARY"

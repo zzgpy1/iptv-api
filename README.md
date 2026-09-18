@@ -151,7 +151,7 @@
 | app_port                 | 高级兼容设置：Flask 内部 API 端口，通常无需修改，也不应作为用户访问端口                                                                        | 5180                                     |
 | public_scheme            | 高级兼容设置：旧版公网协议，仅在 `public_url` 留空时生效；可选值: http、https                                                            | http                                     |
 | public_domain            | 高级兼容设置：旧版公网 Host，仅在 `public_url` 留空时生效，默认使用本机 IP                                                                 | 127.0.0.1                                |
-| cdn_url                  | CDN 代理加速地址，用于订阅源、频道图标等资源的加速访问；支持配置多个（用英文逗号分隔），订阅源与 EPG 按顺序逐个回退拉取，任一镜像成功即停，频道图标使用第一个地址                                                                                        |                                          |
+| cdn_url                  | CDN 代理加速地址：非 Actions 运行时用于订阅源、EPG 与频道图标，Actions 发布时使用第一个地址加速 GitHub Pages 结果；该 CDN 必须支持代理 `github.io` 完整 URL。支持多个地址（英文逗号分隔） |                                          |
 | http_proxy               | HTTP 代理地址，仅用于获取订阅源和 EPG 数据；测速、媒体探测和截图保持直连                                                              |                                          |
 | open_local               | 开启本地源功能，将使用模板文件与本地源文件（local.txt）中的数据                                                                                 | True                                     |
 | open_subscribe           | 开启订阅源功能                                                                                                              | True                                     |
@@ -241,16 +241,18 @@ iptv-api/                  # 项目根目录
 ### 工作流
 
 > [!WARNING]
-> GitHub Actions 仅支持低频手动生成，结果发布到固定的 `playlist-latest` 预发布版，不再提交到 Git。
+> GitHub Actions 仅支持低频手动生成，结果通过 Pages Artifact 和固定的 `playlist-latest` 预发布版发布，不再提交到 Git。
 > 旧的 `raw.githubusercontent.com/.../output/...` 链接不再更新；需要定时执行时请使用 Docker、命令行或 GUI。
 
-Fork 本项目后可手动运行 `Generate playlist manually` 工作流。结果会覆盖发布到
-`playlist-latest` 预发布版，不会产生 Git 提交。固定链接示例：
+Fork 本项目后，先在 `Settings → Pages` 中将发布源设置为 `GitHub Actions`，再手动运行
+`Generate playlist manually`。Pages 地址适合播放器订阅，Release 地址作为下载与备用入口，整个过程不会产生 Git 提交。
 
 ```text
-https://github.com/您的GitHub用户名/仓库名/releases/download/playlist-latest/result.m3u
-https://github.com/您的GitHub用户名/仓库名/releases/download/playlist-latest/result.txt
+https://您的GitHub用户名.github.io/仓库名/result.m3u
+https://您的GitHub用户名.github.io/仓库名/result.txt
 ```
+
+若配置的 `cdn_url` 支持代理 `github.io`，工作流 Summary 还会提供 CDN 加速地址，并将 M3U 内的 EPG 地址指向该加速入口；Pages 直连始终保留作为备用。
 
 迁移和完整操作步骤请见[详细教程](./docs/tutorial.md#工作流部署)。
 
